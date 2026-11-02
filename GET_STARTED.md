@@ -37,3 +37,12 @@ Open http://localhost:8080 — do not open the HTML using file://.
 6. Render to MP4 if the browser supports it, otherwise WebM. Always verify exported audio/video sync.
 
 **Note:** This is a functional alpha, not a finished commercial-grade editor. Read README and PRODUCT_SPEC to see exactly what is implemented and what remains to be built.
+
+## Additional v0.2 tools
+
+- In **Media**, select an imported video, choose **Analyze faces for smart crop** or **Detect scene changes**. Face detection downloads a MediaPipe model on first use and does not identify real-world people.
+- In **Transcript**, run Whisper, check possible untranscribed audio intervals, and use **Retry ALL suspected transcript gaps**. Merge mistaken speaker labels manually or connect a compatible consented HTTPS speaker service.
+- In **AI Director**, choose fast local assembly, **Local semantic AI** (downloads a sentence embedding model), or opt-in **Remote language-model Director**.
+- In **Editor**, use start/end focus and zoom keyframes; enter a narration script for browser preview or external speech generation. Speech key stays in the tab, not in project JSON.
+- In **Export**, browser export is real-time and codec-dependent. For reliable longer MP4 exports, use `tools/render_project.py` on a computer with Python + FFmpeg and all original media files. Use `--all-candidates` to batch-render proposals.
+- Review source timestamps and the context inspection before publishing reordered moments as a factual sequence.

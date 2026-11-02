@@ -101,7 +101,7 @@ def render(project,media_dir,out,keep_temp=False):
         cmd=['ffmpeg','-y','-hide_banner','-loglevel','error',*input_args]
         if settings.get('captionOn',True) and captions.stat().st_size>1:
             # FFmpeg's subtitles filter needs libass; copy under a simple filename in workdir.
-            subvf='subtitles=captions.srt:force_style=Fontsize=18,Alignment=2,MarginV=80'
+            subvf="subtitles=captions.srt:force_style='Fontsize=18,Alignment=2,MarginV=80'"
             cmd+=['-vf',subvf]
         if filters:cmd+=['-filter_complex',';'.join(filters),'-map','0:v:0','-map','[aout]']
         else:cmd+=['-map','0:v:0','-map','0:a:0']
@@ -113,7 +113,17 @@ def render(project,media_dir,out,keep_temp=False):
 
 
 def main():
-    a=argparse.ArgumentParser(description=__doc__);a.add_argument('project',type=pathlib.Path);a.add_argument('--media-dir',type=pathlib.Path,required=True);a.add_argument('--out',type=pathlib.Path,default=pathlib.Path('shortform-render.mp4'));args=a.parse_args()
-    try:render(json.loads(args.project.read_text(encoding='utf-8')),args.media_dir,args.out)
+    a=argparse.ArgumentParser(description=__doc__);a.add_argument('project',type=pathlib.Path);a.add_argument('--media-dir',type=pathlib.Path,required=True);a.add_argument('--out',type=pathlib.Path,default=pathlib.Path('shortform-render.mp4'));a.add_argument('--all-candidates',action='store_true',help='Render each AI candidate into its own MP4');args=a.parse_args()
+    try:
+        data=json.loads(args.project.read_text(encoding='utf-8'))
+        if args.all_candidates:
+            candidates=data.get('candidates',[])
+            if not candidates:raise ValueError('This project has no AI clip candidates')
+            args.out.parent.mkdir(parents=True,exist_ok=True)
+            for i,c in enumerate(candidates,1):
+                suffix=re.sub(r'[^A-Za-z0-9_-]+','-',c.get('title','clip')).strip('-')[:45] or 'clip'
+                output=args.out.parent/f'{args.out.stem}-{i:02}-{suffix}.mp4'
+                render({**data,'segments':c['segments']},args.media_dir,output)
+        else:render(data,args.media_dir,args.out)
     except (ValueError,KeyError,RuntimeError,FileNotFoundError,subprocess.CalledProcessError) as ex:print('Render failed:',ex,file=sys.stderr);sys.exit(1)
 if __name__=='__main__':main()

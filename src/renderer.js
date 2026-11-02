@@ -25,12 +25,14 @@ export class Renderer{
   if(media){
     const mw=media.videoWidth||media.naturalWidth,mh=media.videoHeight||media.naturalHeight;
     if(mw&&mh){
-      const zoom=clamp((seg.zoom||1)*this.settings.zoom,.5,5),scale=Math.max(w/mw,h/mh)*zoom,dw=mw*scale,dh=mh*scale;
+      const progress=clamp(curr.local/Math.max(.05,seg.end-seg.start),0,1),keyedZoom=(seg.zoom||1)*(1-progress)+(seg.zoomEnd??seg.zoom??1)*progress;
+      const zoom=clamp(keyedZoom*this.settings.zoom,.5,5),scale=Math.max(w/mw,h/mh)*zoom,dw=mw*scale,dh=mh*scale;
       const sourceTime=seg.start+curr.local, detected=this.settings.autoFaceFraming?focusAt(p.faceTracks?.[seg.assetId]||[],sourceTime,seg.focusX??.5):null;
       const f=clamp((this.settings.faceTrackingStrength||80)/100,0,1);
-      const x=clamp((seg.focusX??.5)*(1-f)+(detected?.x??seg.focusX??.5)*f,0,1),y=clamp((seg.focusY??.5)*(1-f)+(detected?.y??seg.focusY??.5)*f,0,1);
+      const baseX=(seg.focusX??.5)*(1-progress)+(seg.focusEndX??seg.focusX??.5)*progress,baseY=(seg.focusY??.5)*(1-progress)+(seg.focusEndY??seg.focusY??.5)*progress;
+      const x=clamp(baseX*(1-f)+(detected?.x??baseX)*f,0,1),y=clamp(baseY*(1-f)+(detected?.y??baseY)*f,0,1);
       const dx=clamp(w/2-x*dw,w-dw,0),dy=clamp(h/2-y*dh,h-dh,0);
-      ctx.filter=`brightness(${this.settings.brightness}%) contrast(${this.settings.contrast}%) saturate(${this.settings.saturation}%)`;
+      const look={grayscale:'grayscale(100%)',sepia:'sepia(80%)',vintage:'sepia(50%) contrast(115%)',soft:'blur(1.4px)'}[this.settings.videoFilter]||'';ctx.filter=`brightness(${this.settings.brightness}%) contrast(${this.settings.contrast}%) saturate(${this.settings.saturation}%) ${look}`;
       ctx.drawImage(media,dx,dy,dw,dh);ctx.filter='none';
     }
   }
