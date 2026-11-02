@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {newProject,makeSegment,duration,mapWords,parseSRT,validateProject,segmentAt} from '../src/model.js';
+import {generateCandidates,utterances} from '../src/director.js';
+test('timeline mapping for reordered sources',()=>{const p=newProject();p.segments=[makeSegment('a',40,45),makeSegment('a',4,8)];p.words=[{id:'x',assetId:'a',start:41,end:42,text:'hello',speaker:'A'},{id:'y',assetId:'a',start:5,end:6,text:'world',speaker:'A'}];assert.equal(duration(p),9);assert.deepEqual(mapWords(p).map(x=>x.projectStart),[1,6]);assert.equal(segmentAt(p,7).seg.start,4)});
+test('subtitle import',()=>{const s='1\n00:00:01,000 --> 00:00:03,000\nHello there!\n\n2\n00:00:04,000 --> 00:00:05,000\nYes.';const w=parseSRT(s,'media');assert.equal(w.length,3);assert.equal(w[0].start,1);assert.equal(w[1].end,3);assert.equal(w[2].end,5)});
+test('local director proposes authentic original segments',()=>{const p=newProject(),words=[];for(let i=0;i<20;i++){const start=i*12;const s=(i%2===0?'I predicted the score and everyone laughed at the game.':'We finally saw the result and the prediction was wrong.');s.split(' ').forEach((t,j,a)=>words.push({id:`${i}.${j}`,assetId:'a',text:t,start:start+j/a.length*8,end:start+(j+1)/a.length*8,speaker:'A'}))}const u=utterances(words);assert.ok(u.length>=18);const c=generateCandidates(words,[],{clipMin:10,clipMax:45,clipCount:6,mode:'comedy',allowNonlinear:true});assert.ok(c.length>0);assert.ok(c.every(x=>x.segments.every(s=>s.start>=0&&s.end>s.start)));assert.ok(c.some(x=>x.segments.length>1))});
+test('invalid project rejected',()=>{assert.throws(()=>validateProject({assets:[]}),/Invalid project/)})
+import {preflight,removeDeadAir} from '../src/quality.js';
+test('preflight detects missing files',()=>{const p=newProject();p.assets=[{id:'a',name:'a.mp4',duration:20}];p.segments=[makeSegment('a',0,9)];const issues=preflight(p);assert.ok(issues.some(i=>i.severity==='error'&&i.title.includes('relinking')))});
+test('dead air removal preserves speech windows',()=>{const p=newProject();p.segments=[makeSegment('a',0,20)];p.words=[{assetId:'a',start:1,end:3},{assetId:'a',start:10,end:13},{assetId:'a',start:14,end:16}];const parts=removeDeadAir(p,p.segments[0].id);assert.equal(parts.length,2);assert.ok(parts[0].end<parts[1].start)});
+
+// Advanced analysis features preserve original provenance.
