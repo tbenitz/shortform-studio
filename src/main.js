@@ -142,13 +142,20 @@ async function runGameplayScan(target=null,{silent=false}={}){
 async function runDirector(exhaustive=false){
  if(directorBusy)return;
  if(!p.words.length&&p.settings.mode!=='cod-pvp')return toast('Complete Whisper or import an SRT for transcript-based editing; PvP mode can analyze the actual video/audio without spoken words.',true);
- p.settings.directorInstructions=$('directorPrompt')?.value||p.settings.directorInstructions||'';
- // Old transcript-only suggestions must not suppress genuine gameplay encounters.
- const pvp=p.settings.mode==='cod-pvp';
- const options={...p.settings,
-  existingCandidates:p.candidates.filter(c=>pvp?c.mode==='cod-pvp':c.mode!=='cod-pvp'),
-  history:(p.directorHistory||[]).filter(h=>pvp?h.mode==='cod-pvp':h.mode!=='cod-pvp')
- };
+ // Capture the user's current input BEFORE any inspector redraw.
+ p.settings.directorInstructions=($('directorPrompt')?.value??p.settings.directorInstructions??'').trim();
+ const options={...p.settings};
+ const plan=planDirectorBatch(p,options,{id:uid()});
+ options.existingCandidates=plan.existingCandidates;
+ options.history=plan.history;
+ // Each distinct creative direction re-examines the entire original recording.
+ // Previously proposed footage may reappear if relevant to a DIFFERENT goal.
+ if(plan.newBatch){
+  commit('New creative direction: '+(plan.batch.direction||'broad highlights'));
+  p.directorBatches=[...(p.directorBatches||[]),plan.batch].slice(-100);
+  p.directorActiveBatchId=plan.batch.id;
+ }
+ directorResultView='active';directorHour='all';directorShown=48;
  if(exhaustive)Object.assign(options,options.mode==='cod-pvp'?{clipCount:0,discoveryAll:true}:{clipCount:0,mode:'all',minScore:0,discoveryAll:true});
  const cover=sourceCoverage(p.assets,p.words,p.transcriptProgress,p.candidates);
  if(cover.totalBins>3&&cover.coveredBins<cover.totalBins/3){
@@ -194,20 +201,27 @@ async function runDirector(exhaustive=false){
      :await generateCandidatesBatched(p.words,p.assets,options,progress);
   }
   if(!added.length){
-   directorStatus='No additional distinct clips found in the currently transcribed source. Try a shorter minimum, finish transcribing other hours, or reset duplicate history if you want alternate cuts.';
-   toast(directorStatus,true);return;
+   const focus=parseEditorialDirection(options.directorInstructions);
+   directorStatus=focus.focus.length
+     ?'No transcript-confirmed matches for '+focus.focus.join(' + ')+'. The app will not invent trolling or opponent voice interactions. Try another direction, or add transcription for missing gameplay hours.'
+     :'No additional qualifying footage found for this direction. Reduce thresholds or inspect the recording.';
+   update();toast(directorStatus,true);return;
   }
-  commit('Director: '+added.length+' new clips');
-  const signatures=new Set(p.candidates.map(clipSignature));
+  const signatures=new Set(plan.existingCandidates.map(clipSignature));
   const fresh=added.filter(c=>!signatures.has(clipSignature(c)));
-  if(!fresh.length){directorStatus='All proposed clips are already saved. Try widening the search.';toast(directorStatus,true);return}
-  p.candidates=[...p.candidates,...fresh];
-  p.directorHistory=[...(p.directorHistory||[]),...historyEntries(fresh)].slice(-12000);
-  directorShown=48;directorHour='all';
-  const spans=new Set(fresh.map(c=>Math.floor(clipAnchor(c).time/300)));
-  directorStatus='Added '+fresh.length+' NEW '+(options.mode==='cod-pvp'?'PvP encounter clips with gameplay evidence':'shorts')+' from '+spans.size+' five-minute source sections. Saved '+p.candidates.length+' proposals; avoiding previously found moments.';
-  update();
-  toast(directorStatus);
+  if(!fresh.length){
+   directorStatus='All moments for THIS direction were already selected. Change creative directions to reassess the same recording, or lower thresholds.';
+   update();toast(directorStatus,true);return;
+  }
+  commit('Director: '+fresh.length+' clips for '+(plan.batch.direction||'broad discovery'));
+  const named=assignDirectorBatch(fresh,plan.batch);
+  p.candidates=[...p.candidates,...named];
+  p.directorHistory=[...(p.directorHistory||[]),...historyEntries(named).map(h=>({...h,directorBatchId:plan.batch.id}))].slice(-12000);
+  plan.batch.count=(plan.batch.count||0)+named.length;
+  directorShown=48;directorHour='all';directorResultView='active';
+  const spans=new Set(named.map(c=>Math.floor(clipAnchor(c).time/300)));
+  directorStatus='Found '+named.length+' clips matching THIS creative direction across '+spans.size+' five-minute source sections. Saved '+p.candidates.length+' total clips across all searches.';
+  update();toast(directorStatus);
  }catch(error){directorStatus='Director error: '+error.message;toast(directorStatus,true)}
  finally{directorBusy=false;if(tab==='director')renderInspector()}
 }
@@ -331,7 +345,21 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  c.querySelectorAll('[data-utterance]').forEach(e=>e.onclick=()=>{const t=Number(e.dataset.utterance);const u=utterances(p.words.filter(w=>w.assetId===p.selectedAsset)).find(x=>Math.abs(x.start-t)<.02);if(!u)return;selectedUtt={assetId:u.assetId,start:u.start,end:u.end};const text=$('uttText'),sp=$('speakerEdit');if(text)text.value=u.text;if(sp)sp.value=u.speaker;toast(`Selected ${fmt(u.start)}–${fmt(u.end)} in source`)});
  on('applyUtt',()=>{if(!selectedUtt)return toast('Choose an excerpt above',true);const match=p.words.filter(w=>w.assetId===selectedUtt.assetId&&w.start>=selectedUtt.start-.02&&w.end<=selectedUtt.end+.02);if(!match.length)return toast('Original words unavailable',true);const text=$('uttText').value,sp=$('speakerEdit').value||'Speaker 1',replacement=timeWords(text,selectedUtt.assetId,selectedUtt.start,selectedUtt.end-selectedUtt.start).map(w=>({...w,speaker:sp}));commit();p.words=p.words.filter(w=>!match.includes(w)).concat(replacement);selectedUtt=null;update();toast('Transcript corrected')});
  on('exportSRT',()=>download(toSRT(mapWords(p)),`${p.name}.srt`,'text/plain'));on('saveSrt',()=>download(toSRT(mapWords(p)),`${p.name}.srt`,'text/plain'));
- const prompt=$('directorPrompt');if(prompt)prompt.onchange=()=>{p.settings.directorInstructions=prompt.value;setStatus('Director instructions updated')};
+ const prompt=$('directorPrompt');
+ if(prompt)prompt.oninput=()=>{
+  p.settings.directorInstructions=prompt.value;
+  const hint=$('directionEvidenceHint'),focus=parseEditorialDirection(prompt.value);
+  if(hint)hint.textContent=focus.focus.length
+   ?'Looking for: '+focus.focus.join(', ')+'. '+(focus.exclude.length?'Avoiding: '+focus.exclude.join(', ')+'. ':'')+'Unverified enemy/teammate voice cues require transcript evidence.'
+   :'Broad discovery: no requested content category identified. Specify trolling, revives, gunfights, clutch, or enemy proximity chat.';
+  setStatus('Creative direction edited — Generate uses this text');
+ };
+ const focusPreset=$('pvpFocusPreset');
+ if(focusPreset)focusPreset.onchange=()=>{
+  if(!focusPreset.value)return;
+  if(prompt){prompt.value=focusPreset.value;prompt.oninput?.()}
+  else p.settings.directorInstructions=focusPreset.value;
+ };
  const rememberKeyBox=$('rememberDirectorKey');
  if(rememberKeyBox)rememberKeyBox.onchange=()=>{
   saveDirectorKey(providerKey,{remember:rememberKeyBox.checked});
@@ -351,16 +379,17 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  if(followBox)followBox.onchange=()=>{followWhisperCaptions=followBox.checked};
  
  on('generateClips',()=>runDirector(false));
- on('generatePvPClips',()=>{p.settings.mode='cod-pvp';renderInspector();runDirector(true)});
+ on('generatePvPClips',()=>{p.settings.directorInstructions=$('directorPrompt')?.value??p.settings.directorInstructions;p.settings.mode='cod-pvp';runDirector(true)});
  on('scanGameplayBtn',()=>{runGameplayScan().catch(()=>{})});
  on('cancelGameplayScan',()=>gameplayAbort?.abort());
  on('generateAllClips',()=>runDirector(true));
  on('clearCandidates',()=>{commit('Cleared saved proposals');p.candidates=[];directorShown=48;update();toast('Cards cleared. Previously discovered source moments remain excluded from future searches.')});
  on('resetDirectorHistory',()=>{
-  if(!confirm('Allow old source moments to be reused in future searches? This also clears the currently saved Director proposals.'))return;
-  commit('Reset Director history');p.directorHistory=[];p.candidates=[];directorShown=48;directorHour='all';update();toast('Discovery history reset. Old source moments can be selected again.');
+  if(!confirm('Reset all previous Director searches and proposed clips? Your video source, transcript and edited timeline will remain unchanged.'))return;
+  commit('Reset Director history');p.directorHistory=[];p.candidates=[];p.directorBatches=[];p.directorActiveBatchId=null;directorResultView='active';directorShown=48;directorHour='all';update();toast('Director search history reset without changing the source recording, subtitles or editor cuts.');
  });
- on('moreCandidates',()=>{directorShown=Math.min(directorShown+48,p.candidates.length);renderInspector()});
+ on('moreCandidates',()=>{directorShown+=48;renderInspector()});
+ const viewSelect=$('directorResultsView');if(viewSelect)viewSelect.onchange=()=>{directorResultView=viewSelect.value;directorShown=48;directorHour='all';renderInspector()};
  const hourPicker=$('directorHourFilter');
  if(hourPicker)hourPicker.onchange=()=>{directorHour=hourPicker.value;directorShown=48;renderInspector()};
 
