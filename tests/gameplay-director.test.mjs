@@ -57,3 +57,11 @@ test('no identified enemy voice means no fabricated enemy trolling results',()=>
  const proposed=generatePvPHighlights(content,[asset],t,{mode:'cod-pvp',clipCount:0,gameplayMinScore:25,directorInstructions:'ONLY enemy proximity chat trolling'});
  assert.equal(proposed.length,0);
 });
+
+test('two transcript speakers can suggest a playful back-and-forth, without assigning them to opposing teams',()=>{
+ const w=[{assetId:'cod',start:100,end:103,text:'you',speaker:'Speaker A'},{assetId:'cod',start:103,end:104,text:'trash',speaker:'Speaker A'},{assetId:'cod',start:105,end:107,text:'no',speaker:'Speaker B'},{assetId:'cod',start:107,end:109,text:'you suck',speaker:'Speaker B'}];
+ const out=generatePvPHighlights(w,[asset],{}, {mode:'cod-pvp',clipCount:0,clipMin:8,clipMax:35,gameplayMinScore:25,directorInstructions:'funny trash talk'});
+ assert.ok(out.length>0);
+ assert.ok(out[0].gameplay.multiSpeakerExchange);
+ assert.ok(!out[0].reason.includes('verified enemy'));
+});

@@ -24,3 +24,10 @@ test('never turn an unrecognized creative request into a claim of detected enemi
  assert.equal(ask.focus.length,0);
  assert.equal(matchEditorialDirection(ask,['possible-action']).eligible,true);
 });
+
+test('enemy OR teammate trolling can match either category without fabricating enemy audio',()=>{
+ const opts=parseEditorialDirection('trolling enemy proximity chat or teammate banter');
+ assert.ok(opts.focus.includes('enemychat')&&opts.focus.includes('squadbanter'));
+ assert.equal(matchEditorialDirection(opts,['troll','squadbanter']).eligible,true);
+ assert.equal(matchEditorialDirection(opts,['troll','enemychat']).eligible,true);
+});

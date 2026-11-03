@@ -14,7 +14,7 @@ export const EDITORIAL_TOPICS={
  spotted:{instruction:/\b(spott?(?:ed|ing)? enemies|enemy sightings?|find (?:the )?players?|enemy callouts?|locat(?:e|ing) enemies|push(?:ing)? players?)\b/i,tags:['spotted']},
  stealth:{instruction:/\b(stealth|sneak(?:ing|y)?|quiet approach|flank(?:ing)?|ambush|hide(?:ing)?|camp(?:ing|ers?)?)\b/i,tags:['spotted','combat']},
 };
-const hostile=/\b(?:without|exclude|avoid|skip|no|never|don't|do not|not interested in|cut out)\b/i;
+const hostile=/\b(?:without|exclude|avoid|skip|no|not|never|don't|do not|not interested in|cut out)\b/i;
 const grouping=/\b(?:and|or|with|plus|featuring)\b/i;
 const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
 export function editorialDirectionKey({mode='cod-pvp',directorInstructions='',provider='',clipMin=20,clipMax=75}={}){
@@ -64,8 +64,9 @@ export function matchEditorialDirection(profile,tags,events=[]){
  // An enemy proximity-chat request has to show an explicit transcript marker.
  // A gunfight alone is not enemy chat. Never manufacture a speaker identity.
  let eligible=!excluded.length&&(noRequiredEvidence||matches.length>0);
- if(profile.focus?.includes('enemychat')&&!matches.includes('enemychat'))eligible=false;
- if(profile.focus?.includes('squadbanter')&&!matches.includes('squadbanter'))eligible=false;
+ const requestedBoth=profile.focus?.includes('enemychat')&&profile.focus?.includes('squadbanter');
+ if(profile.focus?.includes('enemychat')&&!matches.includes('enemychat')&&!(requestedBoth&&!profile.strict&&matches.includes('squadbanter')))eligible=false;
+ if(profile.focus?.includes('squadbanter')&&!matches.includes('squadbanter')&&!(requestedBoth&&!profile.strict&&matches.includes('enemychat')))eligible=false;
  if(profile.strict&&profile.focus?.length&&matches.length<profile.focus.length)eligible=false;
  if(profile.requiresCombat&&!['combat','down','possible-action'].some(t=>have.has(t)))eligible=false;
  const alignment=profile.focus?.length?matches.length/profile.focus.length:0;

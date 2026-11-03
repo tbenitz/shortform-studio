@@ -37,7 +37,7 @@ export function extractGameplaySignals(words=[],tracks={}){
  const emit=()=>{
   if(!batch.length)return;
   const text=batch.map(w=>w.text).join(' '),tags=labelGameplayDialogue(text);
-  if(tags.length)signals.push({assetId:batch[0].assetId,start:batch[0].start,end:batch.at(-1).end,time:(batch[0].start+batch.at(-1).end)/2,text:text.slice(0,220),tags,kind:'dialogue'});
+  if(tags.length)signals.push({assetId:batch[0].assetId,start:batch[0].start,end:batch.at(-1).end,time:(batch[0].start+batch.at(-1).end)/2,text:text.slice(0,220),tags,kind:'dialogue',speaker:batch[0].speaker||'unknown'});
   batch=[];
  };
  for(const w of sorted){
@@ -67,7 +67,9 @@ export function scoreGameplayEncounter(group,settings={},track={}){
  const prefs=gameplayPreferences(settings.directorInstructions||'');
  const sound=Math.max(0,...audible.map(e=>e.score||0)),movement=Math.max(0,...motion.map(e=>e.score||0));
  const hasFight=audible.length>0||tags.has('combat')||tags.has('spotted')||tags.has('down')||tags.has('clutch');
- const hasTrollExchange=(tags.has('enemychat')||tags.has('squadbanter'))&&(tags.has('troll')||tags.has('trash')||tags.has('laugh'));
+ const speakerLabels=new Set(group.events.filter(e=>e.kind==='dialogue'&&e.speaker&&e.speaker!=='unknown').map(e=>e.speaker));
+ const multiSpeakerExchange=speakerLabels.size>=2;
+ const hasTrollExchange=(tags.has('enemychat')||tags.has('squadbanter')||multiSpeakerExchange)&&(tags.has('troll')||tags.has('trash')||tags.has('laugh'));
  const hasAction=hasFight||hasTrollExchange;
  const diversity=tags.has('spotted')&&tags.has('down')?13:tags.has('combat')&&tags.has('down')?12:0;
  const payoff=(tags.has('trash')||tags.has('laugh'))&&(tags.has('combat')||tags.has('down')||audible.length)?12:0;
@@ -94,7 +96,7 @@ export function scoreGameplayEncounter(group,settings={},track={}){
  value+=matching.scoreDelta;
  return {score:clamp(Math.round(value),0,98),tags:[...tags],
   audioConfidence:+sound.toFixed(2),motionConfidence:+movement.toFixed(2),hasAction,
-  directionMatch:matching,hasTrollExchange};
+  directionMatch:matching,hasTrollExchange,multiSpeakerExchange};
 }
 function clipTimes(group,duration,min,max){
  const action=group.events.filter(e=>e.kind==='audio'||e.kind==='motion'||(e.tags||[]).some(t=>['spotted','combat','down','revive','clutch'].includes(t)));
@@ -129,6 +131,7 @@ export function generatePvPHighlights(words,assets,tracks={},settings={},onProgr
    const type=unique.includes('enemychat')&&(unique.includes('troll')||unique.includes('trash'))?'Possible enemy-chat trolling (spoken cue)':
     unique.includes('squadbanter')&&(unique.includes('troll')||unique.includes('trash'))?'Squad banter / teammate trolling (spoken cue)':
     unique.includes('troll')?'Trolling / bait + reaction':
+    analysis.multiSpeakerExchange&&unique.includes('trash')?'Possible voice-chat trash talk exchange':
     unique.includes('trash')&&unique.includes('down')?'Trash talk + elimination callout':
     unique.includes('revive')?'Revive / rescue moment':unique.includes('clutch')?'Clutch / possible win':
     unique.includes('down')?'Down / elimination reaction':unique.includes('trash')?'Trash talk during encounter':
@@ -141,6 +144,7 @@ export function generatePvPHighlights(words,assets,tracks={},settings={},onProgr
    if(analysis.directionMatch.matches.length)evidence.push('Creative-direction evidence: '+analysis.directionMatch.matches.join(', '));
    if(unique.includes('enemychat'))evidence.push('Enemy-voice relationship inferred ONLY from spoken words; not verified by separate audio channel');
    if(unique.includes('squadbanter'))evidence.push('Squad relationship inferred ONLY from spoken words; not verified by separate audio channel');
+   if(analysis.multiSpeakerExchange)evidence.push('Multiple transcript speaker labels near this encounter; speaker identities and teams NOT verified');
    const segment=makeSegment(asset.id,window.start,window.end);
    candidates.push({
     id:'pvp-'+asset.id+'-'+window.start.toFixed(2)+'-'+window.end.toFixed(2),
