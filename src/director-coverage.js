@@ -144,20 +144,28 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
   }
   for(let i=0;i<list.length;i++){
    const seed=list[i];if(seed.end-seed.start<.6)continue;
-   let j=i,end=seed.end,words=0;
+   let j=i,end=seed.start,words=0,length=0;
+   const sequential=[];
    while(j<list.length&&j<i+24){
-    const u=list[j];if(u.start-end>3.2&&j>i)break;
-    if(u.end-seed.start>max+.2)break;
-    end=Math.max(end,u.end);words+=(u.text||'').split(/\s+/).length;j++;
-    if(end-seed.start>=Math.max(min,Math.min(max,min+10)))break;
+    const u=list[j],gap=j>i?u.start-end:0;
+    if(gap>32)break;
+    const uLength=Math.max(.01,u.end-u.start);
+    if(length+uLength>max+.2)break;
+    const previous=sequential.at(-1);
+    if(previous&&gap<1.8){
+     const increment=u.end-previous.end;
+     if(length+increment>max+.2)break;
+     previous.end=u.end;length+=increment;
+    }else{sequential.push(makeSegment(assetId,u.start,u.end));length+=uLength}
+    end=u.end;words+=(u.text||'').split(/\s+/).length;j++;
+    if(length>=Math.max(min,Math.min(max,min+10)))break;
    }
-   const length=end-seed.start;
    if(length<min*.83||length>max+.2||words<4)continue;
-   const clip=makeSegment(assetId,seed.start,end);
+   const clip=sequential;
    const isRelevant=mode==='all'||regex.test(seed.text)||regex.test(list[Math.max(i,j-1)]?.text||'');
    const score=scoreMoment(seed,mode,regex,length);
    if(mode==='all'||isRelevant||settings.discoveryAll||score>=(settings.minScore??0)){
-    raw.push({id:'clip-'+assetId+'-'+seed.start.toFixed(3),title:(mode==='all'?'Highlight':mode==='comedy'?'Comedy':mode==='educational'?'Insight':mode==='story'?'Story':'Moment')+': '+(seed.text||'').replace(/[^\w\s'-]/g,'').split(/\s+/).slice(0,9).join(' ').slice(0,80),mode,score,source:'full-source',anchorAssetId:assetId,anchorTime:seed.start,segments:[clip],duration:length,reason:'Continuous original dialogue from '+(assetNames.get(assetId)||'source')+' at '+fmt(seed.start)+'. Review meaning and pacing before export.'});
+    raw.push({id:'clip-'+assetId+'-'+seed.start.toFixed(3),title:(mode==='all'?'Highlight':mode==='comedy'?'Comedy':mode==='educational'?'Insight':mode==='story'?'Story':'Moment')+': '+(seed.text||'').replace(/[^\w\s'-]/g,'').split(/\s+/).slice(0,9).join(' ').slice(0,80),mode,score,source:'full-source',anchorAssetId:assetId,anchorTime:seed.start,segments:clip,duration:length,reason:'Continuous original dialogue from '+(assetNames.get(assetId)||'source')+' at '+fmt(seed.start)+'. Review meaning and pacing before export.'});
    }
    if(settings.allowNonlinear===false||!(seed.keywords||[]).length)continue;
    const candidatePositions=new Map();
