@@ -2,3 +2,9 @@
 
 /* Full-length timeline shares a scrollable time ruler, tracks and visible seek marker. */
 .timeline .trackarea{overflow-x:auto;overflow-y:auto;min-width:0;scrollbar-color:#568a8c #142030}.timeline .ruler{position:relative;margin:0 0 7px;padding:5px 8px;min-width:100%;box-sizing:border-box;border-radius:5px;cursor:crosshair;user-select:none}.timeline .ruler #timelineCursor{position:absolute;top:0;bottom:0;border-left:2px solid #ffe176;pointer-events:none}.timeline .track{min-width:100%;overflow:visible}.timeline .clip{flex-shrink:0;min-width:0}.sidefoot{max-height:265px;overflow:auto}.inspector-content video{border:1px solid var(--stroke);border-radius:8px}.timeline .panehead .row{flex-wrap:wrap;justify-content:flex-end}
+
+/* Decoding/relink feedback: never conceal a missing video behind still-visible captions. */
+.preview-media-status{position:absolute;z-index:4;left:50%;bottom:24px;transform:translateX(-50%);max-width:calc(100% - 32px);width:min(480px,92%);display:flex;align-items:center;flex-direction:column;gap:10px;background:rgba(6,14,24,.96);border:1px solid #528198;border-radius:10px;padding:13px 16px;color:#e2f1fa;font-size:12px;line-height:1.45;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.42)}
+.preview-media-status[data-state="error"]{border-color:#eeb16b;background:rgba(35,24,21,.96)}
+.preview-media-status[hidden],.preview-media-status button[hidden]{display:none!important}
+.preview-media-status button{max-width:100%;white-space:normal}

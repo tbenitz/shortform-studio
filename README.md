@@ -155,3 +155,10 @@ The remote AI Director retries temporary provider HTTP 503, 429, and similar fai
 **Different from finished video exports:** The Director builds editable clip sequences; choose Preview or Open in editor and use Export for a rendered file. Generating hundreds of candidate shorts does not render hundreds of finished MP4s automatically. A fully automated render queue still requires additional implementation. Local fallback selection includes text/topic heuristics rather than a guarantee of comedy or storytelling quality; review source context and continuity.
 
 Remote AI mode analyzes a configured number of transcript windows with the external provider and supplements proposals with clips drawn from the **entire** local transcript. This avoids discarding recording hours merely because of request limits or provider overload. More API calls may increase cost.
+
+ 
+### Video preview and source relinking (v0.5.1)
+
+Source transcripts and subtitle words are saved separately from the original video. For large imports (over 256 MiB), the browser deliberately does not duplicate the entire video into IndexedDB. When the project is reopened, the source may say **Relink file**. The program monitor now shows a prominent **Relink original video** button rather than silently displaying a black canvas with subtitles. Import the **same original video** with the same filename and file size to reconnect it to existing edits, source IDs, and transcription. Do not create a new project or retranscribe.
+
+The player now recognizes when the blob URL changes after relinking, including when the stable source ID is unchanged. The playback clock waits for a decoded video frame before advancing through a new distant source timestamp, avoiding skipping an entire short while the browser is still seeking. Source decode or codec problems show an actionable error. Supported browser video codecs depend on ChromeOS; H.264/AAC MP4 or VP8/Opus WebM are reliable fallbacks for unsupported MKV/HEVC recordings. An added Chromium end-to-end test checks missing-media UI, relinking, and playback after jumping between source timestamps.
