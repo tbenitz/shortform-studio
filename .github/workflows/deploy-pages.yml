@@ -51,6 +51,8 @@ jobs:
         run: npm run smoke:faces
       - name: Verify audio reader decodes bounded WebM windows in Chromium
         run: npm run smoke:audio
+      - name: Verify three-hour AI Director discovery and hour filters in Chromium
+        run: npm run smoke:director
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
