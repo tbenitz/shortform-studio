@@ -80,13 +80,14 @@ export async function transcribeWithReader(reader,assetId,settings,whisper,onPro
  const chunkSec=Math.max(8,Math.min(29,Number(settings.transcriptionChunk)||12)),overlap=1.5,total=reader.duration;
  if(!(total>0)||!Number.isFinite(total))throw Error('Could not determine the recording duration');
  if(!Number.isFinite(startAt)||startAt<0||startAt>total)throw Error('Invalid transcription resume time');
- let pendingWords=[],pendingGaps=[],processedUntil=startAt,processed=0,savedWords=0;
+ let pendingWords=[],pendingGaps=[],processedUntil=startAt,processed=0,savedWords=0,lastCheckpointAt=startAt;
  const segments=[];
  const flush=async()=>{
   if(!onCheckpoint)return;
   const w=reconcileWords(pendingWords),g=mergeGapFlags(pendingGaps);
-  if(!w.length&&!g.length&&processedUntil<=startAt)return;
+  if(processedUntil<=lastCheckpointAt)return;
   await onCheckpoint({words:w,gaps:g,nextAt:processedUntil,total});
+  lastCheckpointAt=processedUntil;
   savedWords+=w.length;pendingWords=[];pendingGaps=[];
  };
  try{
