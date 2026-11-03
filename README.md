@@ -137,3 +137,10 @@ The app uses a pinned Mediabunny audio demuxer and WebCodecs decoder to request 
 ### Subtitle styling and large-source safety (v0.4)
 
 In the Settings workspace, under **Caption and branding**, configure font, size, text color, active-word highlight, stroke color and thickness, background color, horizontal and vertical position, chunk length, and max lines. Dynamic captions highlight the currently spoken word. Rendering uses binary-search active word lookup to avoid scanning the entire transcript every preview frame. Imported recordings larger than 256 MiB are not automatically duplicated in IndexedDB; after reloading, relink the original file by importing it again (same name and size) and use **Resume from** in the Transcript tab. Audio is decoded in bounded windows, with text-only checkpoints stored periodically.
+
+
+### Live Whisper captions and Director reliability (v0.4.1)
+
+Whisper results now show in Transcript → Live Whisper subtitles as each recognition window finishes (usually 8–29 seconds, as configured), and update the burned-in captions in the video preview immediately. Enable **Follow newly recognized captions in video preview** to seek to the latest recognized source time; turn it off to keep reviewing another position while Whisper runs. Saved transcription checkpoints still persist every 3 windows. Long projects do not rebuild the full transcript UI per audio chunk.
+
+The remote AI Director retries temporary provider HTTP 503, 429, and similar failures with bounded backoff and then offers *clearly labeled local fallback clips* if the provider remains unavailable. HTTP 401/403 are not retried. The Director key may be remembered across sessions through an explicit on-device checkbox and **Forget stored key** control. It is stored **unencrypted in this browser's localStorage** for the GitHub Pages origin, not in the repository or exported project data. Avoid remembering keys on shared devices. An API key sent directly to a remote provider from a browser may be accessible to scripts from that same origin; revoke compromised keys at the provider.

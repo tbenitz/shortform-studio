@@ -76,7 +76,7 @@ export function mergeGapFlags(gaps){
  }
  return out;
 }
-export async function transcribeWithReader(reader,assetId,settings,whisper,onProgress=()=>{},shouldStop=()=>false,{startAt=0,onCheckpoint=null}={}){
+export async function transcribeWithReader(reader,assetId,settings,whisper,onProgress=()=>{},shouldStop=()=>false,{startAt=0,onCheckpoint=null,onPartial=null}={}){
  const chunkSec=Math.max(8,Math.min(29,Number(settings.transcriptionChunk)||12)),overlap=1.5,total=reader.duration;
  if(!(total>0)||!Number.isFinite(total))throw Error('Could not determine the recording duration');
  if(!Number.isFinite(startAt)||startAt<0||startAt>total)throw Error('Invalid transcription resume time');
@@ -102,7 +102,10 @@ export async function transcribeWithReader(reader,assetId,settings,whisper,onPro
     onFallback:message=>onProgress(start/total,message)
    });
    const words=wordsFromResult(result,assetId,a,b-a,mode);
-   for(const word of words){const mid=(word.start+word.end)/2;if(mid>=start-.03&&mid<end+.03)pendingWords.push(word)}
+   const newWords=words.filter(word=>{const mid=(word.start+word.end)/2;return mid>=start-.03&&mid<end+.03});
+   pendingWords.push(...newWords);
+   // Deliver visible captions after EVERY Whisper inference; disk checkpointing remains less frequent.
+   if(onPartial)await onPartial({assetId,words:newWords,from:start,to:end,total});
    const localWords=words.map(w=>({...w,start:w.start-a,end:w.end-a}));
    const review=auditGaps(pcm,localWords).map(g=>({...g,start:Math.max(start,a+g.start),end:Math.min(end,a+g.end)})).filter(g=>g.end-g.start>0.5);
    pendingGaps.push(...review);
