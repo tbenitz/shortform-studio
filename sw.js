@@ -1,5 +1,5 @@
-const CACHE='shortform-studio-shell-v14';
-const SHELL=['./','./index.html','./src/main.js','./src/faces.js','./src/media-workflow.js','./src/model.js','./src/storage.js','./src/director.js','./src/director-coverage.js','./src/gameplay-analysis.js','./src/gameplay-director.js','./src/gameplay-review.js','./src/playback-state.js','./src/renderer.js','./src/asr.js','./src/audio-reader.js','./src/live-captions.js','./src/credentials.js','./src/captions.js','./src/speakers.js','./src/scenes.js','./src/review.js','./src/voice.js','./src/quality.js','./src/styles.css','./icon.svg','./manifest.webmanifest'];
+const CACHE='shortform-studio-shell-v15';
+const SHELL=['./','./index.html','./src/main.js','./src/faces.js','./src/media-workflow.js','./src/model.js','./src/storage.js','./src/director.js','./src/director-coverage.js','./src/gameplay-analysis.js','./src/gameplay-director.js','./src/gameplay-review.js','./src/playback-state.js','./src/renderer.js','./src/asr.js','./src/audio-reader.js','./src/live-captions.js','./src/subtitle-sync.js','./src/credentials.js','./src/captions.js','./src/speakers.js','./src/scenes.js','./src/review.js','./src/voice.js','./src/quality.js','./src/styles.css','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
