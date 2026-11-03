@@ -53,7 +53,19 @@ try{
   return {clips:project.candidates.length,items:project.candidates.map(c=>({start:c.segments[0]?.start,end:c.segments[0]?.end,source:c.source,segments:c.segments.length,reason:c.reason,score:c.score}))};
  });
  if(!result.clips||!result.items.every(c=>c.source==='pvp-evidence'&&c.segments===1))throw Error('Generated disconnected transcript-only snippets instead of real action clips: '+JSON.stringify(result));
- if(!result.items.some(c=>c.start<=10&&c.end>=18))throw Error('First action sequence was cut away: '+JSON.stringify(result.items));
+ const debug=await page.evaluate(async()=>{
+  const project=await (await import('./src/storage.js')).loadProject();
+  const {extractGameplaySignals,generatePvPHighlights}=await import('./src/gameplay-director.js');
+  const {parseEditorialDirection}=await import('./src/director-intent.js');
+  const signals=extractGameplaySignals(project.words,project.gameplayTracks);
+  const raw=generatePvPHighlights(project.words,project.assets,project.gameplayTracks,{...project.settings,clipCount:0,existingCandidates:[],history:[]});
+  return {instructions:project.settings.directorInstructions,profile:parseEditorialDirection(project.settings.directorInstructions),
+   firstSignals:signals.filter(x=>x.start<40).map(x=>({start:x.start,end:x.end,kind:x.kind,tags:x.tags,score:x.score})),
+   raw:raw.map(c=>({start:c.segments[0].start,end:c.segments[0].end,score:c.score,tags:c.gameplay?.tags,matches:c.gameplay?.directionMatch?.matches})),
+   scans:project.gameplayTracks?.['cod-source']?.events?.map(x=>x.start)};
+ });
+ console.log('PvP discovery diagnostic: '+JSON.stringify(debug));
+ if(!result.items.some(c=>c.start<=10&&c.end>=18))throw Error('First action sequence was cut away: '+JSON.stringify({items:result.items,debug}));
  await page.locator('[data-candidate-play]').first().click();
  await page.waitForFunction(()=>{
   const v=document.querySelector('#engineVideo');
