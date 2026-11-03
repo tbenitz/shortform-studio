@@ -1,4 +1,5 @@
 import {uid} from './model.js';
+import {openAudioReader} from './audio-reader.js';
 /** Whisper transcription with overlapping windows, word reconciliation, and optional gap checks. */
 let modelCache=null,modelName=null;
 
@@ -27,7 +28,7 @@ export async function recognizeWindow(whisper,pcm,{modelKey='default',preference
  throw Error('No compatible transcription timing mode');
 }
 
-export async function decodeAudio(file){const ctx=new (window.AudioContext||window.webkitAudioContext)();try{let buf;try{buf=await ctx.decodeAudioData((await file.arrayBuffer()).slice(0))}catch(error){throw Error(`This browser could not decode the audio track in ${file.name||'this media file'}. Try MP4/AAC or WebM/Opus, or extract a WAV copy for transcription. (${error.message})`)}const target=16000;let data=new Float32Array(Math.ceil(buf.duration*target));const ratio=buf.sampleRate/target;for(let i=0;i<data.length;i++){let pos=i*ratio,index=Math.floor(pos),frac=pos-index;let v=0;for(let channel=0;channel<buf.numberOfChannels;channel++){const ch=buf.getChannelData(channel);v+=(ch[index]||0)*(1-frac)+(ch[index+1]||0)*frac}data[i]=v/buf.numberOfChannels}return data}finally{await ctx.close()}}
+/** Legacy single-file decode has been removed: long video uploads must never call file.arrayBuffer(). */
 async function engine(settings,onProgress){if(modelName===settings.whisperModel&&modelCache)return modelCache;const mod=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1');const opts={device:settings.processing==='webgpu'&&navigator.gpu?'webgpu':'wasm',dtype:settings.processing==='webgpu'&&navigator.gpu?'q4':'q8',progress_callback:p=>{if(p.status==='progress')onProgress(0,`Downloading Whisper: ${Math.round(p.progress||0)}%`)}};try{modelCache=await mod.pipeline('automatic-speech-recognition',settings.whisperModel,opts)}catch(e){if(opts.device!=='webgpu')throw e;opts.device='wasm';opts.dtype='q8';modelCache=await mod.pipeline('automatic-speech-recognition',settings.whisperModel,opts)}modelName=settings.whisperModel;return modelCache}
 export function wordsFromResult(result,assetId,offset,length,mode='word'){
  const list=Array.isArray(result?.chunks)&&result.chunks.length?result.chunks:[{text:result?.text||'',timestamp:[0,length]}];
@@ -64,19 +65,91 @@ export function auditGaps(pcm,words,{sampleRate=16000,minSeconds=1.8,windowSecon
     else if(active){if(active.end-active.start>=minSeconds)groups.push({...active,confidence:'needs-review'});active=null}
   }if(active&&active.end-active.start>=minSeconds)groups.push({...active,confidence:'needs-review'});return groups
 }
-export async function transcribe(file,assetId,settings,onProgress=()=>{},shouldStop=()=>false){onProgress(0,'Loading transcription engine');const whisper=await engine(settings,onProgress);if(shouldStop())throw Error('Transcription canceled');onProgress(0,'Decoding audio locally');const pcm=await decodeAudio(file);const chunkSec=Math.max(8,Math.min(29,Number(settings.transcriptionChunk)||12)),overlap=1.5,words=[],segments=[];const total=pcm.length/16000;
- for(let start=0;start<total;start+=chunkSec){if(shouldStop())throw Error('Transcription canceled');const a=Math.max(0,start-overlap),b=Math.min(total,start+chunkSec+overlap);const portion=pcm.subarray(Math.floor(a*16000),Math.ceil(b*16000));onProgress(start/total,`Recognizing ${start.toFixed(0)}–${Math.min(total,start+chunkSec).toFixed(0)}s (overlapping windows)`);const {result:res,mode}=await recognizeWindow(whisper,portion,{modelKey:settings.whisperModel,preference:settings.transcriptionTiming||'auto',onFallback:message=>onProgress(start/total,message)});const decoded=wordsFromResult(res,assetId,a,b-a,mode);for(const w of decoded){const mid=(w.start+w.end)/2;if(mid>=start-.03&&mid<start+chunkSec+.03)words.push(w)}segments.push({from:start,to:Math.min(total,start+chunkSec)});
- }const cleaned=reconcileWords(words);const gaps=auditGaps(pcm,cleaned);onProgress(1,`Transcribed ${cleaned.length} words; ${gaps.length} possible audio gaps to review`);return {words:cleaned,segments,gaps};
-}
-/** Re-analyze every flagged interval, not only the first, using context padding. */
-export async function retryGaps(file,assetId,settings,gaps,onProgress=()=>{},shouldStop=()=>false){
- if(!gaps?.length)return [];const whisper=await engine(settings,onProgress),pcm=await decodeAudio(file),out=[];
- const targets=gaps.flatMap((g,i)=>{const x=[];for(let start=g.start;start<g.end;start+=20){const end=Math.min(start+20,g.end);x.push({index:i,gap:g,start,end})}return x});
- for(let i=0;i<targets.length;i++){
-  if(shouldStop())throw Error('Gap retry canceled');const chunk=targets[i],a=Math.max(0,chunk.start-1.5),b=Math.min(pcm.length/16000,chunk.end+1.5);
-  onProgress(i/targets.length,`Retrying interval ${chunk.index+1}/${gaps.length} · window ${i+1}/${targets.length}`);
-  const {result:output,mode}=await recognizeWindow(whisper,pcm.subarray(Math.floor(a*16000),Math.ceil(b*16000)),{modelKey:settings.whisperModel,preference:settings.transcriptionTiming||'auto',onFallback:message=>onProgress(i/targets.length,message)});
-  out.push(...wordsFromResult(output,assetId,a,b-a,mode).filter(w=>w.end>chunk.start&&w.start<chunk.end));
+/** Merge adjacent flagged audio intervals across independent decoding windows. */
+export function mergeGapFlags(gaps){
+ const out=[];
+ for(const g of [...gaps].sort((a,b)=>a.start-b.start)){
+  if(!(g.end>g.start))continue;
+  const prev=out.at(-1);
+  if(prev&&g.start<=prev.end+.5){prev.end=Math.max(prev.end,g.end);prev.maxRms=Math.max(prev.maxRms,g.maxRms||0)}
+  else out.push({...g});
  }
- onProgress(1,`Retried all ${gaps.length} intervals in ${targets.length} bounded audio windows`);return reconcileWords(out)
+ return out;
+}
+export async function transcribeWithReader(reader,assetId,settings,whisper,onProgress=()=>{},shouldStop=()=>false,{startAt=0,onCheckpoint=null}={}){
+ const chunkSec=Math.max(8,Math.min(29,Number(settings.transcriptionChunk)||12)),overlap=1.5,total=reader.duration;
+ if(!(total>0)||!Number.isFinite(total))throw Error('Could not determine the recording duration');
+ if(!Number.isFinite(startAt)||startAt<0||startAt>total)throw Error('Invalid transcription resume time');
+ let pendingWords=[],pendingGaps=[],processedUntil=startAt,processed=0,savedWords=0;
+ const segments=[];
+ const flush=async()=>{
+  if(!onCheckpoint)return;
+  const w=reconcileWords(pendingWords),g=mergeGapFlags(pendingGaps);
+  if(!w.length&&!g.length&&processedUntil<=startAt)return;
+  await onCheckpoint({words:w,gaps:g,nextAt:processedUntil,total});
+  savedWords+=w.length;pendingWords=[];pendingGaps=[];
+ };
+ try{
+  for(let start=startAt;start<total;start+=chunkSec){
+   if(shouldStop())throw Error('Transcription paused; completed sections have been retained');
+   const a=Math.max(0,start-overlap),end=Math.min(total,start+chunkSec),b=Math.min(total,end+overlap);
+   onProgress(start/total,'Decoding audio '+Math.floor(start/60)+'m / '+Math.ceil(total/60)+'m · memory-bounded window');
+   // Request only 8–32 seconds from the container, never the complete uploaded video.
+   const pcm=await reader.readRange(a,b);
+   if(shouldStop())throw Error('Transcription paused; completed sections have been retained');
+   const {result,mode}=await recognizeWindow(whisper,pcm,{
+    modelKey:settings.whisperModel,preference:settings.transcriptionTiming||'auto',
+    onFallback:message=>onProgress(start/total,message)
+   });
+   const words=wordsFromResult(result,assetId,a,b-a,mode);
+   for(const word of words){const mid=(word.start+word.end)/2;if(mid>=start-.03&&mid<end+.03)pendingWords.push(word)}
+   const localWords=words.map(w=>({...w,start:w.start-a,end:w.end-a}));
+   const review=auditGaps(pcm,localWords).map(g=>({...g,start:Math.max(start,a+g.start),end:Math.min(end,a+g.end)})).filter(g=>g.end-g.start>0.5);
+   pendingGaps.push(...review);
+   processedUntil=end;processed++;segments.push({from:start,to:end});
+   onProgress(end/total,'Transcribed '+Math.round(end)+'s / '+Math.round(total)+'s · '+(savedWords+pendingWords.length)+' words');
+   if(onCheckpoint&&processed%3===0)await flush();
+   if(shouldStop()){await flush();throw Error('Transcription paused; completed sections have been retained')}
+  }
+  await flush();
+  onProgress(1,'Transcription completed through '+Math.floor(total/60)+'m recording');
+  return {words:onCheckpoint?[]:reconcileWords(pendingWords),gaps:onCheckpoint?[]:mergeGapFlags(pendingGaps),segments,total,nextAt:total};
+ }catch(e){
+  if(onCheckpoint&&pendingWords.length||onCheckpoint&&pendingGaps.length)await flush();
+  throw e;
+ }
+}
+export async function transcribe(file,assetId,settings,onProgress=()=>{},shouldStop=()=>false,options={}){
+ let reader;
+ onProgress(0,'Opening streaming audio decoder');
+ try{
+  reader=await (options.readerFactory||openAudioReader)(file,{durationHint:options.durationHint,onStatus:msg=>onProgress(0,msg)});
+  if(shouldStop())throw Error('Transcription paused');
+  onProgress(0,'Loading Whisper model locally');
+  const whisper=options.whisper||await engine(settings,onProgress);
+  return await transcribeWithReader(reader,assetId,settings,whisper,onProgress,shouldStop,options);
+ }finally{reader?.close()}
+}
+/** Re-analyze every flagged interval with short independent decoded windows. */
+export async function retryGaps(file,assetId,settings,gaps,onProgress=()=>{},shouldStop=()=>false,options={}){
+ if(!gaps?.length)return [];
+ let reader;
+ try{
+  reader=await (options.readerFactory||openAudioReader)(file,{durationHint:options.durationHint});
+  const whisper=options.whisper||await engine(settings,onProgress),out=[];
+  const targets=gaps.flatMap((g,i)=>{const x=[];for(let start=g.start;start<g.end;start+=20)x.push({index:i,start,end:Math.min(start+20,g.end)});return x});
+  for(let i=0;i<targets.length;i++){
+   if(shouldStop())throw Error('Gap retry paused');
+   const w=targets[i],a=Math.max(0,w.start-1.5),b=Math.min(reader.duration,w.end+1.5);
+   onProgress(i/targets.length,'Retrying gap '+(w.index+1)+'/'+gaps.length);
+   const pcm=await reader.readRange(a,b);
+   const {result,mode}=await recognizeWindow(whisper,pcm,{
+    modelKey:settings.whisperModel,preference:settings.transcriptionTiming||'auto',
+    onFallback:msg=>onProgress(i/targets.length,msg)
+   });
+   out.push(...wordsFromResult(result,assetId,a,b-a,mode).filter(word=>word.end>w.start&&word.start<w.end));
+  }
+  onProgress(1,'Retried all '+gaps.length+' flagged intervals');
+  return reconcileWords(out);
+ }finally{reader?.close()}
 }
