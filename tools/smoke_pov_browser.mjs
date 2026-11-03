@@ -68,6 +68,7 @@ try{
   throw Error('Result card hides cuts/POV files and looks like a single source URL: '+storyboard.slice(0,850));
  await page.locator('[data-candidate-use="'+combined.id+'"]').click();
  await page.waitForFunction(()=>document.querySelector('#engineVideo')?.videoWidth>0&&document.querySelector('#engineVideo')?.readyState>=2,null,{timeout:20000});
+ const initialVideoSource=await page.locator('#engineVideo').evaluate(v=>v.currentSrc);
  await page.waitForTimeout(1300);
  const saved=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
@@ -75,12 +76,19 @@ try{
  });
  if(!saved.sync||saved.assets.length!==2)throw Error('Multi-source edit not saved: '+JSON.stringify(saved));
  if(errors.length)throw Error('Browser errors: '+errors.join(' | '));
- // Seek to the first cut of POV B and verify the decoded HTML media element switches.
- const targetIndex=combined.segments.findIndex(s=>s.assetId==='b');
+ // The two video files have deliberately different VIDEO CONTENT; prove the
+ // actual HTML media element changes sources when jumping between story beats.
+ const firstId=combined.segments[0].assetId;
+ const targetIndex=combined.segments.findIndex((s,i)=>i>0&&s.assetId!==firstId);
+ if(targetIndex<1)throw Error('Storyboard did not actually switch sources.');
  const firstSeconds=combined.segments.slice(0,targetIndex).reduce((sum,s)=>sum+(s.end-s.start)/s.speed,0);
- await page.locator('#playhead').evaluate((range,t)=>{range.value=String(t+.2);range.dispatchEvent(new Event('input',{bubbles:true}))},firstSeconds);
- await page.waitForFunction(()=>{const v=document.getElementById('engineVideo');return v?.readyState>=2&&!v.seeking&&v.videoWidth>0},null,{timeout:18000});
+ await page.locator('#playhead').evaluate((range,t)=>{range.value=String(t+.35);range.dispatchEvent(new Event('input',{bubbles:true}))},firstSeconds);
+ await page.waitForFunction(prev=>{
+  const v=document.getElementById('engineVideo');
+  return v?.readyState>=2&&!v.seeking&&v.videoWidth>0&&v.currentSrc!==prev;
+ },initialVideoSource,{timeout:20000});
  const selected=await page.evaluate(()=>({src:document.getElementById('engineVideo').currentSrc,currentTime:document.getElementById('engineVideo').currentTime}));
- if(!(selected.src||'').startsWith('blob:'))throw Error('Second POV footage failed to load after montage jump: '+JSON.stringify(selected));
+ if(!(selected.src||'').startsWith('blob:')||selected.src===initialVideoSource)
+  throw Error('Second POV source WAS NOT loaded for narrative montage cut: '+JSON.stringify(selected));
  console.log('PASS: Two VODs synchronized at '+sync.offset+'s, actual '+combined.segments.length+'-cut A+B narrative montage with '+combined.pov.jumpCuts+' temporal jumps, valid decoded video preview for second POV, saved editor timeline.');
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}
