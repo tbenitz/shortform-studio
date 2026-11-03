@@ -46,8 +46,11 @@ jobs:
         run: |
           ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=640x360:rate=12 -t 2.5 -an -c:v libvpx -deadline realtime -cpu-used 8 _site/face-test-landscape.webm
           ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=360x640:rate=12 -t 2.5 -an -c:v libvpx -deadline realtime -cpu-used 8 _site/face-test-portrait.webm
+          ffmpeg -hide_banner -loglevel error -y -f lavfi -i sine=frequency=440:sample_rate=48000:duration=5 -c:a libopus -b:a 96k _site/audio-test.webm
       - name: Verify detector with full decoded-video scans in Chromium
         run: npm run smoke:faces
+      - name: Verify audio reader decodes bounded WebM windows in Chromium
+        run: npm run smoke:audio
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

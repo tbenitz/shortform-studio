@@ -132,3 +132,8 @@ The scanner now waits for a decoded video frame with usable native width/height 
 ### Long-form streaming audio decoder (v0.4)
 
 The app uses a pinned Mediabunny audio demuxer and WebCodecs decoder to request small audio windows from uploaded media, rather than loading or decoding the complete video in memory. Mediabunny is MPL-2.0 licensed; its published bundle is packaged locally by GitHub Actions and deployed at `vendor/mediabunny/mediabunny.mjs`. WAV/MP3/AAC/Opus decoding depends on browser support; unsupported audio formats produce a clear error. The transcription pipeline supports incremental checkpoints and resume. For local development run `npm install && npm run vendor:audio`.
+
+
+### Subtitle styling and large-source safety (v0.4)
+
+In the Settings workspace, under **Caption and branding**, configure font, size, text color, active-word highlight, stroke color and thickness, background color, horizontal and vertical position, chunk length, and max lines. Dynamic captions highlight the currently spoken word. Rendering uses binary-search active word lookup to avoid scanning the entire transcript every preview frame. Imported recordings larger than 256 MiB are not automatically duplicated in IndexedDB; after reloading, relink the original file by importing it again (same name and size) and use **Resume from** in the Transcript tab. Audio is decoded in bounded windows, with text-only checkpoints stored periodically.
