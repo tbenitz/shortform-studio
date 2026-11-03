@@ -34,26 +34,51 @@ try{
    b:{status:'complete',audio:[{}],fingerprint:b.size+':'+b.date+':1',
     events:[{start:20,end:25,peakTime:22,score:.12},{start:32,end:45,peakTime:39,score:.98}],motion:[{time:39,motion:.95}]}
   };
+  // Regression: user has HUNDREDS of saved one-cut `cod-pvp` proposals, but
+  // has never saved POV alignment. Default Generate must not recycle the raw list.
+  p.directorBatches=[{id:'legacy-raw',key:'old raw fight scan',mode:'cod-pvp',direction:'fight real players'}];
+  p.directorActiveBatchId='legacy-raw';
+  p.candidates=Array.from({length:500},(_,i)=>({
+   id:'raw-moment-'+i,mode:'cod-pvp',source:'gameplay-heuristic',
+   directorBatchId:'legacy-raw',title:'Old one-cut moment '+i,
+   segments:[makeSegment(i%2?'b':'a',i%2?1:2,i%2?5:6)],duration:4,score:50
+  }));
   await saveProject(p);
  },{a:{size:a.size,date:Math.floor(a.mtimeMs)},b:{size:b.size,date:Math.floor(b.mtimeMs)}});
  await page.reload({waitUntil:'domcontentloaded'});
  page.on('dialog',d=>d.accept());
  await page.locator('#fileUpload').setInputFiles([A,B]);
  await page.locator('[data-tab="director"]').click();
- await page.locator('#povReference').selectOption('a');
- await page.locator('#povTarget').selectOption('b');
- await page.locator('#syncPovTranscripts').click();
- await page.waitForFunction(()=>document.querySelector('#povSyncStatus')?.textContent?.includes('Matched'),null,{timeout:15000});
- await page.waitForTimeout(1100);
+ const mode=await page.locator('#directorOutputMode').inputValue();
+ if(mode!=='stories')throw Error('Two loaded VODs defaulted to RAW one-cut discovery instead of edited A+B stories: '+mode);
+ const firstView=await page.locator('#candidateList').innerText();
+ if(firstView.includes('Old one-cut moment'))throw Error('500 old raw proposals are incorrectly shown in the active multi-POV story view');
+ if(!await page.locator('#directorModeNotice').innerText().then(s=>s.includes('500 earlier raw one-cut results')))
+  throw Error('Old raw one-cut search is not separately explained to the user.');
+ const initial=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  return {sync:p.povSync,count:p.candidates.length};
+ });
+ if(initial.sync!==null||initial.count!==500)throw Error('Fixture should have 500 raw clips and no sync: '+JSON.stringify(initial));
+ // Click the SAME generic generation button the user clicked, without touching manual POV sync.
+ await page.locator('#generateAllClips').click();
+ await page.waitForFunction(()=>/Created \d+ EDITED multi-POV STORIES|No NEW two-POV montage stories|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
+ await page.waitForTimeout(1200);
  const sync=await page.evaluate(async()=> (await (await import('./src/storage.js')).loadProject()).povSync);
- if(!sync||sync.referenceId!=='a'||sync.targetId!=='b'||Math.abs(sync.offset+4)>.6)throw Error('Speech clock sync failed: '+JSON.stringify(sync));
- await page.locator('#generateMultiPovHighlights').click();
+ if(!sync||sync.referenceId!=='a'||sync.targetId!=='b'||Math.abs(sync.offset+4)>.6)
+  throw Error('One-click GENERATE failed to synchronize both original recordings: '+JSON.stringify(sync));
+ const modeAfter=await page.locator('#directorOutputMode').inputValue();
+ if(modeAfter!=='stories')throw Error('Director fell back to raw clips after automatic sync');
  await page.waitForFunction(()=>/Created \d+ EDITED multi-POV STORIES|No NEW two-POV montage stories|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
  await page.waitForTimeout(1200);
  const result=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
   return p.candidates.map(c=>({id:c.id,source:c.source,mode:c.mode,pov:c.pov,segments:c.segments.map(s=>({assetId:s.assetId,start:s.start,end:s.end,speed:s.speed,storyRole:s.storyRole,globalStart:s.storyGlobalStart,globalEnd:s.storyGlobalEnd}))}));
  });
+ const rawCount=result.filter(c=>c.mode==='cod-pvp').length;
+ if(rawCount!==500)throw Error('The old 500 raw one-cuts were overwritten: '+rawCount);
+ const storyOnlyView=await page.locator('#candidateList').innerText();
+ if(storyOnlyView.includes('Old one-cut moment'))throw Error('Generated multi-POV results remain mixed with old one-cuts');
  const combined=result.find(c=>c.mode==='multi-pov-story'&&new Set(c.segments.map(s=>s.assetId)).size===2);
  if(!combined)throw Error('No actual edited story uses both source POVs: '+JSON.stringify(result));
  if(combined.segments.length<4||combined.pov.cutCount!==combined.segments.length||combined.pov.jumpCuts<1)
@@ -90,5 +115,5 @@ try{
  const selected=await page.evaluate(()=>({src:document.getElementById('engineVideo').currentSrc,currentTime:document.getElementById('engineVideo').currentTime}));
  if(!(selected.src||'').startsWith('blob:')||selected.src===initialVideoSource)
   throw Error('Second POV source WAS NOT loaded for narrative montage cut: '+JSON.stringify(selected));
- console.log('PASS: Two VODs synchronized at '+sync.offset+'s, actual '+combined.segments.length+'-cut A+B narrative montage with '+combined.pov.jumpCuts+' temporal jumps, valid decoded video preview for second POV, saved editor timeline.');
+ console.log('PASS: Default Generate auto-syncs previously unsynced VODs, hides/preserves 500 old raw one-cuts, creates '+combined.segments.length+' real A+B cuts with '+combined.pov.jumpCuts+' jumps, and decodes switched video POV.');
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}
