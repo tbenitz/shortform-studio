@@ -49,6 +49,53 @@ function renderInspector(){const target=$('inspectorContent');$('inspectorTitle'
 function editField(label,key,value,type='text',options){return `<label class="field">${esc(label)}${type==='select'?`<select data-edit="${key}">${options.map(o=>`<option value="${o[0]}" ${value===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`:`<input data-edit="${key}" type="${type}" value="${esc(value)}" step="any">`}</label>`}
 function chooseTab(name){tab=name;all('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));renderInspector()}
 function asrProgress(n,msg){const bar=$('asrProgress');if(bar)bar.style.width=`${Math.floor(n*100)}%`;if($('asrStatus'))$('asrStatus').textContent=msg;setStatus(msg)}
+/** Generate a fresh full-recording batch without replacing or recycling previous proposals. */
+async function runDirector(exhaustive=false){
+ if(directorBusy)return;
+ if(!p.words.length)return toast('The AI Director needs a transcript. Finish Whisper on the full recording or import a complete SRT first.',true);
+ p.settings.directorInstructions=$('directorPrompt')?.value||p.settings.directorInstructions||'';
+ const options={...p.settings,existingCandidates:p.candidates,history:p.directorHistory||[]};
+ if(exhaustive)Object.assign(options,{clipCount:0,mode:'all',minScore:0,discoveryAll:true});
+ const cover=sourceCoverage(p.assets,p.words,p.transcriptProgress,p.candidates);
+ if(cover.totalBins>3&&cover.coveredBins<cover.totalBins/3){
+  toast('Only '+cover.coveredBins+'/'+cover.totalBins+' five-minute source sections contain transcript. Scan and complete the missing sections to find shorts from all hours.',true);
+ }
+ if(options.provider==='remote'){
+  providerKey=$('providerKey')?.value.trim()||providerKey;
+  if(!providerKey)return toast('Enter an AI Director key, or change Director engine to a local mode.',true);
+  if(directorKeyRemembered())saveDirectorKey(providerKey,{remember:true});
+ }
+ directorBusy=true;directorStatus='Reading full recording coverage…';
+ renderInspector();
+ try{
+  const progress=(ratio,message)=>{
+   directorStatus=Math.round(Math.max(0,Math.min(1,ratio||0))*100)+'% · '+message;
+   const status=$('directorStatus');if(status)status.textContent=directorStatus;
+  };
+  const added=options.provider==='remote'
+   ?await remoteCandidates(p.words,p.assets,options,providerKey,progress)
+   :options.provider==='semantic'
+    ?await semanticCandidates(p.words,p.assets,options,progress)
+    :await generateCandidatesBatched(p.words,p.assets,options,progress);
+  if(!added.length){
+   directorStatus='No additional distinct clips found in the currently transcribed source. Try a shorter minimum, finish transcribing other hours, or reset duplicate history if you want alternate cuts.';
+   toast(directorStatus,true);return;
+  }
+  commit('Director: '+added.length+' new clips');
+  const signatures=new Set(p.candidates.map(clipSignature));
+  const fresh=added.filter(c=>!signatures.has(clipSignature(c)));
+  if(!fresh.length){directorStatus='All proposed clips are already saved. Try widening the search.';toast(directorStatus,true);return}
+  p.candidates=[...p.candidates,...fresh];
+  p.directorHistory=[...(p.directorHistory||[]),...historyEntries(fresh)].slice(-12000);
+  directorShown=48;directorHour='all';
+  const spans=new Set(fresh.map(c=>Math.floor(clipAnchor(c).time/300)));
+  directorStatus='Added '+fresh.length+' NEW shorts from '+spans.size+' different five-minute source sections. Saved '+p.candidates.length+' proposals total; avoided previously discovered moments.';
+  update();
+  toast(directorStatus);
+ }catch(error){directorStatus='Director error: '+error.message;toast(directorStatus,true)}
+ finally{directorBusy=false;if(tab==='director')renderInspector()}
+}
+
 function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const key=e.dataset.setting;let val=e.type==='checkbox'?e.checked:e.type==='number'||e.type==='range'?Number(e.value):e.value;if(key==='clipMin'||key==='clipMax'){val=clamp(val,5,600)}if(key==='clipCount')val=clamp(val,0,MAX_DISCOVERY_CLIPS);if(key==='semanticSamples')val=clamp(val,40,450);if(key==='maxAICalls')val=clamp(val,1,96);if(key==='captionSize')val=clamp(val,12,120);if(key==='captionWords')val=clamp(val,1,12);if(key==='captionX'||key==='captionPosition')val=clamp(val,5,95);if(key==='captionOutlineWidth')val=clamp(val,0,12);if(key==='captionMaxLines')val=clamp(val,1,3);p.settings[key]=val;if(key==='aspect')$('aspectSelect').value=val;engine.setSize();update()});
  c.querySelectorAll('[data-edit]').forEach(e=>e.onchange=()=>{const key=e.dataset.edit,obj=p.segments.find(s=>s.id===p.selectedSegment)||p.audio.find(a=>a.id===p.selectedAudio);if(!obj)return;commit();const k=key==='audioStart'?'start':key==='audioDuration'?'duration':key==='audioVolume'?'volume':key==='audioRole'?'role':key;let v=e.type==='number'?Number(e.value):e.value;if(k==='speed')v=clamp(v,.25,3);if(k==='start')v=clamp(v,0,obj.end?obj.end-.1:duration(p));if(k==='end')v=clamp(v,(obj.start||0)+.1,asset(obj.assetId)?.duration||Number.MAX_SAFE_INTEGER);if(k==='volume')v=clamp(v,0,2);if(['focusX','focusY','focusEndX','focusEndY'].includes(k))v=clamp(v,0,1);if(k==='zoom'||k==='zoomEnd')v=clamp(v,.5,5);obj[k]=v;update()});
  const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
@@ -140,26 +187,17 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  const followBox=$('followWhisperCaptions');
  if(followBox)followBox.onchange=()=>{followWhisperCaptions=followBox.checked};
  
- on('generateClips',async()=>{
- if(!p.words.length)return toast('Import or transcribe dialogue first',true);
- p.settings.directorInstructions=$('directorPrompt')?.value||'';
- if(p.settings.provider==='remote'){
-  providerKey=$('providerKey')?.value.trim()||providerKey;
-  if(!providerKey)return toast('Provide an API key, or switch to the local Director',true);
-  if(directorKeyRemembered())saveDirectorKey(providerKey,{remember:true});
- }
- $('generateClips').disabled=true;$('generateClips').textContent='Analyzing…';
- try{
-  const progress=(ratio,message)=>{const btn=$('generateClips');if(btn)btn.textContent=`${Math.round(ratio*100)}% · ${message}`};
-  const candidates=p.settings.provider==='remote'?await remoteCandidates(p.words,p.assets,p.settings,providerKey,progress):p.settings.provider==='semantic'?await semanticCandidates(p.words,p.assets,p.settings,progress):generateCandidates(p.words,p.assets,p.settings);
-  if(!candidates.length)return toast('No qualifying clips. If the provider is overloaded, try lowering minimum score and clip length.',true);
-  commit();p.candidates=candidates;update();
-  const localFallback=candidates.filter(c=>c.source==='local-fallback').length;
-  toast(localFallback?`AI service unavailable. Kept ${candidates.length-localFallback} remote suggestions and generated ${localFallback} LOCAL fallback clips.`:`Generated ${candidates.length} editable clip proposals`);
- }catch(e){toast(`Director failed: ${e.message}`,true)}
- finally{if(tab==='director')renderInspector()}
-});
- on('clearCandidates',()=>{commit();p.candidates=[];update()});
+ on('generateClips',()=>runDirector(false));
+ on('generateAllClips',()=>runDirector(true));
+ on('clearCandidates',()=>{commit('Cleared saved proposals');p.candidates=[];directorShown=48;update();toast('Cards cleared. Previously discovered source moments remain excluded from future searches.')});
+ on('resetDirectorHistory',()=>{
+  if(!confirm('Allow old source moments to be reused in future searches? This also clears the currently saved Director proposals.'))return;
+  commit('Reset Director history');p.directorHistory=[];p.candidates=[];directorShown=48;directorHour='all';update();toast('Discovery history reset. Old source moments can be selected again.');
+ });
+ on('moreCandidates',()=>{directorShown=Math.min(directorShown+48,p.candidates.length);renderInspector()});
+ const hourPicker=$('directorHourFilter');
+ if(hourPicker)hourPicker.onchange=()=>{directorHour=hourPicker.value;directorShown=48;renderInspector()};
+
  c.querySelectorAll('[data-candidate-review]').forEach(e=>e.onclick=()=>{const candidate=p.candidates.find(x=>x.id===e.dataset.candidateReview);if(!candidate)return;const r=inspectStory(candidate.segments,p.words,p.assets);const summary=[`Editorial review: ${r.score}/100 (heuristic, not predictive)`,...r.strengths,...r.issues.map(i=>`${i.level}: ${i.message}`)].join('\n');alert(summary)});
  c.querySelectorAll('[data-candidate-variant]').forEach(e=>e.onclick=()=>{const candidate=p.candidates.find(x=>x.id===e.dataset.candidateVariant);if(!candidate||candidate.segments.length<2)return toast('Need at least two moments for an alternate opening',true);commit();const variant={...candidate,id:uid(),title:`Alternate opening: ${candidate.title}`,segments:alternateOpener(candidate.segments,1).map(s=>({...s,id:uid()})),reason:`Alternate opener based on the same original footage. Chronology and story context need review.`,createdAt:Date.now()};p.candidates.unshift(variant);update();toast('Alternative edit created. Verify it preserves the meaning of source events.')});
  c.querySelectorAll('[data-candidate-use],[data-candidate-play]').forEach(e=>e.onclick=async()=>{const id=e.dataset.candidateUse||e.dataset.candidatePlay,candidate=p.candidates.find(x=>x.id===id);if(!candidate)return;commit();p.segments=candidate.segments.map(s=>({...s,id:uid()}));p.selectedSegment=p.segments[0]?.id||null;engine.pause();await engine.seek(0);update();if(e.dataset.candidatePlay){await engine.play()}else chooseTab('editor');toast(`Opened proposal: ${candidate.title}`)});
