@@ -54,7 +54,9 @@ jobs:
       - name: Verify three-hour AI Director discovery and hour filters in Chromium
         run: npm run smoke:director
       - name: Generate long-seek playback test video
-        run: ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=640x360:rate=12 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 24 -c:v libvpx -b:v 450k -deadline realtime -cpu-used 8 -c:a libopus -b:a 48k _site/playback-test.webm
+        run: |
+          ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=640x360:rate=12 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 24 -c:v libvpx -b:v 450k -deadline realtime -cpu-used 8 -c:a libopus -b:a 48k _site/playback-test.webm
+          ffmpeg -hide_banner -loglevel error -y -i _site/playback-test.webm -c copy -metadata comment=alternate-source-for-relink-test _site/renamed-playback-test.webm
       - name: Verify relinking, distant seeks, and decoded-frame playback in Chromium
         run: npm run smoke:playback
       - uses: actions/configure-pages@v5

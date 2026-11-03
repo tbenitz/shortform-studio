@@ -36,7 +36,9 @@ try{
  const track=await page.locator('#captionTrack').innerText();
  if(!track.includes('2 timed words'))throw Error('Subtitle metadata not preserved while video unlinked');
  console.log('PASS: Unlinked original shows actionable relink while subtitle metadata is retained.');
- await page.locator('#fileUpload').setInputFiles(filename);
+ const chooserEvent=page.waitForEvent('filechooser');
+ await page.locator('#relinkFromPreview').click();
+ const chooser=await chooserEvent;await chooser.setFiles(filename);
  const frameReady=()=>page.waitForFunction(()=>{
   const v=document.getElementById('engineVideo'),overlay=document.getElementById('previewMediaStatus');
   return overlay.hidden&&v.readyState>=2&&!v.seeking&&v.videoWidth>0&&Math.abs(v.currentTime-14)<.3;
@@ -73,6 +75,15 @@ try{
   return v.src!==previous&&v.readyState>=2&&!v.seeking&&v.videoWidth>0;
  },initialSrc,{timeout:25000});
  await verifyCanvas('Relinked replacement source URL');
+ const secondSrc=await page.locator('#engineVideo').evaluate(v=>v.src);
+ await page.locator('#relinkSourceUpload').setInputFiles('_site/renamed-playback-test.webm');
+ await page.waitForFunction(previous=>{
+  const video=document.getElementById('engineVideo');
+  return video.src!==previous && video.videoWidth>0 && !video.seeking && video.readyState>=2;
+ },secondSrc,{timeout:25000});
+ await verifyCanvas('Re-encoded and renamed replacement video');
+ const name=await page.locator('#assetsList').innerText();
+ if(!name.includes('renamed-playback-test.webm'))throw Error('Converted source was not attached to existing asset');
  if(errors.length)throw Error('Page JavaScript errors: '+errors.join(' | '));
- console.log('PASS: Real WebM video loads, plays, seeks to a distant cut, shows image pixels (not just CC), and refreshes the source after re-linking.');
+ console.log('PASS: Real video loads, seeks/plays distant cuts, renders nonblack pixels, and retains timelines after same-file AND converted/renamed-file relinking.');
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}
