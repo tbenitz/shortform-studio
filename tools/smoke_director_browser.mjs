@@ -29,7 +29,7 @@ try{
  if(!(await page.locator('#inspectorContent').innerText()).includes('36 of 36'))
   throw Error('Three-hour transcript coverage was not surfaced');
  await page.locator('#generateAllClips').click();
- await page.waitForFunction(()=>document.querySelector('#directorStatus')?.textContent?.includes('Added'),{timeout:30000});
+ await page.waitForFunction(()=>document.querySelector('#directorStatus')?.textContent?.includes('Found'),{timeout:30000});
  const first=await page.evaluate(async()=>{
   const {loadProject}=await import('./src/storage.js');
   // Commit autosave is asynchronous; UI already contains authoritative current count.
