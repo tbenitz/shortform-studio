@@ -37,3 +37,16 @@ test('taunting in an opponent voice interaction is a possible trolling candidate
  assert.equal(matchEditorialDirection(profile,['enemychat','trash']).eligible,true);
  assert.equal(matchEditorialDirection(profile,['spotted','possible-action']).eligible,false);
 });
+
+test('no dialogue-only does NOT require combat, revives, and trash talk simultaneously',()=>{
+ const profile=parseEditorialDirection('Include full gunfights, downed and reviving teammates, and funny trash talk. No dialogue-only clips.');
+ assert.equal(profile.strict,false,'hyphenated dialogue-only was incorrectly interpreted as ONLY');
+ assert.equal(profile.requiresCombat,true);
+ assert.equal(matchEditorialDirection(profile,['spotted','possible-action','down','trash','laugh','enemychat']).eligible,true);
+});
+test('an explicit ONLY at the start DOES require each requested focus',()=>{
+ const profile=parseEditorialDirection('ONLY enemy proximity chat trolling');
+ assert.equal(profile.strict,true);
+ assert.equal(matchEditorialDirection(profile,['enemychat','trash']).eligible,true);
+ assert.equal(matchEditorialDirection(profile,['enemychat','possible-action']).eligible,false);
+});

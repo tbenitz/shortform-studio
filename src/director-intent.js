@@ -43,7 +43,7 @@ export function parseEditorialDirection(text=''){
   positive.push('trolling','squadbanter');
  }
  const focus=[...new Set(positive)].filter(t=>!excluded.includes(t));
- return {raw,focus,exclude:[...new Set(excluded)],strict:/\b(?:only|exclusively|specifically|nothing but)\b/i.test(raw),
+ return {raw,focus,exclude:[...new Set(excluded)],strict:/(?:^|\b(?:show|find|include|select|keep|want)\s+)only\b|\b(?:exclusively|nothing but)\b/i.test(raw),
   requiresCombat:/\b(?:no dialogue.only|no just talking|keep the gunfight|don't cut the fight|include (?:the )?fight)\b/i.test(raw)};
 }
 export function matchEditorialDirection(profile,tags,events=[]){
