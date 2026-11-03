@@ -4,19 +4,19 @@ let modelCache=null,modelName=null;
 
 const supportedTiming=new Map();
 export const isAttentionTimestampError=error=>/cross[\s_-]?attentions?|output_attentions|alignment_heads|return_token_timestamps|word[- ]level timestamps? (?:is |are )?(?:not supported|unavailable)/i.test(String(error?.message||error));
-const isSegmentTimestampError=error=>/timestamps?.*(?:unsupported|not supported|unavailable|cannot|not implemented)|(?:unsupported|cannot|not available).*timestamps?|return_timestamps.*(?:invalid|unsupported)/i.test(String(error?.message||error));
+const isSegmentTimestampError=error=>isAttentionTimestampError(error)||/timestamps?.*(?:unsupported|not supported|unavailable|cannot|not implemented)|(?:unsupported|cannot|not available).*timestamps?|return_timestamps.*(?:invalid|unsupported)/i.test(String(error?.message||error));
 /** Use attention-based word timing when available, then segment timing, then plain text.
  * Cache the model's working mode so later windows don't repeat the same inference failure. */
 export async function recognizeWindow(whisper,pcm,{modelKey='default',preference='auto',onFallback=()=>{}}={}){
- const allowed=preference==='plain'?['plain']:preference==='segment'?['segment','plain']:['word','segment','plain'];
- const cached=supportedTiming.get(modelKey),levels=cached&&allowed.includes(cached)?allowed.slice(allowed.indexOf(cached)):allowed;
+ const allowed=preference==='plain'?['plain']:preference==='word'?['word','segment','plain']:['segment','plain'];
+ const cacheKey=`${modelKey}:${preference}`;const cached=supportedTiming.get(cacheKey),levels=cached&&allowed.includes(cached)?allowed.slice(allowed.indexOf(cached)):allowed;
  for(let i=0;i<levels.length;i++){
   const mode=levels[i];
   try{
    const options=mode==='word'?{return_timestamps:'word'}:mode==='segment'?{return_timestamps:true}:{return_timestamps:false};
    const result=await whisper(pcm,options);
    if(!result||typeof result.text!=='string'&&!Array.isArray(result.chunks))throw Error('Transcription model returned no readable result');
-   supportedTiming.set(modelKey,mode);
+   supportedTiming.set(cacheKey,mode);
    return {result,mode};
   }catch(error){
    const canFallback=(mode==='word'&&isAttentionTimestampError(error))||(mode==='segment'&&isSegmentTimestampError(error));
@@ -27,7 +27,7 @@ export async function recognizeWindow(whisper,pcm,{modelKey='default',preference
  throw Error('No compatible transcription timing mode');
 }
 
-export async function decodeAudio(file){const ctx=new (window.AudioContext||window.webkitAudioContext)();try{const buf=await ctx.decodeAudioData((await file.arrayBuffer()).slice(0));const target=16000;let data=new Float32Array(Math.ceil(buf.duration*target));const ratio=buf.sampleRate/target;for(let i=0;i<data.length;i++){let pos=i*ratio,index=Math.floor(pos),frac=pos-index;let v=0;for(let channel=0;channel<buf.numberOfChannels;channel++){const ch=buf.getChannelData(channel);v+=(ch[index]||0)*(1-frac)+(ch[index+1]||0)*frac}data[i]=v/buf.numberOfChannels}return data}finally{await ctx.close()}}
+export async function decodeAudio(file){const ctx=new (window.AudioContext||window.webkitAudioContext)();try{let buf;try{buf=await ctx.decodeAudioData((await file.arrayBuffer()).slice(0))}catch(error){throw Error(`This browser could not decode the audio track in ${file.name||'this media file'}. Try MP4/AAC or WebM/Opus, or extract a WAV copy for transcription. (${error.message})`)}const target=16000;let data=new Float32Array(Math.ceil(buf.duration*target));const ratio=buf.sampleRate/target;for(let i=0;i<data.length;i++){let pos=i*ratio,index=Math.floor(pos),frac=pos-index;let v=0;for(let channel=0;channel<buf.numberOfChannels;channel++){const ch=buf.getChannelData(channel);v+=(ch[index]||0)*(1-frac)+(ch[index+1]||0)*frac}data[i]=v/buf.numberOfChannels}return data}finally{await ctx.close()}}
 async function engine(settings,onProgress){if(modelName===settings.whisperModel&&modelCache)return modelCache;const mod=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1');const opts={device:settings.processing==='webgpu'&&navigator.gpu?'webgpu':'wasm',dtype:settings.processing==='webgpu'&&navigator.gpu?'q4':'q8',progress_callback:p=>{if(p.status==='progress')onProgress(0,`Downloading Whisper: ${Math.round(p.progress||0)}%`)}};try{modelCache=await mod.pipeline('automatic-speech-recognition',settings.whisperModel,opts)}catch(e){if(opts.device!=='webgpu')throw e;opts.device='wasm';opts.dtype='q8';modelCache=await mod.pipeline('automatic-speech-recognition',settings.whisperModel,opts)}modelName=settings.whisperModel;return modelCache}
 export function wordsFromResult(result,assetId,offset,length,mode='word'){
  const list=Array.isArray(result?.chunks)&&result.chunks.length?result.chunks:[{text:result?.text||'',timestamp:[0,length]}];
@@ -64,7 +64,7 @@ export function auditGaps(pcm,words,{sampleRate=16000,minSeconds=1.8,windowSecon
     else if(active){if(active.end-active.start>=minSeconds)groups.push({...active,confidence:'needs-review'});active=null}
   }if(active&&active.end-active.start>=minSeconds)groups.push({...active,confidence:'needs-review'});return groups
 }
-export async function transcribe(file,assetId,settings,onProgress=()=>{},shouldStop=()=>false){onProgress(0,'Loading transcription engine');const whisper=await engine(settings,onProgress);if(shouldStop())throw Error('Transcription canceled');onProgress(0,'Decoding audio locally');const pcm=await decodeAudio(file);const chunkSec=Math.max(8,Math.min(29,Number(settings.transcriptionChunk)||20)),overlap=1.5,words=[],segments=[];const total=pcm.length/16000;
+export async function transcribe(file,assetId,settings,onProgress=()=>{},shouldStop=()=>false){onProgress(0,'Loading transcription engine');const whisper=await engine(settings,onProgress);if(shouldStop())throw Error('Transcription canceled');onProgress(0,'Decoding audio locally');const pcm=await decodeAudio(file);const chunkSec=Math.max(8,Math.min(29,Number(settings.transcriptionChunk)||12)),overlap=1.5,words=[],segments=[];const total=pcm.length/16000;
  for(let start=0;start<total;start+=chunkSec){if(shouldStop())throw Error('Transcription canceled');const a=Math.max(0,start-overlap),b=Math.min(total,start+chunkSec+overlap);const portion=pcm.subarray(Math.floor(a*16000),Math.ceil(b*16000));onProgress(start/total,`Recognizing ${start.toFixed(0)}–${Math.min(total,start+chunkSec).toFixed(0)}s (overlapping windows)`);const {result:res,mode}=await recognizeWindow(whisper,portion,{modelKey:settings.whisperModel,preference:settings.transcriptionTiming||'auto',onFallback:message=>onProgress(start/total,message)});const decoded=wordsFromResult(res,assetId,a,b-a,mode);for(const w of decoded){const mid=(w.start+w.end)/2;if(mid>=start-.03&&mid<start+chunkSec+.03)words.push(w)}segments.push({from:start,to:Math.min(total,start+chunkSec)});
  }const cleaned=reconcileWords(words);const gaps=auditGaps(pcm,cleaned);onProgress(1,`Transcribed ${cleaned.length} words; ${gaps.length} possible audio gaps to review`);return {words:cleaned,segments,gaps};
 }

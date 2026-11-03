@@ -114,3 +114,7 @@ This project contains no built-in third-party analytics. When source media is st
 ## License
 
 MIT. The optional Transformers.js package and downloaded model weights have separate licenses; consult their upstream projects before redistribution.
+
+### v0.3: full-source editor and safe Whisper timestamps
+New videos are automatically inserted on the full-length timeline using their actual media metadata (not 15 seconds). Source preview and In/Out markers allow selections anywhere in the source. Use Split, drag reorder, zoom in/out, Fit, speed and trim in the Editor workspace.
+Whisper Auto mode now requests segment timestamps, then plain transcription; only explicit Advanced Word mode requests model cross-attention outputs. Word timestamps are approximate in normal mode and should be reviewed before caption export. If browser decoding of video audio fails, extract WAV audio and import it for transcription. HTML/JS assets load network-first to prevent stale service worker caches.
