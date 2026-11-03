@@ -25,7 +25,7 @@ test('keeps the gunfight and its reaction as contiguous video including setup/af
  assert.ok(last?.segments[0].start<7100);
 });
 test('unverified loud gameplay sound can generate reviewable action clip without inventing kills',()=>{
- const out=generatePvPHighlights([], [asset],tracks,{mode:'cod-pvp',clipMin:12,clipMax:60,clipCount:0,gameplayMinScore:25});
+ const out=generatePvPHighlights([], [asset],tracks,{mode:'cod-pvp',clipMin:12,clipMax:60,clipCount:0,gameplayMinScore:44});
  assert.ok(out.length>=2);assert.ok(out.every(x=>x.reason.includes('unverified')));
 });
 test('unrelated chatter with no fight evidence does not create fake PvP highlights',()=>{

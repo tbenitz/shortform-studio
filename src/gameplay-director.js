@@ -67,6 +67,9 @@ export function scoreGameplayEncounter(group,settings={},track={}){
  const payoff=(tags.has('trash')||tags.has('laugh'))&&(tags.has('combat')||tags.has('down')||audible.length)?12:0;
  const rescue=tags.has('revive')&&(tags.has('down')||audible.length)?12:0;
  let value=18+sound*21+movement*13+diversity+payoff+rescue;
+ // Actual sustained sound+frame activity can qualify a gunfight even when nobody speaks.
+ if(audible.length&&track?.status==='complete')value+=12;
+ if(audible.length&&motion.length)value+=8;
  if(tags.has('down'))value+=10;if(tags.has('spotted'))value+=6;if(tags.has('trash'))value+=7;
  if(tags.has('laugh'))value+=7;if(tags.has('clutch'))value+=12;if(tags.has('revive'))value+=9;if(tags.has('combat'))value+=9;
  if(prefs.trash&&tags.has('trash'))value+=13;if(prefs.funny&&(tags.has('trash')||tags.has('laugh')))value+=12;
