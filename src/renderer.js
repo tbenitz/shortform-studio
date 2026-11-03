@@ -5,7 +5,7 @@ import {sourcePlaybackIssue,decodedVideoReady,sourceTimeToProjectTime,segmentTim
 import {alignedVideoProjectTime} from './subtitle-sync.js';
 const el=id=>document.getElementById(id);
 export class Renderer{
- constructor(project,getAsset,notify){this.project=project;this.asset=getAsset;this.notify=notify;this.video=el('engineVideo');this.canvas=el('previewCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});this.time=0;this.playing=false;this.lastFrame=0;this.rendering=false;this.cancelRequested=false;this.loadedAsset=null;this.loadedUrl=null;this.lastMediaWarning='';this.mediaPendingSince=0;this.loadedImage=null;this.image=null;this.raf=null;this.audioCtx=null;this.mediaDestination=null;this.videoGain=null;this.audioPlayers=new Map();this.previewMuted=false;this.onTick=()=>{};this.lastWordIndex=-1;this.captionCache={words:null,segments:null,list:[]};this.previousFrame=null;this.lastSegmentId=null;this.frameCache=null;this.video.addEventListener('loadedmetadata',()=>{this.syncVideo();this.draw()});
+ constructor(project,getAsset,notify){this.project=project;this.asset=getAsset;this.notify=notify;this.video=el('engineVideo');this.canvas=el('previewCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});this.time=0;this.playing=false;this.lastFrame=0;this.rendering=false;this.cancelRequested=false;this.loadedAsset=null;this.loadedUrl=null;this.lastMediaWarning='';this.mediaPendingSince=0;this.loadedImage=null;this.image=null;this.raf=null;this.audioCtx=null;this.mediaDestination=null;this.videoGain=null;this.videoAnalyser=null;this.lastAudioUiAt=0;this.lastAudioLevel=0;this.audioPlayers=new Map();this.previewMuted=false;this.onTick=()=>{};this.lastWordIndex=-1;this.captionCache={words:null,segments:null,list:[]};this.previousFrame=null;this.lastSegmentId=null;this.frameCache=null;this.video.addEventListener('loadedmetadata',()=>{this.syncVideo();this.draw()});
   for(const event of ['loadeddata','canplay','seeked','playing'])this.video.addEventListener(event,()=>{
    if(this.loadedUrl){this.syncVideo();this.draw()}
   });
@@ -21,7 +21,83 @@ export class Renderer{
  setProject(p){this.project=p;this.time=clamp(this.time,0,duration(p));this.captionCache={words:null,segments:null,list:[]};this.setSize();this.syncVideo();this.draw()}
  get settings(){return this.project.settings}
  setSize(height){const ar=this.settings.aspect.split(':').map(Number);const h=height||720;this.canvas.height=h;this.canvas.width=Math.round(h*ar[0]/ar[1]);this.canvas.style.aspectRatio=`${ar[0]}/${ar[1]}`;this.draw()}
- async initAudio(){if(this.audioCtx)return;this.audioCtx=new(window.AudioContext||window.webkitAudioContext)();this.mediaDestination=this.audioCtx.createMediaStreamDestination();const source=this.audioCtx.createMediaElementSource(this.video);this.videoGain=this.audioCtx.createGain();this.compressor=this.audioCtx.createDynamicsCompressor();source.connect(this.videoGain);this.videoGain.connect(this.compressor);this.compressor.connect(this.audioCtx.destination);this.compressor.connect(this.mediaDestination);await this.audioCtx.resume()}
+ /** Web Audio is responsible for all exported and preview sound. The media element
+  * must stay unmuted, and the AudioContext must be running after each user Play.
+  */
+ async initAudio(){
+  if(this.audioCtx){
+   if(this.audioCtx.state==='suspended')await this.audioCtx.resume();
+   if(this.audioCtx.state!=='running')throw Error('The browser audio engine is '+this.audioCtx.state+'. Click Play to unlock audio.');
+   this.ensureAudibleMedia();
+   this.syncAudio();
+   return;
+  }
+  this.audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  this.mediaDestination=this.audioCtx.createMediaStreamDestination();
+  this.video.muted=false;this.video.volume=1;
+  const source=this.audioCtx.createMediaElementSource(this.video);
+  this.videoGain=this.audioCtx.createGain();
+  this.videoAnalyser=this.audioCtx.createAnalyser();
+  this.videoAnalyser.fftSize=2048;
+  this.compressor=this.audioCtx.createDynamicsCompressor();
+  source.connect(this.videoGain);
+  this.videoGain.connect(this.videoAnalyser);
+  this.videoAnalyser.connect(this.compressor);
+  this.compressor.connect(this.audioCtx.destination);
+  this.compressor.connect(this.mediaDestination);
+  await this.audioCtx.resume();
+  if(this.audioCtx.state!=='running')throw Error('The audio engine is not running. Check Chrome sound permissions and retry Play.');
+  this.ensureAudibleMedia();
+  this.syncAudio();
+ }
+ ensureAudibleMedia(){
+  // A silent <video> after refresh may still render perfect picture and subtitles.
+  // Route its decoded audio through the active AudioContext, not a muted element.
+  if(this.video.muted)this.video.muted=false;
+  if(this.video.volume<.999)this.video.volume=1;
+ }
+ audioLevel(){
+  if(!this.videoAnalyser||this.audioCtx?.state!=='running')return 0;
+  const data=new Float32Array(this.videoAnalyser.fftSize);
+  this.videoAnalyser.getFloatTimeDomainData(data);
+  let sum=0;
+  for(const value of data)sum+=value*value;
+  return Math.sqrt(sum/data.length);
+ }
+ updateAudioUi(force=false){
+  const status=el('previewAudioStatus'),meter=el('previewAudioLevel'),mute=el('mutePreview'),volume=el('previewVolume');
+  if(mute){mute.textContent=this.previewMuted?'Unmute':'Mute';mute.setAttribute('aria-pressed',String(this.previewMuted))}
+  if(volume&&document.activeElement!==volume)volume.value=String(Math.round(clamp(this.settings.videoVolume,0,2)*100));
+  const now=performance.now();
+  if(!force&&now-this.lastAudioUiAt<550)return;
+  this.lastAudioUiAt=now;
+  const context=this.audioCtx?.state||'not started';
+  const gain=this.videoGain?.gain.value??0;
+  const level=this.audioLevel();
+  this.lastAudioLevel=level;
+  if(meter){meter.value=Math.min(100,Math.round(level*900));meter.dataset.level=String(level)}
+  if(!status)return;
+  let msg='';
+  if(this.previewMuted)msg='Preview is MUTED';
+  else if(gain<=.0001)msg='Video source volume is 0 — use Restore sound';
+  else if(this.playing&&context!=='running')msg='Browser audio engine '+context+' — click Restore sound';
+  else if(this.playing&&context==='running'&&level>.001)msg='Sound signal detected';
+  else if(this.playing&&context==='running'&&this.video.currentTime>0)msg='No audio signal detected yet — check the original video audio track';
+  else msg='Audio ready · '+Math.round(clamp(this.settings.videoVolume,0,2)*100)+'%';
+  status.textContent=msg;
+  status.dataset.state=level>.001?'signal':this.previewMuted?'muted':this.playing?'silent':'idle';
+  status.dataset.context=context;
+ }
+ restoreSound(){
+  this.previewMuted=false;
+  this.settings.videoVolume=1;
+  const segment=segmentAt(this.project,this.time)?.seg;
+  if(segment)segment.volume=1;
+  this.ensureAudibleMedia();
+  this.syncAudio();
+  this.updateAudioUi(true);
+ }
+
  async createAudioPlayers(){await this.initAudio();const ids=new Set(this.project.audio.map(a=>a.id));for(const [id,entry] of this.audioPlayers){if(!ids.has(id)){entry.el.pause();entry.el.remove();entry.node.disconnect();this.audioPlayers.delete(id)}}for(const a of this.project.audio){if(this.audioPlayers.has(a.id))continue;const asset=this.asset(a.assetId);if(!asset?.url)continue;const player=document.createElement('audio');player.preload='auto';player.src=asset.url;player.crossOrigin='anonymous';player.loop=false;const source=this.audioCtx.createMediaElementSource(player);const node=this.audioCtx.createGain();source.connect(node);node.connect(this.audioCtx.destination);node.connect(this.mediaDestination);el('audioElements').append(player);this.audioPlayers.set(a.id,{el:player,node})}}
  syncAudio(){this.videoGain&&(this.videoGain.gain.value=this.previewMuted?0:clamp(this.settings.videoVolume,0,2)*(segmentAt(this.project,this.time)?.seg.volume??1));for(const a of this.project.audio){const entry=this.audioPlayers.get(a.id);if(!entry)continue;const target=this.time-a.start+a.sourceStart,enabled=this.time>=a.start&&this.time<a.start+a.duration;entry.node.gain.value=this.previewMuted?0:enabled*clamp(a.volume??this.settings.audioVolume,0,2)*(this.settings.duckMusic&&a.role==='music'?.30:1);if(enabled){if(Math.abs(entry.el.currentTime-target)>.3&&Number.isFinite(target))try{entry.el.currentTime=Math.max(0,target)}catch{}if(this.playing&&entry.el.paused)entry.el.play().catch(()=>{});else if(!this.playing&&!entry.el.paused)entry.el.pause()}else if(!entry.el.paused)entry.el.pause()}}
  setMediaStatus(kind,message='',relink=false){
@@ -66,7 +142,7 @@ export class Renderer{
   // The previous implementation checked only asset.id and kept using a revoked old URL.
   if(this.loadedAsset!==asset.id||this.loadedUrl!==asset.url||this.video.src!==asset.url){
    this.video.pause();this.loadedAsset=asset.id;this.loadedUrl=asset.url;
-   this.video.preload='auto';this.video.src=asset.url;this.video.playbackRate=clamp(seg.speed||1,.25,3);this.video.load();
+   this.ensureAudibleMedia();this.video.preload='auto';this.video.src=asset.url;this.video.playbackRate=clamp(seg.speed||1,.25,3);this.video.load();
    this.mediaPendingSince=performance.now();
    this.setMediaStatus('loading','Opening '+asset.name+' · seeking to '+fmt(seg.start)+'…',false);
    return;
@@ -155,7 +231,7 @@ export class Renderer{
   this.time=clamp(t,0,duration(this.project));
   this.syncVideo();
   if(this.audioCtx)this.syncAudio();
-  this.draw();this.onTick(this.time);
+  this.draw();this.onTick(this.time);this.updateAudioUi(true);
  }
  async play(){
   if(this.playing){this.pause();return}
@@ -166,14 +242,14 @@ export class Renderer{
   if(issue){this.syncVideo();this.notify(issue.message,true);return}
   try{await this.initAudio();await this.createAudioPlayers();await this.audioCtx.resume()}
   catch(e){this.notify('Unable to initialize audio: '+e.message,true);return}
-  this.playing=true;this.lastFrame=performance.now();
-  this.syncVideo();this.syncAudio();this.loop();
+  this.ensureAudibleMedia();this.playing=true;this.lastFrame=performance.now();
+  this.syncVideo();this.syncAudio();this.updateAudioUi(true);this.loop();
  }
  pause(){
   this.playing=false;this.video.pause();
   for(const x of this.audioPlayers.values())x.el.pause();
   if(this.raf)cancelAnimationFrame(this.raf);
-  this.raf=null;this.draw();this.onTick(this.time)
+  this.raf=null;this.draw();this.onTick(this.time);this.updateAudioUi(true)
  }
  loop=()=>{
   if(!this.playing)return;
@@ -198,7 +274,7 @@ export class Renderer{
      this.time=clamp(sourceTimeToProjectTime(seg,curr.offset,this.video.currentTime),curr.offset,end);
     }
    }else{
-    this.draw();this.onTick(this.time);
+    this.draw();this.onTick(this.time);this.updateAudioUi();
     this.raf=requestAnimationFrame(this.loop);
     return;
    }
@@ -207,7 +283,7 @@ export class Renderer{
    this.time=duration(this.project);this.syncVideo();this.syncAudio();this.draw();
    this.pause();if(this.rendering)this.finishedRender?.();return;
   }
-  this.syncVideo();this.syncAudio();this.draw();this.onTick(this.time);
+  this.syncVideo();this.syncAudio();this.draw();this.onTick(this.time);this.updateAudioUi();
   this.raf=requestAnimationFrame(this.loop);
  };
  cancelRender(){if(this.rendering){this.cancelRequested=true;this.finishedRender?.()}}

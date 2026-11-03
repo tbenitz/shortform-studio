@@ -1,7 +1,7 @@
 {
   "name": "shortform-studio",
   "private": true,
-  "version": "0.6.1",
+  "version": "0.6.2",
   "type": "module",
   "description": "Local-first AI-assisted short-form video editor",
   "scripts": {
