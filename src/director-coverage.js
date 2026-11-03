@@ -25,7 +25,7 @@ export function sourceCoverage(assets=[],words=[],progress={},candidates=[]){
  const totalSeconds=sources.reduce((sum,s)=>sum+s.duration,0);
  const transcriptSeconds=sources.reduce((sum,s)=>sum+s.processed,0);
  const populatedBins=sources.reduce((sum,s)=>sum+s.coveredBins,0),allBins=sources.reduce((sum,s)=>sum+s.totalBins,0);
- return {sources,totalSeconds,transcriptSeconds,wordCount:words.length,percent:totalSeconds?Math.round(100*transcriptSeconds/totalSeconds):0,coveredBins:populatedBins,totalBins:allBins};
+ return {sources,totalSeconds,transcriptSeconds,wordCount:words.length,percent:totalSeconds?Math.round(1000*transcriptSeconds/totalSeconds)/10:0,coveredBins:populatedBins,totalBins:allBins};
 }
 const getAncestors=utterance=>[...new Set((utterance.keywords||[]).filter(k=>k.length>4))];
 function scoreMoment(seed,mode,pattern,length,nonlinear=false){
