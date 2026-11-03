@@ -37,6 +37,8 @@ jobs:
           cp -R src vendor _site/
       - name: Install Chromium for end-to-end face detection test
         run: npx playwright install --with-deps chromium
+      - name: Install FFmpeg for browser video smoke test
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Generate landscape and portrait test recordings
         run: |
           ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=640x360:rate=12 -t 2.5 -an -c:v libvpx -deadline realtime -cpu-used 8 _site/face-test-landscape.webm
