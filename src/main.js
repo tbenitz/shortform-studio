@@ -4,6 +4,8 @@ import {generateCandidates,generateCandidatesBatched,remoteCandidates,semanticCa
 import {sourceCoverage,clipSignature,historyEntries,clipAnchor,MAX_DISCOVERY_CLIPS} from './director-coverage.js';
 import {scanGameplay,GAMEPLAY_SCAN_VERSION} from './gameplay-analysis.js';
 import {generatePvPHighlights} from './gameplay-director.js';
+import {parseEditorialDirection} from './director-intent.js';
+import {planDirectorBatch,directorViewCandidates,assignDirectorBatch} from './director-batches.js';
 import {reviewPvPWithAI} from './gameplay-review.js';
 import {transcribe,retryGaps,reconcileWords} from './asr.js';
 import {sourceToTimelineTime,appendLiveWords} from './live-captions.js';
@@ -18,7 +20,7 @@ import {previewSpeech,stopSpeech,availableVoices,synthesizeSpeech,suggestBridges
 import {relabelSpeaker,speakerSummary,diarizeWithProvider,applySpeakerSegments} from './speakers.js';
 import {entireSourceCut,selectedSourceCut,shouldAutoInsertMedia,sourceSecondsValue,possibleMissingSourceRelink} from './media-workflow.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
-let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorBusy=false,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
+let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',directorBusy=false,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
 const asset=id=>assets.get(id)||p.assets.find(a=>a.id===id);
 const media=id=>assets.get(id)?.file;
 const engine=new Renderer(p,asset,toast);
