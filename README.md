@@ -127,3 +127,8 @@ The previously broken CDN `+esm` import is replaced with a MediaPipe ES bundle, 
 ### Face analysis decoded-frame fix (v0.3.2)
 
 The scanner now waits for a decoded video frame with usable native width/height rather than using `loadedmetadata` alone. Canvas dimensions are validated before MediaPipe sees a frame, with a bounded resolution for portrait and landscape video. Invalid ROI/MediaPipe frame failures are reported with source timestamps and retried by recreating the detector; repeated failures produce an actionable video-conversion error rather than pretending analysis succeeded. Deployment now tests full landscape and portrait **video scanning**, not just one synthetic canvas frame.
+
+
+### Long-form streaming audio decoder (v0.4)
+
+The app uses a pinned Mediabunny audio demuxer and WebCodecs decoder to request small audio windows from uploaded media, rather than loading or decoding the complete video in memory. Mediabunny is MPL-2.0 licensed; its published bundle is packaged locally by GitHub Actions and deployed at `vendor/mediabunny/mediabunny.mjs`. WAV/MP3/AAC/Opus decoding depends on browser support; unsupported audio formats produce a clear error. The transcription pipeline supports incremental checkpoints and resume. For local development run `npm install && npm run vendor:audio`.

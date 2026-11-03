@@ -23,6 +23,8 @@ jobs:
           node-version: '22'
       - name: Install pinned MediaPipe and Playwright
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Package streaming audio reader
+        run: npm run vendor:audio
       - name: Package local MediaPipe JavaScript, WASM and face model
         run: npm run vendor:faces
       - name: Validate bundled media engine
@@ -30,6 +32,7 @@ jobs:
           test -s vendor/mediapipe/vision_bundle.mjs
           test -s vendor/mediapipe/wasm/vision_wasm_internal.wasm
           test -s vendor/mediapipe/models/blaze_face_short_range.tflite
+          test -s vendor/mediabunny/mediabunny.mjs
       - name: Assemble static site
         run: |
           mkdir -p _site
