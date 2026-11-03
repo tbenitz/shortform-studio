@@ -13,7 +13,7 @@ try{
   const {newProject,makeSegment}=await import('./src/model.js');
   const {saveProject}=await import('./src/storage.js');
   const project=newProject();
-  project.name='Three-hour coverage browser test';
+  project.name='Three-hour coverage browser test';project.settings.mode='all';
   project.assets=[{id:'long',name:'3hour.mp4',type:'video',size:1000,lastModified:1,duration:10800,width:640,height:360}];
   project.segments=[makeSegment('long',0,10800)];
   project.transcriptProgress={long:{status:'complete',total:10800,nextAt:10800}};
