@@ -91,6 +91,29 @@ try{
   const video=document.getElementById('engineVideo');
   return !video.paused&&video.currentTime>14.7&&Number(document.getElementById('playhead').value)>.6;
  },null,{timeout:16000});
+ // A nonblack video + synchronized captions is NOT proof that audio still works.
+ // Read samples from the actual media element's decoded Web Audio stream.
+ await page.waitForFunction(()=>{
+  const level=Number(document.getElementById('previewAudioLevel')?.dataset.level||0);
+  const status=document.getElementById('previewAudioStatus');
+  return level>.007&&status?.dataset.context==='running'&&status?.dataset.state==='signal';
+ },null,{timeout:12000});
+ const sound=await page.evaluate(()=>{
+  const video=document.getElementById('engineVideo');
+  return {level:document.getElementById('previewAudioLevel').dataset.level,
+    state:document.getElementById('previewAudioStatus').dataset.context,
+    videoMuted:video.muted,videoVolume:video.volume,
+    previewVolume:document.getElementById('previewVolume').value};
+ });
+ if(sound.videoMuted||sound.videoVolume<.99||Number(sound.level)<.007)
+  throw Error('Decoded video sound absent from active Web Audio graph: '+JSON.stringify(sound));
+ console.log('PASS: Real 440Hz audio from decoded video reaches active output graph: '+JSON.stringify(sound));
+ // Check that a muted session can explicitly restore gameplay sound.
+ await page.locator('#mutePreview').click();
+ await page.waitForFunction(()=>document.querySelector('#previewAudioStatus')?.textContent?.includes('MUTED'),null,{timeout:5000});
+ await page.locator('#restoreAudio').click();
+ await page.waitForFunction(()=>Number(document.querySelector('#previewAudioLevel')?.dataset.level||0)>.007
+  &&document.querySelector('#previewAudioStatus')?.dataset.state==='signal',null,{timeout:8000});
  await page.locator('#playButton').click();
  await page.locator('#playhead').evaluate(range=>{
   range.value='4.25';range.dispatchEvent(new Event('input',{bubbles:true}));
