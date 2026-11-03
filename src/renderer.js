@@ -2,6 +2,7 @@ import {duration,segmentAt,mapWords,clamp,fmt,download} from './model.js';
 import {focusAt} from './faces.js';
 import {activeWordIndex,drawCaptions} from './captions.js';
 import {sourcePlaybackIssue,decodedVideoReady,sourceTimeToProjectTime,segmentTimeLength} from './playback-state.js';
+import {alignedVideoProjectTime} from './subtitle-sync.js';
 const el=id=>document.getElementById(id);
 export class Renderer{
  constructor(project,getAsset,notify){this.project=project;this.asset=getAsset;this.notify=notify;this.video=el('engineVideo');this.canvas=el('previewCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});this.time=0;this.playing=false;this.lastFrame=0;this.rendering=false;this.cancelRequested=false;this.loadedAsset=null;this.loadedUrl=null;this.lastMediaWarning='';this.mediaPendingSince=0;this.loadedImage=null;this.image=null;this.raf=null;this.audioCtx=null;this.mediaDestination=null;this.videoGain=null;this.audioPlayers=new Map();this.previewMuted=false;this.onTick=()=>{};this.lastWordIndex=-1;this.captionCache={words:null,segments:null,list:[]};this.previousFrame=null;this.lastSegmentId=null;this.frameCache=null;this.video.addEventListener('loadedmetadata',()=>{this.syncVideo();this.draw()});
@@ -17,7 +18,7 @@ export class Renderer{
    if(this.playing)this.pause()
   });
   this.setSize();this.draw();}
- setProject(p){this.project=p;this.time=clamp(this.time,0,duration(p));this.setSize();this.syncVideo();this.draw()}
+ setProject(p){this.project=p;this.time=clamp(this.time,0,duration(p));this.captionCache={words:null,segments:null,list:[]};this.setSize();this.syncVideo();this.draw()}
  get settings(){return this.project.settings}
  setSize(height){const ar=this.settings.aspect.split(':').map(Number);const h=height||720;this.canvas.height=h;this.canvas.width=Math.round(h*ar[0]/ar[1]);this.canvas.style.aspectRatio=`${ar[0]}/${ar[1]}`;this.draw()}
  async initAudio(){if(this.audioCtx)return;this.audioCtx=new(window.AudioContext||window.webkitAudioContext)();this.mediaDestination=this.audioCtx.createMediaStreamDestination();const source=this.audioCtx.createMediaElementSource(this.video);this.videoGain=this.audioCtx.createGain();this.compressor=this.audioCtx.createDynamicsCompressor();source.connect(this.videoGain);this.videoGain.connect(this.compressor);this.compressor.connect(this.audioCtx.destination);this.compressor.connect(this.mediaDestination);await this.audioCtx.resume()}
@@ -105,13 +106,16 @@ export class Renderer{
  draw(){
   const p=this.project,{ctx,canvas}=this,w=canvas.width,h=canvas.height;
   const curr=segmentAt(p,this.time),seg=curr?.seg,source=seg&&this.asset(seg.assetId);
+  const currentVideo=source?.type==='video'&&this.loadedAsset===source.id&&this.loadedUrl===source.url&&decodedVideoReady(this.video);
+  const actualCaptionTime=currentVideo?alignedVideoProjectTime(seg,curr.offset,this.video.currentTime,this.time):null;
+  const captionsAligned=source?.type!=='video'||actualCaptionTime!==null;
   if(seg?.id!==this.lastSegmentId){
     if(this.lastSegmentId&&canvas.width&&canvas.height){const previous=document.createElement('canvas');previous.width=w;previous.height=h;previous.getContext('2d').drawImage(canvas,0,0);this.previousFrame=previous}
     this.lastSegmentId=seg?.id||null;
   }
   ctx.save();ctx.fillStyle='#090d13';ctx.fillRect(0,0,w,h);
   let media=null;
-  if(source?.type==='video'&&decodedVideoReady(this.video)&&this.loadedAsset===source.id&&this.loadedUrl===source.url)media=this.video;
+  if(currentVideo&&actualCaptionTime!==null)media=this.video;
   if(source?.type==='image'&&this.image?.complete&&this.loadedAsset===source.id)media=this.image;
   if(media){
     const mw=media.videoWidth||media.naturalWidth,mh=media.videoHeight||media.naturalHeight;
@@ -137,7 +141,14 @@ export class Renderer{
       else if(transition==='zoom'){ctx.globalAlpha=1-a;const z=1+a*.22;ctx.drawImage(this.previousFrame,(w-w*z)/2,(h-h*z)/2,w*z,h*z);ctx.globalAlpha=1}
     }
   }
-  if(this.settings.captionOn&&curr){if(this.captionCache.words!==p.words||this.captionCache.segments!==p.segments){this.captionCache={words:p.words,segments:p.segments,list:mapWords(p)}}const words=this.captionCache.list,idx=activeWordIndex(words,this.time);if(idx>=0)drawCaptions(ctx,w,h,this.settings,words,idx)}
+  if(this.settings.captionOn&&curr&&captionsAligned){
+    if(this.captionCache.words!==p.words||this.captionCache.segments!==p.segments){
+      this.captionCache={words:p.words,segments:p.segments,list:mapWords(p)};
+    }
+    const words=this.captionCache.list,captionTime=source?.type==='video'?actualCaptionTime:this.time;
+    const idx=activeWordIndex(words,captionTime);
+    if(idx>=0)drawCaptions(ctx,w,h,this.settings,words,idx);
+  }
   if(seg?.title){ctx.font=`700 ${Math.max(15,w*.038)}px system-ui`;ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.fillText(seg.title.slice(0,80),w/2,h*.12,w*.9)}ctx.restore();
  }
  async seek(t){
