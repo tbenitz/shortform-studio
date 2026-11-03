@@ -156,6 +156,98 @@ async function runGameplayScan(target=null,{silent=false}={}){
  }
 }
 
+/** Align two imported original video source clocks from genuinely shared speech. */
+function getPovPair(){
+ const referenceId=$('povReference')?.value||povReferenceChoice||p.povSync?.referenceId||p.assets.find(a=>a.type==='video')?.id;
+ const targetId=$('povTarget')?.value||povTargetChoice||p.povSync?.targetId||p.assets.find(a=>a.type==='video'&&a.id!==referenceId)?.id;
+ if(!referenceId||!targetId||referenceId===targetId)throw Error('Select two different imported video files as POV A and POV B.');
+ const reference=p.assets.find(a=>a.id===referenceId),target=p.assets.find(a=>a.id===targetId);
+ if(!reference||!target||reference.type!=='video'||target.type!=='video')throw Error('Both POV sources must be imported videos.');
+ povReferenceChoice=referenceId;povTargetChoice=targetId;
+ return {referenceId,targetId,reference,target};
+}
+async function synchronizePovBySpeech(){
+ try{
+  const {referenceId,targetId,reference,target}=getPovPair();
+  const countA=p.words.filter(w=>w.assetId===referenceId).length,countB=p.words.filter(w=>w.assetId===targetId).length;
+  if(countA<12||countB<12)throw Error('Both recordings need original-time Whisper transcripts or imported SRTs. Found '+countA+' words for POV A and '+countB+' for POV B.');
+  const sync=syncFromTranscripts(p.words,referenceId,targetId,{gram:5});
+  if(sync.status!=='matched')throw Error(sync.reason||'Not enough shared spoken phrases to synchronize VODs.');
+  const map={...sync,referenceId,targetId,referenceSize:reference.size,targetSize:target.size};
+  const checked=checkSynchronization(map,reference.duration,target.duration);
+  if(!checked.valid)throw Error(checked.reason);
+  commit('Synchronized two VODs by transcript');
+  p.povSync=map;
+  povSyncStatus='Matched '+sync.inliers+' shared voice anchors ('+sync.confidence+' confidence). POV B starts '+map.offset.toFixed(2)+'s relative to POV A and scale '+map.scale.toFixed(7)+'. '+(sync.warning||'Verify a shared event at the beginning and end.');
+  update();toast('POV recordings aligned from transcript evidence. Check two moments before export.');
+ }catch(e){povSyncStatus='POV matching: '+e.message;renderInspector();toast(povSyncStatus,true)}
+}
+function synchronizePovManually(){
+ try{
+  const {referenceId,targetId,reference,target}=getPovPair();
+  const offset=Number($('povOffset')?.value),scale=Number($('povScale')?.value);
+  if(!Number.isFinite(offset)||!Number.isFinite(scale)||scale<.995||scale>1.005)throw Error('Enter a finite offset and a clock scale between 0.995 and 1.005.');
+  const manual={referenceId,targetId,offset,scale,confidence:'manual',method:'manual',inliers:0,referenceSize:reference.size,targetSize:target.size};
+  const checked=checkSynchronization(manual,reference.duration,target.duration);
+  if(!checked.valid)throw Error(checked.reason);
+  commit('Manually aligned POV recordings');
+  p.povSync=manual;
+  povSyncStatus='Manual clock alignment saved. Overlap '+fmt(checked.overlap)+'. Verify the same gunshot, spoken callout or scoreboard moment in both recordings.';
+  update();toast('Manual multi-POV alignment saved; verify before generating edits.');
+ }catch(e){povSyncStatus=e.message;renderInspector();toast('POV alignment: '+e.message,true)}
+}
+async function generateMultiPovDirector(){
+ if(directorBusy||gameplayBusy)return;
+ let ref,target,sync;
+ try{
+  ({referenceId:ref,targetId:target}=getPovPair());
+  sync=p.povSync;
+  if(!sync||sync.referenceId!==ref||sync.targetId!==target)throw Error('Match the POVs by shared phrases first, or save a manual offset.');
+  const a=p.assets.find(x=>x.id===ref),b=p.assets.find(x=>x.id===target);
+  const overlap=checkSynchronization(sync,a.duration,b.duration);
+  if(!overlap.valid)throw Error(overlap.reason);
+  if((sync.referenceSize!==undefined&&a.size!==sync.referenceSize)||(sync.targetSize!==undefined&&b.size!==sync.targetSize))
+   throw Error('One VOD changed since synchronization. Match the two recordings again to avoid incorrect cuts.');
+ }catch(e){povSyncStatus=e.message;renderInspector();toast('Multi-POV Director: '+e.message,true);return}
+ directorBusy=true;directorStatus='Preparing synchronized multi-POV action scan…';renderInspector();
+ try{
+  for(const id of [ref,target]){
+   const a=p.assets.find(x=>x.id===id),linked=asset(id);
+   const fingerprint=linked?.file?linked.file.size+':'+linked.file.lastModified+':'+GAMEPLAY_SCAN_VERSION:'';
+   if(linked?.file&&(!p.gameplayTracks?.[id]||p.gameplayTracks[id].status!=='complete'||p.gameplayTracks[id].fingerprint!==fingerprint)){
+    directorStatus='Scanning action from '+a.name+' in bounded chunks…';
+    await runGameplayScan(a,{silent:true});
+   }
+  }
+  const dir='Multi-POV action switching '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale;
+  const options={...p.settings,mode:'multi-pov',directorInstructions:dir,clipCount:0};
+  const plan=planDirectorBatch(p,options,{id:uid()});
+  options.existingCandidates=plan.existingCandidates;
+  options.history=plan.history;
+  const suggestions=buildMultiPovHighlights(p.words,p.assets,p.gameplayTracks||{},sync,options,
+   (fraction,message)=>{directorStatus=Math.round(fraction*100)+'% · '+message;if($('directorStatus'))$('directorStatus').textContent=directorStatus});
+  if(plan.newBatch){
+   commit('New multi-POV search');
+   p.directorBatches=[...(p.directorBatches||[]),plan.batch].slice(-100);
+   p.directorActiveBatchId=plan.batch.id;
+  }
+  const prior=new Set(plan.existingCandidates.map(clipSignature));
+  const fresh=assignDirectorBatch(suggestions.filter(c=>!prior.has(clipSignature(c))),plan.batch);
+  directorResultView='active';directorHour='all';directorShown=48;
+  if(!fresh.length){
+   directorStatus='No new shared-match highlights found. Confirm both POVs contain action or callout evidence and the sync is correct.';
+   update();toast(directorStatus,true);return;
+  }
+  commit('Generated '+fresh.length+' synchronized multi-POV highlights');
+  p.candidates.push(...fresh);
+  p.directorHistory.push(...historyEntries(fresh).map(h=>({...h,directorBatchId:plan.batch.id})));
+  plan.batch.count=(plan.batch.count||0)+fresh.length;
+  directorStatus='Generated '+fresh.length+' synchronized, multi-source highlights. Each clip can be opened in Editor to inspect and adjust POV switches.';
+  update();toast(directorStatus);
+ }catch(e){directorStatus='Multi-POV Director: '+e.message;toast(directorStatus,true)}
+ finally{directorBusy=false;if(tab==='director')renderInspector()}
+}
+
 /** Generate a fresh full-recording batch without replacing or recycling previous proposals. */
 async function runDirector(exhaustive=false){
  if(directorBusy)return;
@@ -402,6 +494,13 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  
  on('generateClips',()=>runDirector(false));
  on('generatePvPClips',()=>{p.settings.directorInstructions=$('directorPrompt')?.value??p.settings.directorInstructions;p.settings.mode='cod-pvp';runDirector(true)});
+ const povReferenceInput=$('povReference');
+ if(povReferenceInput)povReferenceInput.onchange=()=>{povReferenceChoice=povReferenceInput.value;povTargetChoice=povTargetChoice===povReferenceChoice?null:povTargetChoice;povSyncStatus='Select POV B, then synchronize this pair of original recordings.';renderInspector()};
+ const povTargetInput=$('povTarget');
+ if(povTargetInput)povTargetInput.onchange=()=>{povTargetChoice=povTargetInput.value;povSyncStatus='Run transcript matching or enter an offset for the selected POVs.';renderInspector()};
+ on('syncPovTranscripts',()=>synchronizePovBySpeech());
+ on('syncPovManual',()=>synchronizePovManually());
+ on('generateMultiPovHighlights',()=>generateMultiPovDirector());
  on('scanGameplayBtn',()=>{runGameplayScan().catch(()=>{})});
  on('cancelGameplayScan',()=>gameplayAbort?.abort());
  on('generateAllClips',()=>runDirector(true));
