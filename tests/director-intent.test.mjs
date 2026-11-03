@@ -31,3 +31,9 @@ test('enemy OR teammate trolling can match either category without fabricating e
  assert.equal(matchEditorialDirection(opts,['troll','squadbanter']).eligible,true);
  assert.equal(matchEditorialDirection(opts,['troll','enemychat']).eligible,true);
 });
+
+test('taunting in an opponent voice interaction is a possible trolling candidate without requiring laughter',()=>{
+ const profile=parseEditorialDirection('ONLY enemy proximity chat trolling');
+ assert.equal(matchEditorialDirection(profile,['enemychat','trash']).eligible,true);
+ assert.equal(matchEditorialDirection(profile,['spotted','possible-action']).eligible,false);
+});

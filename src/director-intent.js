@@ -50,7 +50,7 @@ export function matchEditorialDirection(profile,tags,events=[]){
  const have=new Set(tags||[]);
  const matches=[];
  const satisfied=topic=>{
-  if(topic==='trolling')return have.has('troll')||(have.has('trash')&&have.has('laugh'));
+  if(topic==='trolling')return have.has('troll')||(have.has('trash')&&(have.has('laugh')||have.has('enemychat')||have.has('squadbanter')));
   if(topic==='enemychat')return have.has('enemychat');
   if(topic==='squadbanter')return have.has('squadbanter');
   if(topic==='funny')return have.has('laugh')||have.has('troll')||(have.has('trash')&&have.has('down'));
