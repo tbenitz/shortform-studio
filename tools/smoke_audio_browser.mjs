@@ -31,6 +31,21 @@ try{
    return {duration:reader.duration,windows};
   }finally{reader.close()}
  });
+ // End-to-end check: a real user can save the Director key, reload, and forget it.
+ await page.locator('button[data-tab="director"]').click();
+ await page.locator('select[data-setting="provider"]').selectOption('remote');
+ await page.locator('#providerKey').fill('nonsecret-ci-test-key');
+ const stored=await page.evaluate(()=>localStorage.getItem('shortform-studio:director-api-key:v1'));
+ if(stored!=='nonsecret-ci-test-key')throw Error('Director key not persisted to browser storage');
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.locator('button[data-tab="director"]').click();
+ if(await page.locator('select[data-setting="provider"]').inputValue()!=='remote')await page.locator('select[data-setting="provider"]').selectOption('remote');
+ const restored=await page.locator('#providerKey').inputValue();
+ if(restored!=='nonsecret-ci-test-key')throw Error('Director key not restored on browser reload');
+ await page.locator('#forgetDirectorKey').click();
+ const cleared=await page.evaluate(()=>localStorage.getItem('shortform-studio:director-api-key:v1'));
+ if(cleared!==null||await page.locator('#providerKey').inputValue()!=='')throw Error('Forget API key did not clear persistent and visible values');
+ console.log('PASS: Director API key survives reload and Forget stored key removes it.');
  if(errors.length)throw Error('Page JavaScript errors: '+errors.join('; '));
  console.log('PASS: streamed real audio, 3 decoded windows, no full-file decode. '+JSON.stringify(result));
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}
