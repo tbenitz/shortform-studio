@@ -114,15 +114,21 @@ export async function scanMotion(file,times,{signal,onProgress=()=>{},moduleLoad
   return output;
  }finally{input.dispose()}
 }
-export async function scanGameplay(file,{durationHint=0,signal,onProgress=()=>{},onCheckpoint=async()=>{},readerFactory=openAudioReader,videoScanner=scanMotion,analysisVersion=GAMEPLAY_SCAN_VERSION}={}){
+export async function scanGameplay(file,{durationHint=0,signal,onProgress=()=>{},onCheckpoint=async()=>{},readerFactory=openAudioReader,videoScanner=scanMotion,analysisVersion=GAMEPLAY_SCAN_VERSION,resume=null}={}){
  let reader;
- const sound=[],warnings=[];
+ let sound=[];const warnings=[];
  try{
   onProgress(0,'Opening bounded audio reader; no full video download');
   reader=await readerFactory(file,{durationHint});
   const duration=reader.duration;
+  const checkpointOk=resume?.version===analysisVersion&&Math.abs((resume.duration||0)-duration)<.5&&resume.status==='scanning'&&Array.isArray(resume.audio);
+  const resumeAt=checkpointOk?Math.max(0,Math.min(duration,Math.floor((resume.processed||0)/24)*24)):0;
+  if(resumeAt>0) {
+   sound=resume.audio.filter(b=>b.time<resumeAt);
+   onProgress(.78*resumeAt/duration,'Resuming gameplay audio analysis at '+Math.floor(resumeAt/60)+' minutes ('+sound.length+' evidence buckets saved)');
+  }
   // 24s windows hold <1.6 MB of uncompressed PCM, even on three-hour sources.
-  for(let t=0;t<duration;t+=24){
+  for(let t=resumeAt;t<duration;t+=24){
    if(signal?.aborted)throw Error('Gameplay scan paused');
    const end=Math.min(duration,t+24),pcm=await reader.readRange(t,end,{signal});
    sound.push(...audioBuckets(pcm,t));

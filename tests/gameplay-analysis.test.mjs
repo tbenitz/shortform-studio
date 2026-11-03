@@ -20,3 +20,11 @@ test('three-hour source uses 24-second bounded audio reads without loading whole
  const result=await scanGameplay(file,{readerFactory:async()=>reader,videoScanner:async(_,times)=>{scans.push(times.length);return []},onCheckpoint:async x=>{checkpoint.push(x.processed)}});
  assert.equal(result.status,'complete');assert.equal(reads.length,450);assert.ok(reads.every(([a,b])=>b-a<=24));assert.equal(result.audio.length,10800);assert.ok(checkpoint.length>=40);assert.ok(scans[0]>100);
 });
+
+test('long PvP scan resumes saved audio checkpoint instead of decoding from zero',async()=>{
+ const reads=[],resume={version:1,status:'scanning',duration:10800,processed:2400,audio:[{time:0,rms:.02,texture:.01,transients:0}]};
+ const fake={duration:10800,async readRange(a,b){reads.push([a,b]);return new Float32Array(Math.round((b-a)*16000))},close(){}};
+ const done=await scanGameplay({},{readerFactory:async()=>fake,videoScanner:async()=>[],resume});
+ assert.ok(reads[0][0]>=2376);
+ assert.equal(done.status,'complete');assert.equal(done.processed,10800);
+});

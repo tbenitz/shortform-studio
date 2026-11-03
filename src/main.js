@@ -72,7 +72,7 @@ async function runGameplayScan(target=null,{silent=false}={}){
    gameplayStatus='Starting '+a.name+' · '+fmt(a.duration)+' of gameplay to analyze…';
    if($('gameplayStatus'))$('gameplayStatus').textContent=gameplayStatus;
    await scanGameplay(file,{
-    durationHint:a.duration,signal:gameplayAbort.signal,
+    durationHint:a.duration,signal:gameplayAbort.signal,resume:previous?.fingerprint===fingerprint?previous:null,
     onProgress:(progress,message)=>{
      gameplayStatus=Math.round(progress*100)+'% · '+a.name+' · '+message;
      if($('gameplayStatus'))$('gameplayStatus').textContent=gameplayStatus;
