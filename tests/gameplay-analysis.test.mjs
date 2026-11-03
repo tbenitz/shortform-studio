@@ -28,3 +28,14 @@ test('long PvP scan resumes saved audio checkpoint instead of decoding from zero
  assert.ok(reads[0][0]>=2376);
  assert.equal(done.status,'complete');assert.equal(done.processed,10800);
 });
+
+test('quiet game sound is part of the baseline, allowing real loud fight audio to stand out',()=>{
+ const buckets=Array.from({length:80},(_,time)=>({
+  time,rms:(time>=9&&time<18)||(time>=51&&time<60)?.14:.0022,
+  texture:(time>=9&&time<18)||(time>=51&&time<60)?.07:.0002,transients:0
+ }));
+ const bursts=findAudioCombatBursts(buckets);
+ assert.ok(bursts.length>=2,'Expected two fights to be found, got '+JSON.stringify(bursts));
+ assert.ok(bursts[0].peakTime>=8&&bursts[0].peakTime<=18);
+ assert.ok(bursts.at(-1).peakTime>50);
+});

@@ -26,9 +26,8 @@ export function audioBuckets(pcm,start=0,{sampleRate=16000,seconds=1}={}){
 const median=items=>{if(!items.length)return 0;const sorted=[...items].sort((a,b)=>a-b);return sorted[Math.floor(sorted.length/2)]};
 export function findAudioCombatBursts(buckets,{minimum=0.25}={}){
  if(!buckets.length)return [];
- const nonzero=buckets.filter(x=>x.rms>.004);
- const baseline=Math.max(.008,median(nonzero.map(x=>x.rms))||.008);
- const textureBaseline=Math.max(.002,median(nonzero.map(x=>x.texture))||.002);
+ const baseline=Math.max(.003,median(buckets.map(x=>x.rms))||.003);
+ const textureBaseline=Math.max(.0003,median(buckets.map(x=>x.texture))||.0003);
  const scores=buckets.map(b=>{
   const energy=clamp((b.rms/baseline-1.12)/2.8,0,1);
   const texture=clamp((b.texture/textureBaseline-1.25)/3,0,1);
