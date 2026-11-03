@@ -48,14 +48,24 @@ try{
  const sync=await page.evaluate(async()=> (await (await import('./src/storage.js')).loadProject()).povSync);
  if(!sync||sync.referenceId!=='a'||sync.targetId!=='b'||Math.abs(sync.offset+4)>.6)throw Error('Speech clock sync failed: '+JSON.stringify(sync));
  await page.locator('#generateMultiPovHighlights').click();
- await page.waitForFunction(()=>/Generated \d+ synchronized|No new shared-match highlights|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
+ await page.waitForFunction(()=>/Created \d+ EDITED multi-POV STORIES|No NEW two-POV montage stories|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
  await page.waitForTimeout(1200);
  const result=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
-  return p.candidates.map(c=>({id:c.id,source:c.source,segments:c.segments.map(s=>({assetId:s.assetId,start:s.start,end:s.end,speed:s.speed}))}));
+  return p.candidates.map(c=>({id:c.id,source:c.source,mode:c.mode,pov:c.pov,segments:c.segments.map(s=>({assetId:s.assetId,start:s.start,end:s.end,speed:s.speed,storyRole:s.storyRole,globalStart:s.storyGlobalStart,globalEnd:s.storyGlobalEnd}))}));
  });
- const combined=result.find(c=>new Set(c.segments.map(s=>s.assetId)).size===2);
- if(!combined)throw Error('No short switches between both POVs: '+JSON.stringify(result));
+ const combined=result.find(c=>c.mode==='multi-pov-story'&&new Set(c.segments.map(s=>s.assetId)).size===2);
+ if(!combined)throw Error('No actual edited story uses both source POVs: '+JSON.stringify(result));
+ if(combined.segments.length<4||combined.pov.cutCount!==combined.segments.length||combined.pov.jumpCuts<1)
+  throw Error('Proposed story is one continuous source instead of multiple parts stitched together: '+JSON.stringify(combined));
+ if(!combined.segments[0].storyRole.includes('Hook')||!combined.segments.at(-1).storyRole.match(/Payoff|Reaction|aftermath/i))
+  throw Error('Missing setup and payoff story beats: '+JSON.stringify(combined));
+ // An actual edited montage must omit time between source moments.
+ const jumps=combined.segments.slice(1).map((s,i)=>s.globalStart-combined.segments[i].globalEnd);
+ if(!jumps.some(g=>g>1.2))throw Error('No jump cut among multiple story pieces: '+JSON.stringify(jumps));
+ const storyboard=await page.locator('.candidate').filter({has:page.locator('[data-candidate-use="'+combined.id+'"]')}).innerText();
+ if(!storyboard.includes('Story storyboard')||!storyboard.includes('POV A')||!storyboard.includes('POV B'))
+  throw Error('Result card hides cuts/POV files and looks like a single source URL: '+storyboard.slice(0,850));
  await page.locator('[data-candidate-use="'+combined.id+'"]').click();
  await page.waitForFunction(()=>document.querySelector('#engineVideo')?.videoWidth>0&&document.querySelector('#engineVideo')?.readyState>=2,null,{timeout:20000});
  await page.waitForTimeout(1300);
@@ -65,5 +75,12 @@ try{
  });
  if(!saved.sync||saved.assets.length!==2)throw Error('Multi-source edit not saved: '+JSON.stringify(saved));
  if(errors.length)throw Error('Browser errors: '+errors.join(' | '));
- console.log('PASS: Two separate imported POV videos synchronized at '+sync.offset+' seconds, combined short with '+combined.segments.length+' switched cuts, decoded browser preview, saved project.');
+ // Seek to the first cut of POV B and verify the decoded HTML media element switches.
+ const targetIndex=combined.segments.findIndex(s=>s.assetId==='b');
+ const firstSeconds=combined.segments.slice(0,targetIndex).reduce((sum,s)=>sum+(s.end-s.start)/s.speed,0);
+ await page.locator('#playhead').evaluate((range,t)=>{range.value=String(t+.2);range.dispatchEvent(new Event('input',{bubbles:true}))},firstSeconds);
+ await page.waitForFunction(()=>{const v=document.getElementById('engineVideo');return v?.readyState>=2&&!v.seeking&&v.videoWidth>0},null,{timeout:18000});
+ const selected=await page.evaluate(()=>({src:document.getElementById('engineVideo').currentSrc,currentTime:document.getElementById('engineVideo').currentTime}));
+ if(!(selected.src||'').startsWith('blob:'))throw Error('Second POV footage failed to load after montage jump: '+JSON.stringify(selected));
+ console.log('PASS: Two VODs synchronized at '+sync.offset+'s, actual '+combined.segments.length+'-cut A+B narrative montage with '+combined.pov.jumpCuts+' temporal jumps, valid decoded video preview for second POV, saved editor timeline.');
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}
