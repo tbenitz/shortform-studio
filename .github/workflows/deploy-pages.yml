@@ -18,9 +18,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned MediaPipe and Playwright
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Package local MediaPipe JavaScript, WASM and face model
+        run: npm run vendor:faces
+      - name: Validate bundled media engine
+        run: |
+          test -s vendor/mediapipe/vision_bundle.mjs
+          test -s vendor/mediapipe/wasm/vision_wasm_internal.wasm
+          test -s vendor/mediapipe/models/blaze_face_short_range.tflite
+      - name: Assemble static site
+        run: |
+          mkdir -p _site
+          cp index.html icon.svg manifest.webmanifest sw.js _site/
+          cp -R src vendor _site/
+      - name: Install Chromium for end-to-end face detection test
+        run: npx playwright install --with-deps chromium
+      - name: Verify face detector loads and executes in Chromium
+        run: npm run smoke:faces
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: .
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

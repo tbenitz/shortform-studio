@@ -1,1 +1,18 @@
-{"name":"shortform-studio","private":true,"version":"0.3.0","type":"module","description":"Local-first AI-assisted short-form video editor","scripts":{"start":"python3 -m http.server 8080","test":"node --test tests/*.test.mjs","check":"node --check src/main.js && node --check src/media-workflow.js && node --check src/renderer.js && node --check src/director.js && node --check src/asr.js && node --check src/faces.js && node --check src/voice.js && node --check src/speakers.js && node --check src/scenes.js && node --check src/review.js && node --test tests/*.test.mjs"}}
+{
+  "name": "shortform-studio",
+  "private": true,
+  "version": "0.3.1",
+  "type": "module",
+  "description": "Local-first AI-assisted short-form video editor",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/main.js && node --check src/media-workflow.js && node --check src/renderer.js && node --check src/director.js && node --check src/asr.js && node --check src/faces.js && node --check tools/vendor_mediapipe.mjs && node --check tools/smoke_face_browser.mjs && node --check src/voice.js && node --check src/speakers.js && node --check src/scenes.js && node --check src/review.js && node --test tests/*.test.mjs",
+    "vendor:faces": "node tools/vendor_mediapipe.mjs",
+    "smoke:faces": "node tools/smoke_face_browser.mjs"
+  },
+  "devDependencies": {
+    "@mediapipe/tasks-vision": "0.10.22",
+    "playwright": "1.56.0"
+  }
+}

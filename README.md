@@ -118,3 +118,7 @@ MIT. The optional Transformers.js package and downloaded model weights have sepa
 ### v0.3: full-source editor and safe Whisper timestamps
 New videos are automatically inserted on the full-length timeline using their actual media metadata (not 15 seconds). Source preview and In/Out markers allow selections anywhere in the source. Use Split, drag reorder, zoom in/out, Fit, speed and trim in the Editor workspace.
 Whisper Auto mode now requests segment timestamps, then plain transcription; only explicit Advanced Word mode requests model cross-attention outputs. Word timestamps are approximate in normal mode and should be reviewed before caption export. If browser decoding of video audio fails, extract WAV audio and import it for transcription. HTML/JS assets load network-first to prevent stale service worker caches.
+
+### Face analysis loader (v0.3.1)
+
+The previously broken CDN `+esm` import is replaced with a MediaPipe ES bundle, matching WASM files and a BlazeFace model packaged inside the GitHub Pages site. The deployment workflow downloads these pinned components and performs a real Chromium smoke test with `FaceDetector.detect()` before publishing. Video frames are analyzed locally; only the required model assets are fetched. To prepare local development: `npm install`, `npm run vendor:faces`, then `npm start`. CDN fallback remains available if local assets are not present; the app reports errors for each attempted source. Verify deployed assets under `vendor/mediapipe/`.

@@ -10,3 +10,7 @@ dist/
 *.log
 .env*
 !.env.example
+
+node_modules/
+vendor/mediapipe/
+_site/
