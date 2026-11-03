@@ -17,7 +17,12 @@ jobs:
       - name: Compile native renderer
         run: python3 -m py_compile tools/render_project.py
       - name: Install FFmpeg for native smoke tests
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+        run: |
+          if command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1; then
+            ffmpeg -version | head -n 1
+          else
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          fi
       - name: FFmpeg export smoke test
         run: |
           mkdir -p /tmp/studio-tests
