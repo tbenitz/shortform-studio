@@ -122,3 +122,8 @@ Whisper Auto mode now requests segment timestamps, then plain transcription; onl
 ### Face analysis loader (v0.3.1)
 
 The previously broken CDN `+esm` import is replaced with a MediaPipe ES bundle, matching WASM files and a BlazeFace model packaged inside the GitHub Pages site. The deployment workflow downloads these pinned components and performs a real Chromium smoke test with `FaceDetector.detect()` before publishing. Video frames are analyzed locally; only the required model assets are fetched. To prepare local development: `npm install`, `npm run vendor:faces`, then `npm start`. CDN fallback remains available if local assets are not present; the app reports errors for each attempted source. Verify deployed assets under `vendor/mediapipe/`.
+
+
+### Face analysis decoded-frame fix (v0.3.2)
+
+The scanner now waits for a decoded video frame with usable native width/height rather than using `loadedmetadata` alone. Canvas dimensions are validated before MediaPipe sees a frame, with a bounded resolution for portrait and landscape video. Invalid ROI/MediaPipe frame failures are reported with source timestamps and retried by recreating the detector; repeated failures produce an actionable video-conversion error rather than pretending analysis succeeded. Deployment now tests full landscape and portrait **video scanning**, not just one synthetic canvas frame.
