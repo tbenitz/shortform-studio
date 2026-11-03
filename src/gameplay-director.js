@@ -1,7 +1,8 @@
 /** Gameplay-evidence-based Call of Duty PvP clips. No fabricated kill detection. */
 import {makeSegment,clamp,fmt} from './model.js';
 import {selectDiverseCandidates} from './director-coverage.js';
-export const GAMEPLAY_LABELS={spotted:'Enemy location callout',combat:'Combat callout',down:'Down/elimination callout',revive:'Revive callout',trash:'Trash talk',laugh:'Funny reaction',clutch:'Clutch/endgame callout'};
+import {parseEditorialDirection,matchEditorialDirection} from './director-intent.js';
+export const GAMEPLAY_LABELS={spotted:'Enemy location callout',combat:'Combat callout',down:'Down/elimination callout',revive:'Revive callout',trash:'Trash talk',laugh:'Funny reaction',clutch:'Clutch/endgame callout',troll:'Possible trolling or bait',enemychat:'Possible enemy/proximity-chat cue',squadbanter:'Teammate or squad banter cue'};
 const PATTERNS={
  spotted:/\b(enemy|enemies|hostile|player(?:s)?|guys?|team|squad|on me|on you|behind (?:me|us|you)|over here|right (?:there|here)|left (?:side|building)|there(?:'?s| is) (?:one|two|three)|contact|push (?:me|them|him)|coming at us|they(?:'?re| are) pushing|i see (?:him|them)|i found (?:him|them))\b/i,
  combat:/\b(shoot(?:ing)?|shots?|firing|spray(?:ing)?|crack(?:ed)?|hit marker|armor break|broke (?:his|her|their) plates?|pushing|fight(?:ing)?|beaming|snip(?:e|ed|ing)|flank|nade|grenade|rocket|flash|stun(?:ned)?)\b/i,
@@ -9,7 +10,10 @@ const PATTERNS={
  revive:/\b(reviv(?:e|ing|ed)|rez(?:zing|zed)?|resuscitat|pick (?:me|him|her|them) up|buy (?:me|him|her|them) back|bring (?:me|him|them) back|self[- ]reviv|need (?:a )?rez|save me|help me up)/i,
  trash:/\b(trash|you(?:'?re| are) (?:bad|awful|garbage)|get (?:wrecked|destroyed|owned)|sit down|skill issue|bot(?:s)?|clown|dog ?water|rage|you suck|so bad|noob|uninstall|cook(?:ed)? (?:you|them)|that(?:'?s| is) embarrassing|bro you|what are you doing|what was that)/i,
  laugh:/\b(ha(?:ha)+|laugh(?:ed|ing)?|lol|lmao|rofl|that(?:'?s| is) (?:hilarious|funny)|oh my god|no way|are you kidding|i can'?t believe|what the heck|what the hell|bro what|i'm crying)/i,
- clutch:/\b(clutch|last (?:guy|one|player|team)|one[- ]v[- ]?(?:two|three|four|[234])|1v[234]|1 versus|final circle|win(?:ning)? this|won the game|victory|dub|squad wipe|team wipe|wipe(?:d)? (?:them|the squad)|final kill)/i
+ clutch:/\b(clutch|last (?:guy|one|player|team)|one[- ]v[- ]?(?:two|three|four|[234])|1v[234]|1 versus|final circle|win(?:ning)? this|won the game|victory|dub|squad wipe|team wipe|wipe(?:d)? (?:them|the squad)|final kill)/i,
+ troll:/\b(troll(?:ing|ed)?|bait(?:ing|ed)?|prank(?:ing|ed)?|trick(?:ing|ed)? (?:him|her|them|you)|fooled (?:him|her|them|you)|teabag(?:ging)?|tea.?bag|camped (?:him|them)|lured (?:him|them)|made (?:him|them) (?:rage|mad|angry)|pretend(?:ed|ing)? (?:to|we)|fake(?:d)? (?:him|them|out)|got(?:cha| you)|sike|psych(?:e)?|juke(?:d)?|taunt(?:ing|ed)?)\b/i,
+ enemychat:/\b(prox(?:imity)? (?:chat|comms?|voice)|enemy (?:chat|comms?|mic|voice|talking|speaking|said|yelled|responded)|opponent (?:chat|mic|voice|talking|said)|hot mic|they can hear us|he can hear us|talk(?:ing)? to (?:the )?(?:enemy|enemies|opponents)|he(?:'s| is) talking to us|can (?:they|he|she) hear us)\b/i,
+ squadbanter:/\b(teammate(?:s)? (?:said|told|talk|chat|roast|troll|prank)|squadmate(?:s)?|my (?:teammate|squadmate|friend)|our (?:squad|team) (?:said|talked)|squad banter|friendly fire|bro you (?:suck|trash|bad)|you got me killed)\b/i
 };
 export function labelGameplayDialogue(text){
  const out=[],clean=String(text||'').toLowerCase();
@@ -63,6 +67,8 @@ export function scoreGameplayEncounter(group,settings={},track={}){
  const prefs=gameplayPreferences(settings.directorInstructions||'');
  const sound=Math.max(0,...audible.map(e=>e.score||0)),movement=Math.max(0,...motion.map(e=>e.score||0));
  const hasFight=audible.length>0||tags.has('combat')||tags.has('spotted')||tags.has('down')||tags.has('clutch');
+ const hasTrollExchange=(tags.has('enemychat')||tags.has('squadbanter'))&&(tags.has('troll')||tags.has('trash')||tags.has('laugh'));
+ const hasAction=hasFight||hasTrollExchange;
  const diversity=tags.has('spotted')&&tags.has('down')?13:tags.has('combat')&&tags.has('down')?12:0;
  const payoff=(tags.has('trash')||tags.has('laugh'))&&(tags.has('combat')||tags.has('down')||audible.length)?12:0;
  const rescue=tags.has('revive')&&(tags.has('down')||audible.length)?12:0;
@@ -75,11 +81,20 @@ export function scoreGameplayEncounter(group,settings={},track={}){
  if(prefs.trash&&tags.has('trash'))value+=13;if(prefs.funny&&(tags.has('trash')||tags.has('laugh')))value+=12;
  if(prefs.revive&&tags.has('revive'))value+=14;if(prefs.clutch&&tags.has('clutch'))value+=15;
  if(prefs.fights&&hasFight)value+=8;
- if(!hasFight)value-=32;
+ if(hasTrollExchange)value+=17;
+ if(tags.has('troll'))value+=8;
+ if(tags.has('enemychat'))value+=9;
+ if(tags.has('squadbanter'))value+=7;
+ if(!hasAction)value-=32;
  if(!audible.length&&track?.status==='complete'&&prefs.noDialogueOnly)value-=15;
  if(!audible.length&&track?.status==='complete'&&tags.size===1&&tags.has('trash'))value-=20;
  if(!group.events.some(e=>e.kind==='dialogue')&&!audible.length)value-=20;
- return {score:clamp(Math.round(value),0,98),tags:[...tags],audioConfidence:+sound.toFixed(2),motionConfidence:+movement.toFixed(2),hasAction:hasFight};
+ const direction=parseEditorialDirection(settings.directorInstructions||'');
+ const matching=matchEditorialDirection(direction,tags);
+ value+=matching.scoreDelta;
+ return {score:clamp(Math.round(value),0,98),tags:[...tags],
+  audioConfidence:+sound.toFixed(2),motionConfidence:+movement.toFixed(2),hasAction,
+  directionMatch:matching,hasTrollExchange};
 }
 function clipTimes(group,duration,min,max){
  const action=group.events.filter(e=>e.kind==='audio'||e.kind==='motion'||(e.tags||[]).some(t=>['spotted','combat','down','revive','clutch'].includes(t)));
@@ -107,11 +122,14 @@ export function generatePvPHighlights(words,assets,tracks={},settings={},onProgr
   const length=Math.max(asset.duration||0,...groups.map(g=>g.end));
   for(const g of groups){
    const analysis=scoreGameplayEncounter(g,settings,tracks[asset.id]);
-   if(!analysis.hasAction||analysis.score<(settings.gameplayMinScore??42))continue;
+   if(!analysis.hasAction||!analysis.directionMatch.eligible||analysis.score<(settings.gameplayMinScore??42))continue;
    const window=clipTimes(g,length,min,max);
    if(window.end-window.start<Math.min(min,8))continue;
    const unique=[...new Set(g.events.filter(e=>e.kind==='dialogue').flatMap(e=>e.tags))];
-   const type=unique.includes('trash')&&unique.includes('down')?'Trash talk + elimination callout':
+   const type=unique.includes('enemychat')&&(unique.includes('troll')||unique.includes('trash'))?'Possible enemy-chat trolling (spoken cue)':
+    unique.includes('squadbanter')&&(unique.includes('troll')||unique.includes('trash'))?'Squad banter / teammate trolling (spoken cue)':
+    unique.includes('troll')?'Trolling / bait + reaction':
+    unique.includes('trash')&&unique.includes('down')?'Trash talk + elimination callout':
     unique.includes('revive')?'Revive / rescue moment':unique.includes('clutch')?'Clutch / possible win':
     unique.includes('down')?'Down / elimination reaction':unique.includes('trash')?'Trash talk during encounter':
     unique.includes('spotted')?'Enemy spotted + engagement':'Possible gunfight / action';
@@ -120,6 +138,9 @@ export function generatePvPHighlights(words,assets,tracks={},settings={},onProgr
    if(analysis.audioConfidence>0)evidence.push('Combat-like audio activity '+Math.round(analysis.audioConfidence*100)+'% (unverified)');
    if(analysis.motionConfidence>0)evidence.push('Sampled video motion '+Math.round(analysis.motionConfidence*100)+'% (not enemy detection)');
    if(!tracks[asset.id]?.status)evidence.push('Action scan incomplete: tags depend on transcript. Scan video and audio for stronger results');
+   if(analysis.directionMatch.matches.length)evidence.push('Creative-direction evidence: '+analysis.directionMatch.matches.join(', '));
+   if(unique.includes('enemychat'))evidence.push('Enemy-voice relationship inferred ONLY from spoken words; not verified by separate audio channel');
+   if(unique.includes('squadbanter'))evidence.push('Squad relationship inferred ONLY from spoken words; not verified by separate audio channel');
    const segment=makeSegment(asset.id,window.start,window.end);
    candidates.push({
     id:'pvp-'+asset.id+'-'+window.start.toFixed(2)+'-'+window.end.toFixed(2),
@@ -133,5 +154,7 @@ export function generatePvPHighlights(words,assets,tracks={},settings={},onProgr
   }
   onProgress(1,'Scored '+candidates.length+' PvP gameplay encounters throughout the recording');
  }
- return selectDiverseCandidates(candidates,settings);
+ const selected=selectDiverseCandidates(candidates,settings);
+ // Show the best instruction-specific match first, not the earliest matching source hour.
+ return selected.sort((a,b)=>(b.gameplay?.directionMatch?.alignment||0)-(a.gameplay?.directionMatch?.alignment||0)||b.score-a.score||a.anchorTime-b.anchorTime);
 }

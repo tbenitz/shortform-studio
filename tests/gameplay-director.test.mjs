@@ -32,3 +32,28 @@ test('unrelated chatter with no fight evidence does not create fake PvP highligh
  const other=word(45,'Let us discuss my dinner and television shows');
  assert.equal(generatePvPHighlights(other,[asset],{}, {mode:'cod-pvp',clipCount:0}).length,0);
 });
+
+test('very different creative directions select different parts of the SAME recording',()=>{
+ const t={cod:{status:'complete',audio:[{}],
+  events:[{start:130,end:135,peakTime:132,score:.8},{start:4600,end:4610,peakTime:4605,score:.9}],
+  motion:[{time:132,motion:.6},{time:4605,motion:.6}]}};
+ const phrases=[
+  ...word(120,'proximity chat enemy talking to us I baited him and trolled him haha'),
+  ...word(131,'bro you are trash I got you haha'),
+  ...word(4595,'team needs revive me he downed me'),
+  ...word(4607,'I am reviving my squadmate rescue me')
+ ];
+ const troll=generatePvPHighlights(phrases,[asset],t,{mode:'cod-pvp',clipCount:0,clipMin:15,clipMax:55,gameplayMinScore:28,directorInstructions:'ONLY enemy proximity chat trolling and pranks'});
+ const rescue=generatePvPHighlights(phrases,[asset],t,{mode:'cod-pvp',clipCount:0,clipMin:15,clipMax:55,gameplayMinScore:28,directorInstructions:'ONLY revives and rescues'});
+ assert.ok(troll.length>0,'Expected a trolling clip from the spoken conversation');
+ assert.ok(rescue.length>0,'Expected a separate rescue clip');
+ assert.ok(troll.every(c=>c.anchorTime<1000));
+ assert.ok(rescue.every(c=>c.anchorTime>4000));
+ assert.notDeepEqual(troll.map(c=>c.segments[0].start),rescue.map(c=>c.segments[0].start));
+});
+test('no identified enemy voice means no fabricated enemy trolling results',()=>{
+ const content=word(100,'shooting enemy behind me').concat(word(120,'I got him down'));
+ const t={cod:{status:'complete',audio:[{}],events:[{start:105,end:114,peakTime:109,score:.9}],motion:[]}};
+ const proposed=generatePvPHighlights(content,[asset],t,{mode:'cod-pvp',clipCount:0,gameplayMinScore:25,directorInstructions:'ONLY enemy proximity chat trolling'});
+ assert.equal(proposed.length,0);
+});

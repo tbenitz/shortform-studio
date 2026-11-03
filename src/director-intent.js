@@ -30,7 +30,7 @@ export function parseEditorialDirection(text=''){
    if(!match)continue;
    // Check the nearest negation, not an unrelated 'no dialogue-only' phrase elsewhere.
    const prefix=clause.slice(Math.max(0,match.index-34),match.index);
-   if(hostile.test(prefix)&&!grouping.test(prefix.slice(Math.max(0,prefix.length-9))))excluded.push(topic);
+   if(hostile.test(prefix))excluded.push(topic);
    else positive.push(topic);
   }
  }
