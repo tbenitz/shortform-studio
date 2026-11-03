@@ -124,6 +124,20 @@ try{
  });
  if(restored.offset!==.5||restored.words.length!==2||!restored.assets.includes('long'))
   throw Error('Subtitle synchronization lost on refresh: '+JSON.stringify(restored));
+ // After reload, importing a differently named original must offer to RELINK,
+ // not append a new video with no subtitle association.
+ await page.locator('#fileUpload').setInputFiles(filename);
+ await page.waitForFunction(()=>{
+  const video=document.querySelector('#engineVideo');
+  return video?.videoWidth>0&&!video.seeking&&video.readyState>=2;
+ },null,{timeout:25000});
+ const smartRelink=await page.evaluate(async()=>{
+  const project=await (await import('./src/storage.js')).loadProject();
+  return {ids:project.assets.map(a=>a.id),words:project.words.length,offset:project.subtitleOffsets?.long};
+ });
+ if(JSON.stringify(smartRelink.ids)!=='["long"]'||smartRelink.words!==2||smartRelink.offset!==.5)
+  throw Error('Import after refresh created another source and lost subtitle alignment: '+JSON.stringify(smartRelink));
+ console.log('PASS: Renamed source imported after refresh relinks the ORIGINAL source ID, keeping SRT and shift.');
  if(errors.length)throw Error('Page JavaScript errors: '+errors.join(' | '));
  console.log('PASS: Real video loads, seeks/plays distant cuts, renders nonblack pixels, and retains timelines after same-file AND converted/renamed-file relinking.');
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}
