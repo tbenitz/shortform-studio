@@ -131,6 +131,7 @@ try{
   const video=document.querySelector('#engineVideo');
   return video?.videoWidth>0&&!video.seeking&&video.readyState>=2;
  },null,{timeout:25000});
+ await page.waitForTimeout(1500); // wait for autosaved project after relink
  const smartRelink=await page.evaluate(async()=>{
   const project=await (await import('./src/storage.js')).loadProject();
   return {ids:project.assets.map(a=>a.id),words:project.words.length,offset:project.subtitleOffsets?.long};
