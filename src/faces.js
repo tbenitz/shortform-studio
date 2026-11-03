@@ -1,7 +1,7 @@
 /** Face-aware crops with a bundled on-device MediaPipe engine and CDN fallbacks. */
 import {clamp} from './model.js';
 const base=new URL('../vendor/mediapipe/',import.meta.url).href;
-const version='0.10.22';
+const version='0.10.35';
 const model='https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite';
 export function faceRuntimeSources(){
  const sources=[{name:'bundled',moduleUrl:base+'vision_bundle.mjs',wasmUrl:base+'wasm',modelUrl:base+'models/blaze_face_short_range.tflite'}];

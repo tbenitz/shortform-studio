@@ -8,7 +8,7 @@ const out=path.join(root,'vendor/mediapipe');
 await mkdir(path.join(out,'wasm'),{recursive:true});
 await mkdir(path.join(out,'models'),{recursive:true});
 const pkg=JSON.parse(await readFile(path.join(source,'package.json'),'utf8'));
-if(pkg.version!=='0.10.22')throw Error('Unexpected MediaPipe version '+pkg.version);
+if(pkg.version!=='0.10.35')throw Error('Unexpected MediaPipe version '+pkg.version);
 await copyFile(path.join(source,'vision_bundle.mjs'),path.join(out,'vision_bundle.mjs'));
 await cp(path.join(source,'wasm'),path.join(out,'wasm'),{recursive:true,force:true});
 for(const file of ['vision_bundle.mjs','wasm/vision_wasm_internal.js','wasm/vision_wasm_internal.wasm']){

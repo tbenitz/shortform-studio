@@ -11,8 +11,8 @@ test('same-origin bundled face runtime is first; CDN fallbacks use full bundle, 
  assert.match(local.moduleUrl,/\/vendor\/mediapipe\/vision_bundle\.mjs$/);
  assert.ok(local.wasmUrl.startsWith(new URL('./',local.moduleUrl).href));
  assert.ok(jsdelivr.moduleUrl.endsWith('/vision_bundle.mjs'));assert.ok(!jsdelivr.moduleUrl.includes('+esm'));
- assert.ok(jsdelivr.wasmUrl.startsWith('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/'));
- assert.ok(unpkg.wasmUrl.startsWith('https://unpkg.com/@mediapipe/tasks-vision@0.10.22/'));
+ assert.ok(jsdelivr.wasmUrl.startsWith('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/'));
+ assert.ok(unpkg.wasmUrl.startsWith('https://unpkg.com/@mediapipe/tasks-vision@0.10.35/'));
 });
 test('supports default exports as well as named module exports',()=>{
  const api=fakeApi([]);assert.equal(getFaceExports({default:api}),api);assert.equal(getFaceExports(api),api);

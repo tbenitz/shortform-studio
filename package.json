@@ -12,7 +12,7 @@
     "smoke:faces": "node tools/smoke_face_browser.mjs"
   },
   "devDependencies": {
-    "@mediapipe/tasks-vision": "0.10.22",
+    "@mediapipe/tasks-vision": "0.10.35",
     "playwright": "1.56.0"
   }
 }
