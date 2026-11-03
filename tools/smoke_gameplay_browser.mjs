@@ -17,7 +17,7 @@ try{
   project.assets=[{id:'cod-source',name:'pvp-test.webm',size:fileSize,type:'video',mime:'video/webm',duration:80,width:480,height:270,lastModified:1}];
   project.selectedAsset='cod-source';project.segments=[makeSegment('cod-source',0,80)];
   const phrases=[
-   [7,'enemy players behind me push this team right now'],
+   [7,'enemy proximity chat talking to us I baited him and trolled him haha'],
    [17,'I got him down and eliminated that player'],
    [23,'bro you are so bad haha get wrecked'],
    [49,'on me another squad behind the building'],
@@ -46,7 +46,7 @@ try{
  if(scan.status!=='complete'||scan.audio<78||scan.motion<1||scan.events<1)
   throw Error('Actual gameplay scan incomplete or missing sensor evidence: '+JSON.stringify(scan));
  await page.locator('#generatePvPClips').click();
- await page.waitForFunction(()=>document.querySelector('#directorStatus')?.textContent?.includes('Added')||document.querySelector('#directorStatus')?.textContent?.includes('No additional'),null,{timeout:30000});
+ await page.waitForFunction(()=>document.querySelector('#directorStatus')?.textContent?.includes('Found')||document.querySelector('#directorStatus')?.textContent?.includes('No transcript-confirmed'),null,{timeout:30000});
  await page.waitForTimeout(1400);
  const result=await page.evaluate(async()=>{
   const project=await (await import('./src/storage.js')).loadProject();
@@ -64,6 +64,45 @@ try{
   return [...ctx.getImageData(x,y,1,1).data];
  });
  if(pixels.slice(0,3).every(n=>n<20))throw Error('Actual PvP preview frame is black despite subtitles: '+pixels);
+ // Two radically different editorial instructions must produce SEPARATE, distinct clip batches.
+ const firstDirection='ONLY enemy proximity chat trolling';
+ await page.locator('#directorPrompt').fill(firstDirection);
+ await page.locator('#generatePvPClips').click();
+ await page.waitForFunction(expected=>{
+  const status=document.querySelector('#directorStatus')?.textContent||'';
+  return document.querySelector('#directorPrompt')?.value===expected&&/(Found|No transcript-confirmed)/.test(status)
+ },firstDirection,{timeout:30000});
+ await page.waitForTimeout(1300);
+ const troll=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  const id=p.directorActiveBatchId;
+  return {id,prompt:p.directorBatches.find(b=>b.id===id)?.direction,
+   starts:p.candidates.filter(c=>c.directorBatchId===id).map(c=>c.segments[0].start),all:p.candidates.length};
+ });
+ if(troll.prompt!==firstDirection||!troll.starts.length||!troll.starts.every(t=>t<35))
+  throw Error('Enemy trolling request was ignored or includes unrelated revive clips: '+JSON.stringify(troll));
+ const secondDirection='ONLY revives and rescues';
+ await page.locator('#directorPrompt').fill(secondDirection);
+ await page.locator('#generatePvPClips').click();
+ await page.waitForFunction(expected=>{
+  const status=document.querySelector('#directorStatus')?.textContent||'';
+  return document.querySelector('#directorPrompt')?.value===expected&&/(Found|No transcript-confirmed)/.test(status)
+ },secondDirection,{timeout:30000});
+ await page.waitForTimeout(1300);
+ const revive=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  const id=p.directorActiveBatchId;
+  return {id,prompt:p.directorBatches.find(b=>b.id===id)?.direction,
+   starts:p.candidates.filter(c=>c.directorBatchId===id).map(c=>c.segments[0].start),all:p.candidates.length};
+ });
+ if(revive.prompt!==secondDirection||!revive.starts.length||!revive.starts.every(t=>t>35)||revive.id===troll.id||revive.all<=troll.all)
+  throw Error('Revive direction recycled opponent troll clips instead of finding a distinct later fight: '+JSON.stringify({troll,revive}));
+ await page.locator('#directorResultsView').selectOption(troll.id);
+ const earlierView=await page.locator('#candidateList').innerText();
+ if(!earlierView.includes('enemy-chat trolling')&&!earlierView.includes('Trolling'))
+  throw Error('Saved trolling search not visible when selected from comparison menu: '+earlierView.slice(0,260));
+ await page.locator('#directorResultsView').selectOption('active');
  if(errors.length)throw Error('Page errors: '+errors.join(' | '));
+ console.log('PASS: Totally different creative directions generated different saved shorts, old search remains selectable. '+JSON.stringify({troll,revive}));
  console.log('PASS: Real PvP audio/video scanned '+JSON.stringify(scan)+', generated '+result.clips+' continuous action clips, preview displayed decoded nonblack gameplay.');
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}
