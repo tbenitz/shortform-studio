@@ -59,6 +59,11 @@ jobs:
           ffmpeg -hide_banner -loglevel error -y -i _site/playback-test.webm -c copy -metadata comment=alternate-source-for-relink-test _site/renamed-playback-test.webm
       - name: Verify relinking, distant seeks, and decoded-frame playback in Chromium
         run: npm run smoke:playback
+      - name: Generate sample PvP gameplay with distinct loud combat-like audio bursts
+        run: |
+          ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'testsrc2=size=480x270:rate=10:duration=80' -f lavfi -i 'sine=frequency=200:sample_rate=48000:duration=80' -f lavfi -i 'anoisesrc=color=white:amplitude=0.55:sample_rate=48000:duration=9' -f lavfi -i 'anoisesrc=color=white:amplitude=0.65:sample_rate=48000:duration=9' -filter_complex '[2:a]adelay=9000|9000[a1];[3:a]adelay=51000|51000[a2];[1:a]volume=0.025[base];[base][a1][a2]amix=inputs=3:duration=first:normalize=0[a]' -map 0:v -map '[a]' -c:v libvpx -deadline realtime -cpu-used 8 -b:v 300k -c:a libopus -b:a 40k -t 80 _site/pvp-test.webm
+      - name: Verify CoD PvP scan detects real audio/video and preserves action in Chromium
+        run: npm run smoke:gameplay
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
