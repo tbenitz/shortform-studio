@@ -49,8 +49,50 @@ export async function semanticCandidates(words,assets,settings={},progress=()=>{
  progress(1,`Compared ${entries.length} moments across the full source timeline`);
  return candidates.sort((a,b)=>b.score-a.score).filter(c=>c.score>=(settings.minScore??0)).slice(0,settings.clipCount||8);
 }
+
+/** Retry temporary provider overloads; never retry bad credentials or malformed requests. */
+export const retryableAIStatus=status=>[408,425,429,500,502,503,504].includes(Number(status));
+export function aiRetryDelay(attempt,retryAfter=null){
+ let delay=Math.min(8000,700*2**Math.max(0,attempt-1));
+ if(retryAfter){
+  const sec=Number(retryAfter);
+  if(Number.isFinite(sec)&&sec>=0)delay=Math.min(10000,Math.max(delay,Math.round(sec*1000)));
+  else {
+   const when=Date.parse(retryAfter);
+   if(Number.isFinite(when))delay=Math.min(10000,Math.max(delay,when-Date.now()));
+  }
+ }
+ return delay;
+}
+export async function fetchAIWithRetry(endpoint,options,{fetcher=globalThis.fetch,wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),maxAttempts=4,onRetry=()=>{}}={}){
+ let lastError;
+ for(let attempt=1;attempt<=Math.max(1,maxAttempts);attempt++){
+  let response;
+  try{response=await fetcher(endpoint,options)}
+  catch(e){
+   if(e?.name==='AbortError')throw e;
+   lastError=Error('AI provider connection failed: '+String(e?.message||e));
+   lastError.retryable=true;lastError.status=null;
+   if(attempt>=maxAttempts)throw lastError;
+   const delay=aiRetryDelay(attempt);onRetry({attempt,maxAttempts,delay,status:'network'});
+   await wait(delay);continue;
+  }
+  if(response.ok)return response;
+  // Avoid dumping provider request identifiers or large bodies into UI.
+  let body='';try{body=(await response.text()).slice(0,300)}catch{}
+  const retryable=retryableAIStatus(response.status);
+  const error=Error('AI provider HTTP '+response.status+(retryable?' (temporarily unavailable)':'')+': '+body.slice(0,150));
+  error.retryable=retryable;error.status=response.status;
+  if(!retryable||attempt>=maxAttempts)throw error;
+  const delay=aiRetryDelay(attempt,response.headers?.get?.('retry-after'));
+  onRetry({attempt,maxAttempts,delay,status:response.status});
+  await wait(delay);
+ }
+ throw lastError||Error('AI provider did not respond');
+}
+
 /** Windowed remote AI analysis. A bounded set of windows spans the whole recording. */
-export async function remoteCandidates(words,assets,settings,key,onProgress=()=>{}){
+export async function remoteCandidates(words,assets,settings,key,onProgress=()=>{},{fetcher=globalThis.fetch,wait}={}){
  const all=utterances(words);if(!all.length)throw Error('No transcript to analyze');
  const endpoint=settings.providerUrl;if(!/^https:\/\//.test(endpoint))throw Error('An HTTPS endpoint is required');
  const maxCalls=clamp(settings.maxAICalls||8,1,24),windowSize=clamp(settings.remoteWindowSize||160,40,300);
@@ -62,8 +104,18 @@ export async function remoteCandidates(words,assets,settings,key,onProgress=()=>
  const instructions=`You edit faithful short-form videos. Return JSON object {"clips":[{"title":"...","reason":"...","indices":[0,1,2]}]}. Indices reference ONLY the supplied utterances. Combine non-adjacent timestamps only when their meanings genuinely connect; include setup, payoff, context. Never fabricate dialogue, misrepresent chronological events or create fake reactions. Aim ${settings.clipMin}-${settings.clipMax}s with 2-8 utterances per short. Mode: ${settings.mode}. Editor instructions: ${settings.directorInstructions||'None'}. Return ONLY JSON.`;
  const proposals=[];for(let n=0;n<windows.length;n++){
   onProgress(n/windows.length,`Analyzing transcript window ${n+1}/${windows.length}`);
-  const utt=windows[n];const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json',...(key?{'authorization':`Bearer ${key}`}:{})},body:JSON.stringify({model:settings.providerModel,temperature:.5,response_format:{type:'json_object'},messages:[{role:'system',content:instructions},{role:'user',content:JSON.stringify(utt)}]})});
-  if(!response.ok)throw Error(`AI provider HTTP ${response.status}: ${(await response.text()).slice(0,240)}`);
+  const utt=windows[n];let response;
+  try{
+   response=await fetchAIWithRetry(endpoint,{method:'POST',headers:{'content-type':'application/json',...(key?{'authorization':`Bearer ${key}`}:{})},body:JSON.stringify({model:settings.providerModel,temperature:.5,response_format:{type:'json_object'},messages:[{role:'system',content:instructions},{role:'user',content:JSON.stringify(utt)}]})},{
+    fetcher,wait,maxAttempts:4,onRetry:({attempt,maxAttempts,delay,status})=>onProgress(n/windows.length,`Provider ${status} — retry ${attempt+1}/${maxAttempts} in ${(delay/1000).toFixed(1)}s`)
+   });
+  }catch(e){
+   if(!e.retryable)throw e;
+   const local=generateCandidates(words,assets,{...settings,minScore:Math.min(settings.minScore??55,50)}).map(candidate=>({...candidate,source:'local-fallback',reason:'Remote AI temporarily unavailable ('+(e.status||'network')+'). Locally assembled from original transcript; verify context. '+candidate.reason}));
+   const combined=dedup([...proposals,...local]).slice(0,settings.clipCount||8);
+   onProgress(1,'Provider '+(e.status||'network')+' remained unavailable. Kept '+proposals.length+' remote clips and offered '+local.length+' local fallback clips.');
+   return combined;
+  }
   const payload=await response.json(),out=payload.choices?.[0]?.message?.content||'';let parsed;try{parsed=JSON.parse(out.replace(/^```(?:json)?\s*/,'').replace(/```$/,''))}catch{throw Error('AI response was not valid JSON')}
   if(!Array.isArray(parsed.clips))throw Error('AI did not return a clips array');
   for(const x of parsed.clips){const indices=[...new Set((x.indices||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<utt.length))].slice(0,9);const segs=indices.map(i=>makeSegment(utt[i].assetId,utt[i].start,utt[i].end)),dur=segs.reduce((t,s)=>t+s.end-s.start,0);
