@@ -123,7 +123,7 @@ export function historyEntries(candidates=[]){
   const segments=c.segments||[];
   // Store PRIMARY anchor span only. Cross-timestamp callbacks don't permanently reserve other stories.
   const primary=segments.find(s=>s.assetId===a.assetId&&a.time>=s.start&&a.time<s.end)||segments[0];
-  return {assetId:a.assetId,start:primary?.start??a.time,end:primary?.end??a.time+.2,signature:clipSignature(c)};
+  return {assetId:a.assetId,start:primary?.start??a.time,end:primary?.end??a.time+.2,mode:c.mode||'all',signature:clipSignature(c)};
  });
 }
 /** Generates a full-length pool in linear-ish time; no per-seed scan of all utterances. */

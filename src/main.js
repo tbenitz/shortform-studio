@@ -102,7 +102,12 @@ async function runDirector(exhaustive=false){
  if(directorBusy)return;
  if(!p.words.length&&p.settings.mode!=='cod-pvp')return toast('Complete Whisper or import an SRT for transcript-based editing; PvP mode can analyze the actual video/audio without spoken words.',true);
  p.settings.directorInstructions=$('directorPrompt')?.value||p.settings.directorInstructions||'';
- const options={...p.settings,existingCandidates:p.candidates,history:p.directorHistory||[]};
+ // Old transcript-only suggestions must not suppress genuine gameplay encounters.
+ const pvp=p.settings.mode==='cod-pvp';
+ const options={...p.settings,
+  existingCandidates:p.candidates.filter(c=>pvp?c.mode==='cod-pvp':c.mode!=='cod-pvp'),
+  history:(p.directorHistory||[]).filter(h=>pvp?h.mode==='cod-pvp':h.mode!=='cod-pvp')
+ };
  if(exhaustive)Object.assign(options,options.mode==='cod-pvp'?{clipCount:0,discoveryAll:true}:{clipCount:0,mode:'all',minScore:0,discoveryAll:true});
  const cover=sourceCoverage(p.assets,p.words,p.transcriptProgress,p.candidates);
  if(cover.totalBins>3&&cover.coveredBins<cover.totalBins/3){
