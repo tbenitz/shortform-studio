@@ -23,7 +23,7 @@ import {previewSpeech,stopSpeech,availableVoices,synthesizeSpeech,suggestBridges
 import {relabelSpeaker,speakerSummary,diarizeWithProvider,applySpeakerSegments} from './speakers.js';
 import {entireSourceCut,selectedSourceCut,shouldAutoInsertMedia,sourceSecondsValue,possibleMissingSourceRelink} from './media-workflow.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
-let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',povReferenceChoice=null,povTargetChoice=null,povSyncStatus='',directorBusy=false,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
+let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',povReferenceChoice=null,povTargetChoice=null,povSyncStatus='',povStoryPacing='balanced',directorBusy=false,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
 const asset=id=>assets.get(id)||p.assets.find(a=>a.id===id);
 const media=id=>assets.get(id)?.file;
 const engine=new Renderer(p,asset,toast);
@@ -84,6 +84,11 @@ const gameplayStatusText=p.assets.filter(a=>a.type==='video').map(a=>{const t=p.
  <div class="row wrap"><button class="small primary" id="syncPovTranscripts">Match POVs by shared spoken phrases</button><button class="small" id="syncPovManual">Save manual time offset</button></div>
  <div class="row"><label class="field" style="flex:1">Second POV offset (seconds)<input id="povOffset" type="number" step="0.1" value="${savedPovSync?.referenceId===povReferenceId&&savedPovSync?.targetId===povTargetId?savedPovSync.offset:0}"></label><label class="field" style="flex:1">B clock scale (1=normal)<input id="povScale" type="number" step="0.000001" min="0.995" max="1.005" value="${savedPovSync?.referenceId===povReferenceId&&savedPovSync?.targetId===povTargetId?savedPovSync.scale:1}"></label></div>
  <div class="tiny muted" id="povSyncStatus">${esc(povSyncStatus||povStatus)}</div>
+ <label class="field">Multi-POV story length<select id="povStoryPacing">
+ <option value="punchy" ${povStoryPacing==='punchy'?'selected':''}>Punchy · 20–45 sec · 4–5 cuts</option>
+ <option value="balanced" ${povStoryPacing==='balanced'?'selected':''}>Balanced · 25–75 sec · 5–7 cuts</option>
+ <option value="extended" ${povStoryPacing==='extended'?'selected':''}>Extended · 40–120 sec · 6–9 cuts</option>
+ </select></label>
  <button class="primary full" id="generateMultiPovHighlights" ${directorBusy||gameplayBusy?'disabled':''}>🎬 Build edited multi-POV STORIES (A + B)</button>
  <p class="tiny muted">Creates an assembled montage: hook/setup → engagement → other camera → climax → reaction. Separate moments are trimmed and stitched into one short, using BOTH original videos. POV selection is based on available gameplay evidence; a context angle is not proof of a kill. Check cuts and sound before export.</p>
  `:`<p class="tiny muted">Import at least two video recordings first. You can then align them from their transcripts, or enter a manual timestamp offset.</p>`}
@@ -200,6 +205,12 @@ function synchronizePovManually(){
 }
 async function generateMultiPovDirector(){
  if(directorBusy||gameplayBusy)return;
+ const storyFocus=($('directorPrompt')?.value??p.settings.directorInstructions??'').trim();
+ const pacing=$('povStoryPacing')?.value||povStoryPacing;
+ povStoryPacing=pacing;
+ const shape=pacing==='punchy'?{clipMin:20,clipMax:45,storyMaxCuts:5}:
+  pacing==='extended'?{clipMin:40,clipMax:120,storyMaxCuts:9}:
+  {clipMin:25,clipMax:75,storyMaxCuts:7};
  let ref,target,sync;
  try{
   ({referenceId:ref,targetId:target}=getPovPair());
@@ -221,8 +232,8 @@ async function generateMultiPovDirector(){
     await runGameplayScan(a,{silent:true});
    }
   }
-  const dir='Multi-POV NARRATIVE STORY v2: setup, action, reaction, multiple noncontiguous cuts, both A+B. '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale;
-  const options={...p.settings,mode:'multi-pov-story',directorInstructions:dir,clipCount:0,storyMaxCuts:7};
+  const dir='Multi-POV NARRATIVE STORY v3: setup, action, reaction, A+B. '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale+' | '+pacing+' | '+storyFocus;
+  const options={...p.settings,...shape,mode:'multi-pov-story',directorInstructions:dir,storyEditorialDirection:storyFocus,clipCount:0};
   const plan=planDirectorBatch(p,options,{id:uid()});
   options.existingCandidates=plan.existingCandidates;
   options.history=plan.history;
@@ -502,6 +513,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  if(povTargetInput)povTargetInput.onchange=()=>{povTargetChoice=povTargetInput.value;povSyncStatus='Run transcript matching or enter an offset for the selected POVs.';renderInspector()};
  on('syncPovTranscripts',()=>synchronizePovBySpeech());
  on('syncPovManual',()=>synchronizePovManually());
+ const storyPacingSelect=$('povStoryPacing');if(storyPacingSelect)storyPacingSelect.onchange=()=>{povStoryPacing=storyPacingSelect.value};
  on('generateMultiPovHighlights',()=>generateMultiPovDirector());
  on('scanGameplayBtn',()=>{runGameplayScan().catch(()=>{})});
  on('cancelGameplayScan',()=>gameplayAbort?.abort());

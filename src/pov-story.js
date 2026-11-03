@@ -6,6 +6,7 @@ import {makeSegment,clamp,fmt} from './model.js';
 import {alignedPovEvents,pointOfViewScore} from './pov-director.js';
 import {checkSynchronization,sourceAtAlignment} from './pov-sync.js';
 import {selectDiverseCandidates} from './director-coverage.js';
+import {parseEditorialDirection,matchEditorialDirection} from './director-intent.js';
 
 const PAYOFF=new Set(['down','revive','clutch','laugh','trash','troll']);
 const ENGAGEMENT=new Set(['combat','down','spotted','clutch','possible-action']);
@@ -211,9 +212,13 @@ export function buildMultiPovStories(words,assets,tracks,sync,settings={},onProg
  const events=alignedPovEvents(words,tracks,sync)
   .filter(e=>e.globalEnd>limits.commonStart&&e.globalStart<limits.commonEnd);
  const groups=groupStoryEncounters(events),candidates=[];
+ const editorial=parseEditorialDirection(settings.storyEditorialDirection||'');
  for(const group of groups){
   const totalActions=group.events.filter(e=>e.kind==='audio'||(e.tags||[]).some(t=>ENGAGEMENT.has(t))).length;
   if(totalActions<1)continue;
+  const groupTags=new Set(group.events.flatMap(e=>e.tags||[]));
+  const editorialMatch=matchEditorialDirection(editorial,groupTags);
+  if(!editorialMatch.eligible)continue;
   const story=composePovStory(events,sync,group,limits,settings);
   if(!story||story.segments.length<3||story.sourceIds.length!==2||story.jumpCuts<1)continue;
   const tags=new Set(group.events.flatMap(e=>e.tags||[]));
@@ -221,7 +226,7 @@ export function buildMultiPovStories(words,assets,tracks,sync,settings={},onProg
    tags.has('trash')||tags.has('troll')?'Banter & fight story':'Gunfight story')+
    ' · '+story.segments.length+' edits · A+B · '+fmt(story.globalStart);
   const score=clamp(40+story.segments.length*3+story.jumpCuts*4+Math.min(20,totalActions*2)+
-   (tags.has('clutch')||tags.has('revive')?9:0),0,99);
+   (tags.has('clutch')||tags.has('revive')?9:0)+editorialMatch.scoreDelta,0,99);
   candidates.push({
    id:'pov-story-'+A.id+'-'+B.id+'-'+Math.round(story.globalStart*10),
    mode:'multi-pov-story',source:'multi-pov-story',title,
@@ -229,11 +234,11 @@ export function buildMultiPovStories(words,assets,tracks,sync,settings={},onProg
    segments:story.segments,duration:story.duration,score,
    pov:{referenceId:A.id,targetId:B.id,sourceCount:2,
     cutCount:story.segments.length,jumpCuts:story.jumpCuts,storyBeats:story.storyBeats,
-    globalStart:story.globalStart,globalEnd:story.globalEnd,confidence:sync.confidence||'manual'},
+    globalStart:story.globalStart,globalEnd:story.globalEnd,confidence:sync.confidence||'manual',directionMatch:editorialMatch},
    reason:'EDITED STORY, not a single source clip: '+story.segments.length+
     ' separate cuts from '+A.name+' and '+B.name+' across '+fmt(story.storySpan)+
     ' of source action. Story beats: '+story.storyBeats.map(b=>b.order+'. '+b.role+' ('+(b.sourceId===A.id?'A':'B')+')').join(' → ')+
-    '. Skips '+story.jumpCuts+' gaps and switches between both POVs. A reaction, knock, revive, or kill is NOT visually confirmed; review the exact scenes and audio.'
+    '. Skips '+story.jumpCuts+' gaps and switches between both POVs. '+editorialMatch.reason+'. A reaction, knock, revive, or kill is NOT visually confirmed; review the exact scenes and audio.'
   });
  }
  onProgress(1,'Built '+candidates.length+' cut-together two-POV stories from '+groups.length+' possible encounter arcs');

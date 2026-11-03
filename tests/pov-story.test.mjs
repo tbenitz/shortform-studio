@@ -48,3 +48,18 @@ test('synchronization with clock drift preserves valid B source timestamps',()=>
  assert.ok(b.every(s=>Math.abs(s.speed-drift.scale)<1e-8));
  assert.ok(b.every(s=>s.end>s.start));
 });
+
+test('story selection honors wildly different creative directions instead of recycling same montage',()=>{
+ const material=[...words,...w('a',400,'enemy spotted we are pushing'),...w('b',426,'bro you are trash haha'),
+  ...w('a',640,'i am down revive me'),...w('b',665,'my squadmate needs rescue')];
+ const more={
+  a:{audio:[{}],events:[...tracks.a.events,{start:401,end:411,peakTime:405,score:.9},{start:648,end:653,peakTime:650,score:.9}],motion:[...tracks.a.motion,{time:405,motion:.8},{time:650,motion:.8}]},
+  b:{audio:[{}],events:[...tracks.b.events,{start:399,end:410,peakTime:406,score:.8},{start:630,end:660,peakTime:652,score:.9}],motion:[...tracks.b.motion,{time:406,motion:.9},{time:652,motion:.9}]}
+ };
+ const fights=buildMultiPovStories(material,assets,more,sync,{storyEditorialDirection:'ONLY gunfights and combat',clipMin:20,clipMax:80});
+ const revive=buildMultiPovStories(material,assets,more,sync,{storyEditorialDirection:'ONLY revives and rescues',clipMin:20,clipMax:80});
+ assert.ok(fights.length>0&&revive.length>0);
+ assert.ok(fights.some(s=>s.anchorTime<200));
+ assert.ok(revive.every(s=>s.pov.directionMatch.matches.includes('revive')));
+ assert.notDeepEqual(fights.map(s=>s.anchorTime),revive.map(s=>s.anchorTime));
+});
