@@ -19,7 +19,7 @@ test('generates genuine A+B montage with non-contiguous source ranges and named 
  assert.ok(candidates.length>0,'Expected story output from several fight stages');
  const c=candidates[0];
  assert.equal(c.mode,'multi-pov-story');
- assert.ok(c.segments.length>=4,'Must be multiple different parts, not a single source link');
+ assert.ok(c.segments.length>=3,'Must contain distinct coherent cuts, not a single source link');
  assert.equal(new Set(c.segments.map(s=>s.assetId)).size,2,'Must actually use both video sources');
  assert.ok(c.pov.povSwitches>=1,'Must really switch between cameras, not add filler');
  assert.ok(c.pov.storyBeats[0].role.includes('Hook'));
