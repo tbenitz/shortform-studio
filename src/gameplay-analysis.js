@@ -2,7 +2,7 @@
 import {openAudioReader,loadStreamingMedia} from './audio-reader.js';
 import {clamp} from './model.js';
 const TWO_PI=Math.PI*2;
-export const GAMEPLAY_SCAN_VERSION=1;
+export const GAMEPLAY_SCAN_VERSION=2;
 export function audioBuckets(pcm,start=0,{sampleRate=16000,seconds=1}={}){
  const samplesPer=Math.max(1,Math.floor(sampleRate*seconds)),out=[];
  for(let base=0;base<pcm.length;base+=samplesPer){
@@ -63,28 +63,39 @@ export function frameDifference(prev,next){
  }
  return n?Math.min(1,change/n/78):0;
 }
-export function chooseVisualTimestamps(events,duration,{limit=840}={}){
- const keys=new Set(),result=[],push=t=>{
-  if(t<0||t>=duration)return;
-  const key=Math.round(t*2)/2;
-  if(!keys.has(key)){keys.add(key);result.push(key)}
- };
- // Minimum coverage across source timeline, plus short paired samples near audio activity.
- for(let t=2;t<duration;t+=90)push(t);
- const byBucket=new Map();
- for(const e of events){
-  const bucket=Math.floor(e.peakTime/300);
-  if(!byBucket.has(bucket))byBucket.set(bucket,[]);
-  byBucket.get(bucket).push(e);
- }
- for(const events of byBucket.values()){
-  events.sort((a,b)=>b.score-a.score);
-  for(const e of events.slice(0,6)){push(e.peakTime-1);push(e.peakTime);push(e.peakTime+1)}
- }
- const ordered=result.sort((a,b)=>a-b);
- if(ordered.length<=limit)return ordered;
- const chosen=[];for(let i=0;i<limit;i++)chosen.push(ordered[Math.round(i*(ordered.length-1)/(limit-1))]);
- return [...new Set(chosen)];
+export function chooseVisualTimestamps(events,duration,{limit=840,start=0,end=duration}={}){
+  const from=Math.max(0,Math.min(duration,Number(start)||0));
+  const until=Math.min(duration,Math.max(from,Number(end)||duration));
+  if(until-from<1)return [];
+  const keys=new Set(),result=[],push=t=>{
+    if(t<from||t>=until)return;
+    const key=Math.round(t*2)/2;
+    if(key>=from&&key<until&&!keys.has(key)){keys.add(key);result.push(key)}
+  };
+  // Sample only within the requested source-time window, prioritizing
+  // neighboring frames for every promising audio burst.
+  for(let t=from+2;t<until;t+=90)push(t);
+  const byBucket=new Map();
+  for(const e of events||[]){
+    if(e.peakTime<from||e.peakTime>=until)continue;
+    const bucket=Math.floor((e.peakTime-from)/90);
+    if(!byBucket.has(bucket))byBucket.set(bucket,[]);
+    byBucket.get(bucket).push(e);
+  }
+  for(const list of byBucket.values()){
+    list.sort((a,b)=>b.score-a.score);
+    for(const e of list.slice(0,8)){
+      // Paired source frames are needed to measure visible movement, rather
+      // than counting an isolated frame as proof of a firefight.
+      push(e.peakTime-1);push(e.peakTime);push(e.peakTime+1);
+      push(e.peakTime+2);
+    }
+  }
+  const ordered=result.sort((a,b)=>a-b);
+  if(ordered.length<=limit)return ordered;
+  const chosen=[];
+  for(let i=0;i<limit;i++)chosen.push(ordered[Math.round(i*(ordered.length-1)/(limit-1))]);
+  return [...new Set(chosen)];
 }
 export async function scanMotion(file,times,{signal,onProgress=()=>{},moduleLoader=loadStreamingMedia}={}){
  if(!times?.length)return [];
@@ -113,41 +124,59 @@ export async function scanMotion(file,times,{signal,onProgress=()=>{},moduleLoad
   return output;
  }finally{input.dispose()}
 }
-export async function scanGameplay(file,{durationHint=0,signal,onProgress=()=>{},onCheckpoint=async()=>{},readerFactory=openAudioReader,videoScanner=scanMotion,analysisVersion=GAMEPLAY_SCAN_VERSION,resume=null}={}){
- let reader;
- let sound=[];const warnings=[];
- try{
-  onProgress(0,'Opening bounded audio reader; no full video download');
-  reader=await readerFactory(file,{durationHint});
-  const duration=reader.duration;
-  const checkpointOk=resume?.version===analysisVersion&&Math.abs((resume.duration||0)-duration)<.5&&resume.status==='scanning'&&Array.isArray(resume.audio);
-  const resumeAt=checkpointOk?Math.max(0,Math.min(duration,Math.floor((resume.processed||0)/24)*24)):0;
-  if(resumeAt>0) {
-   sound=resume.audio.filter(b=>b.time<resumeAt);
-   onProgress(.78*resumeAt/duration,'Resuming gameplay audio analysis at '+Math.floor(resumeAt/60)+' minutes ('+sound.length+' evidence buckets saved)');
-  }
-  // 24s windows hold <1.6 MB of uncompressed PCM, even on three-hour sources.
-  for(let t=resumeAt;t<duration;t+=24){
-   if(signal?.aborted)throw Error('Gameplay scan paused');
-   const end=Math.min(duration,t+24),pcm=await reader.readRange(t,end,{signal});
-   sound.push(...audioBuckets(pcm,t));
-   if(Math.floor(t/24)%10===0){
-    onProgress(.78*end/duration,'Scanning gameplay audio '+Math.floor(end/60)+' / '+Math.ceil(duration/60)+' minutes');
-    await onCheckpoint({version:analysisVersion,duration,audio:sound.slice(),motion:[],events:[],status:'scanning',processed:end,warnings:[]});
-    await new Promise(r=>setTimeout(r,0));
-   }
-  }
-  const events=findAudioCombatBursts(sound);
-  reader.close();reader=null;
-  onProgress(.79,'Audio scan complete: '+events.length+' possible action bursts. Sampling video motion…');
-  let motion=[];
+export async function scanGameplay(file,{durationHint=0,window=null,signal,onProgress=()=>{},
+  onCheckpoint=async()=>{},readerFactory=openAudioReader,videoScanner=scanMotion,
+  analysisVersion=GAMEPLAY_SCAN_VERSION,resume=null}={}){
+  let reader;
+  let sound=[];const warnings=[];
   try{
-   const times=chooseVisualTimestamps(events,duration);
-   motion=await videoScanner(file,times,{signal,onProgress:(fraction,message)=>onProgress(.79+.21*fraction,message)});
-  }catch(e){if(signal?.aborted)throw e;warnings.push('Video motion scan unavailable: '+e.message)}
-  const track={version:analysisVersion,duration,audio:sound,motion,events,status:'complete',processed:duration,warnings,createdAt:Date.now()};
-  await onCheckpoint(track);
-  onProgress(1,'Game scan finished: '+events.length+' possible combat audio bursts and '+motion.length+' sampled frames');
-  return track;
- }finally{reader?.close()}
+    onProgress(0,'Opening bounded audio reader (source files stay local)');
+    reader=await readerFactory(file,{durationHint});
+    const duration=reader.duration;
+    // For two synchronized POVs only the shared source interval is decoded.
+    const from=window?Math.max(0,Math.min(duration,Number(window.start)||0)):0;
+    const until=window?Math.min(duration,Number(window.end)):duration;
+    if(!(Number.isFinite(until)&&until-from>=1))throw Error('No playable overlap in this source');
+    const scanWindow={start:+from.toFixed(3),end:+until.toFixed(3)};
+    const scanSeconds=until-from;
+    const scoped=resume?.window&&Math.abs(resume.window.start-from)<.01&&Math.abs(resume.window.end-until)<.01;
+    const checkpointOk=resume?.version===analysisVersion&&
+      Math.abs((resume.duration||0)-duration)<.5&&resume.status==='scanning'&&
+      Array.isArray(resume.audio)&&scoped;
+    const resumeAt=checkpointOk?Math.max(from,Math.min(until,from+Math.floor(((resume.processed||from)-from)/24)*24)):from;
+    if(resumeAt>from){
+      sound=resume.audio.filter(b=>b.time>=from&&b.time<resumeAt);
+      onProgress(.78*(resumeAt-from)/scanSeconds,'Resuming overlap audio at '+Math.floor(resumeAt/60)+' minutes');
+    }
+    for(let t=resumeAt;t<until;t+=24){
+      if(signal?.aborted)throw Error('Gameplay scan paused');
+      const end=Math.min(until,t+24),pcm=await reader.readRange(t,end,{signal});
+      sound.push(...audioBuckets(pcm,t));
+      if(Math.floor((t-from)/24)%10===0){
+        onProgress(.78*(end-from)/scanSeconds,'Scanning shared footage '+Math.floor(end-from)+' / '+Math.ceil(scanSeconds)+' sec');
+        await onCheckpoint({version:analysisVersion,duration,window:scanWindow,
+          audio:sound.slice(),motion:[],events:[],status:'scanning',processed:end,warnings:[]});
+        await new Promise(r=>setTimeout(r,0));
+      }
+    }
+    const events=findAudioCombatBursts(sound)
+      .map(e=>({...e,start:Math.max(from,e.start),end:Math.min(until,e.end)}))
+      .filter(e=>e.end>e.start);
+    reader.close();reader=null;
+    onProgress(.79,'Audio pass: '+events.length+' possible action bursts. Checking video frames inside the same window…');
+    let motion=[];
+    try{
+      const times=chooseVisualTimestamps(events,duration,{start:from,end:until});
+      motion=await videoScanner(file,times,{signal,onProgress:(fraction,message)=>onProgress(.79+.21*fraction,message)});
+    }catch(e){
+      if(signal?.aborted)throw e;
+      warnings.push('Video evidence unavailable: '+e.message);
+    }
+    const track={version:analysisVersion,duration,window:scanWindow,scanSeconds,
+      audio:sound,motion,events,status:'complete',processed:until,warnings,createdAt:Date.now()};
+    await onCheckpoint(track);
+    onProgress(1,'Scanned '+Math.round(scanSeconds)+' seconds of source footage · '+
+      events.length+' audio bursts · '+motion.length+' sampled frames');
+    return track;
+  }finally{reader?.close()}
 }
