@@ -139,8 +139,13 @@ function beatPov(group,sync,bounds,previous,pairs){
     const action=nearby.length>0;
     const views=group.events.filter(e=>e.assetId===assetId&&
       e.globalTime>=bounds.start-4&&e.globalTime<=bounds.end+4);
-    const speech=views.some(e=>actionDialogue(e));
-    const interest=action||speech&&views.some(e=>e.kind==='motion'&&(e.score||0)>=.23);
+    // Allow a real setup or reaction callout just before/after the
+    // paired action, even if that exact speech frame is visually quiet.
+    // The callout must still belong to the SAME camera's nearby encounter.
+    const contextual=views.some(e=>e.kind==='dialogue'&&
+      (e.tags||[]).some(t=>ACTION_TAGS.has(t)||PAYOFF_TAGS.has(t)))&&
+      pairs.some(p=>p.assetId===assetId&&p.time>=bounds.start-14&&p.time<=bounds.end+14);
+    const interest=action||contextual;
     const score=pointOfViewScore(group.events,assetId,bounds.start,bounds.end).value+
       nearby.reduce((sum,e)=>sum+e.score*23,0);
     return {assetId,score,interest,action};
