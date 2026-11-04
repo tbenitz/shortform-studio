@@ -92,7 +92,9 @@ const gameplayStatusText=p.assets.filter(a=>a.type==='video').map(a=>{const t=p.
 <p class="tiny muted" id="directorModeNotice">${outputMode==='stories'
 ?'STORY MODE: Only the synchronized overlapping footage is scanned. Clips must show one coherent encounter with evidence from BOTH cameras. Missing action angles are never invented.'
 :'RAW MODE: Each result is one original-source excerpt. Select ASSEMBLED MULTI-POV STORIES to create actual edited videos.'}
-${povAssets.length>=2&&outputCounts.raw?'<b>'+outputCounts.raw+' earlier raw one-cut results are preserved under RAW single-camera moments — they are NOT assembled stories.</b>':''}</p>
+${povAssets.length>=2&&outputCounts.raw?'<b>'+outputCounts.raw+' earlier raw one-cut results are preserved under RAW single-camera moments — they are NOT assembled stories.</b>':''}
+${p.candidates.some(c=>c.mode==='multi-pov-story'&&!c.pov?.actionEvidencePairs)?
+'<strong>⚠ Previous v0.8.3 assembled stories were made without paired visual-action checks and are NOT automatically repaired. Generate again to build new event-locked edits; legacy cards remain available only for comparison.</strong>':''}</p>
 </div><div class="separator"></div><div class="info"><b>Two-player VOD → multi-POV highlights</b><p class="tiny muted">Upload both original recordings in Media and transcribe both VODs (or import their original-timestamp SRTs). Match the same spoken phrases to align match clocks, then generate a single short that switches sources when their gameplay evidence differs. An offset and optional clock drift are saved; kill ownership is NOT verified without HUD/kill-feed evidence.</p>
  ${povAssets.length>=2?`<div class="row"><label class="field" style="flex:1">POV A (match clock)<select id="povReference">${povOptions(povReferenceId)}</select></label><label class="field" style="flex:1">POV B<select id="povTarget">${povOptions(povTargetId)}</select></label></div>
  <div class="row wrap"><button class="small primary" id="syncPovTranscripts">Match POVs by shared spoken phrases</button><button class="small" id="syncPovManual">Save manual time offset</button></div>
