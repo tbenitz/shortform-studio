@@ -49,8 +49,11 @@ export function normalizeVision(raw,times){
   if(evidence.length)frames.push({camera,time:nearest,evidence,description:String(f.description||'').slice(0,150)});
  }
  const A=frames.filter(f=>f.camera==='A'),B=frames.filter(f=>f.camera==='B');
+ const strong=new Set(['muzzle_flash','enemy_shooting','explosion','hit_marker','damage_indicator','down_indicator','revive_ui','active_gunfight','kill_feed']);
+ const distinctStrong=new Set(frames.filter(f=>f.evidence.some(x=>strong.has(x))).map(f=>f.time));
  return {frames,A:A.length,B:B.length,
-  usable:A.length>0&&B.length>0&&new Set(frames.map(f=>f.time)).size>=3&&
+  usable:A.length>0&&B.length>0&&distinctStrong.size>=2&&
+   new Set(frames.map(f=>f.time)).size>=3&&
    A.some(a=>B.some(b=>Math.abs(a.time-b.time)<=12)),
   summary:String(raw?.summary||'').slice(0,320)};
 }
