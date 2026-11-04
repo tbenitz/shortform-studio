@@ -6,7 +6,8 @@ import {scanGameplay,GAMEPLAY_SCAN_VERSION} from './gameplay-analysis.js';
 import {generatePvPHighlights} from './gameplay-director.js';
 import {syncFromTranscripts,checkSynchronization} from './pov-sync.js';
 import {buildMultiPovHighlights} from './pov-director.js';
-import {buildMultiPovStories} from './pov-story.js';
+import {reviewWithVision} from './pov-vision.js';
+import {discoverVisionScouts,chooseFreshVisionScouts} from './pov-scout.js';
 import {overlappingPovWindows,scopedScanFingerprint,validScopedScan} from './pov-scan.js';
 import {interpretStoryBrief,selectEditorialStories} from './story-brief.js';
 import {directorOutputMode,visibleDirectorCandidates as filterDirectorCandidates,directorResultCounts,usableAutoSync,isAssembledPovStory} from './director-mode.js';
@@ -26,7 +27,7 @@ import {previewSpeech,stopSpeech,availableVoices,synthesizeSpeech,suggestBridges
 import {relabelSpeaker,speakerSummary,diarizeWithProvider,applySpeakerSegments} from './speakers.js';
 import {entireSourceCut,selectedSourceCut,shouldAutoInsertMedia,sourceSecondsValue,possibleMissingSourceRelink} from './media-workflow.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
-let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',directorOutputPreference='auto',povReferenceChoice=null,povTargetChoice=null,povSyncStatus='',povStoryPacing='balanced',directorBusy=false,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
+let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',directorOutputPreference='auto',povReferenceChoice=null,povTargetChoice=null,povSyncStatus='',povStoryPacing='balanced',directorBusy=false,directorAbort=null,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
 const asset=id=>assets.get(id)||p.assets.find(a=>a.id===id);
 const media=id=>assets.get(id)?.file;
 const engine=new Renderer(p,asset,toast);
@@ -90,11 +91,11 @@ const gameplayStatusText=p.assets.filter(a=>a.type==='video').map(a=>{const t=p.
 <option value="raw" ${outputMode==='raw'?'selected':''}>🔎 RAW single-camera moments — one cut each (discovery only)</option>
 </select></label>
 <p class="tiny muted" id="directorModeNotice">${outputMode==='stories'
-?'STORY MODE: Only the synchronized overlapping footage is scanned. Clips must show one coherent encounter with evidence from BOTH cameras. Missing action angles are never invented.'
+?'STORY MODE: Only synchronized overlap is scanned. DeepSeek Flash inspects REAL source frames from both cameras before any new result is shown. Old algorithmic clips are hidden.'
 :'RAW MODE: Each result is one original-source excerpt. Select ASSEMBLED MULTI-POV STORIES to create actual edited videos.'}
 ${povAssets.length>=2&&outputCounts.raw?'<b>'+outputCounts.raw+' earlier raw one-cut results are preserved under RAW single-camera moments — they are NOT assembled stories.</b>':''}
-${p.candidates.some(c=>c.mode==='multi-pov-story'&&!c.pov?.actionEvidencePairs)?
-'<strong>⚠ Previous v0.8.3 assembled stories were made without paired visual-action checks and are NOT automatically repaired. Generate again to build new event-locked edits; legacy cards remain available only for comparison.</strong>':''}</p>
+${p.candidates.some(c=>c.mode==='multi-pov-story'&&!c.pov?.visionVerified)?
+'<strong>⚠ Old montage cards were made without seeing a gunfight. They are hidden, NOT recycled. Re-run generation for frame-reviewed edits. Existing editor timeline is untouched.</strong>':''}</p>
 </div><div class="separator"></div><div class="info"><b>Two-player VOD → multi-POV highlights</b><p class="tiny muted">Upload both original recordings in Media and transcribe both VODs (or import their original-timestamp SRTs). Match the same spoken phrases to align match clocks, then generate a single short that switches sources when their gameplay evidence differs. An offset and optional clock drift are saved; kill ownership is NOT verified without HUD/kill-feed evidence.</p>
  ${povAssets.length>=2?`<div class="row"><label class="field" style="flex:1">POV A (match clock)<select id="povReference">${povOptions(povReferenceId)}</select></label><label class="field" style="flex:1">POV B<select id="povTarget">${povOptions(povTargetId)}</select></label></div>
  <div class="row wrap"><button class="small primary" id="syncPovTranscripts">Match POVs by shared spoken phrases</button><button class="small" id="syncPovManual">Save manual time offset</button></div>
@@ -105,8 +106,9 @@ ${p.candidates.some(c=>c.mode==='multi-pov-story'&&!c.pov?.actionEvidencePairs)?
  <option value="balanced" ${povStoryPacing==='balanced'?'selected':''}>Balanced · 25–75 sec · 5–7 cuts</option>
  <option value="extended" ${povStoryPacing==='extended'?'selected':''}>Extended · 40–120 sec · 6–9 cuts</option>
  </select></label>
- <button class="primary full" id="generateMultiPovHighlights" ${directorBusy||gameplayBusy?'disabled':''}>🎬 Build edited multi-POV STORIES (A + B)</button>
- <p class="tiny muted">Uses one chronological encounter and preserves the actual action rather than combining unrelated ranges. Both cameras must have useful evidence; if a requested gunfight or rescue is unsupported, no clip is invented. Review guns and outcomes before export.</p>
+ <button class="primary full" id="generateMultiPovHighlights" ${directorBusy||gameplayBusy?'disabled':''}>🎬 Find real multi-POV fights (frame-reviewed)</button>
+ ${directorBusy?'<button id="cancelVisionReview" class="small danger">Stop reviewing frames</button>':''}
+ <p class="tiny muted">Requires Remote AI and a DeepSeek key. One visual-review request sends JPEG contact sheets of real frames from BOTH cameras to DeepSeek and incurs API usage. The Remote AI request limit below caps review attempts (default 8). If the frames do not support a fight, ZERO clips are generated. Check continuous playback before export.</p>
  `:`<p class="tiny muted">Import at least two video recordings first. You can then align them from their transcripts, or enter a manual timestamp offset.</p>`}
  </div><div class="separator"></div><div class="info"><b>Call of Duty PvP:</b> use the gameplay scan below for actual audio activity and visual movement, not just dialogue. Highlights preserve continuous footage before, during and after combat-like events. Spoken callouts can suggest enemy sightings, deaths and revives, but unverified audio or motion cannot prove a kill.</div><div class="info"><b>Gameplay analysis:</b> ${gameplayStatusText||'No video sources yet'}.</div><div class="row"><button id="scanGameplayBtn" class="full" ${gameplayBusy?'disabled':''}>🎮 Analyze actual gameplay audio + video</button><button id="cancelGameplayScan" class="small danger" ${gameplayBusy?'':'disabled'}>Stop scan</button></div><div class="tiny muted" id="gameplayStatus" aria-live="polite">${esc(gameplayStatus||'Multi-POV scans decode audio and sample video frames only inside the aligned shared interval. Raw single-POV mode can scan a full recording.')}</div><button id="generatePvPClips" class="primary full" ${directorBusy||gameplayBusy?'disabled':''}>${outputMode==='stories'?'🎬 Assemble POV A + POV B into MULTI-CUT stories':'🎮 Find RAW PvP moments (one cut)'}</button><p class="tiny muted">If Director engine is Remote, it will also critique titles, humor and payoff using timestamped transcripts. The provider does not see video pixels, so it cannot visually verify a kill or revive.</p><div class="separator"></div><div class="info">Scan EVERY transcribed section of the uploaded recording and generate many distinct short videos—not just the top few highlights. Repeated searches avoid the moments already proposed. Scores are editorial heuristics, not virality predictions.</div><div class="info"><b>Source coverage:</b> ${coverage.wordCount.toLocaleString()} words · ${coverage.coveredBins} of ${coverage.totalBins} five-minute source sections contain transcript · ${coverage.percent}% of media processed by Whisper (or imported manually). ${coverage.coveredBins<coverage.totalBins/3&&coverage.totalBins>3?'<strong>⚠ Much of the recording has no transcript yet. The Director cannot discover dialogue it has not received.</strong>':''}</div>${discoveryMap}<div class="separator"></div>${field('Clip category','mode',p.settings.mode,'text',[['all','All categories / full recording'],['comedy','Comedy & callbacks'],['story','Storytelling'],['educational','Educational'],['debate','Debate'],['dramatic','Dramatic'],['inspiration','Inspirational'],['gaming','Gaming'],['cod-pvp','Call of Duty PvP · fights, reactions and trash talk']])}<div class="row"><div style="flex:1">${field('Minimum seconds','clipMin',p.settings.clipMin,'number')}</div><div style="flex:1">${field('Maximum seconds','clipMax',p.settings.clipMax,'number')}</div></div>${field('Clips to propose (0 = ALL available, up to 500 at once)','clipCount',p.settings.clipCount,'number')}${field('Minimum heuristic score (0 = widest search)','minScore',p.settings.minScore,'number')+field('PvP action quality threshold (25–90)','gameplayMinScore',p.settings.gameplayMinScore??44,'number')}${field('Story creativity (0–100)','creativity',p.settings.creativity,'range')}<label class="checkrow"><input type="checkbox" data-setting="allowNonlinear" ${p.settings.allowNonlinear?'checked':''}>Allow non-adjacent source moments</label>${field('On-device semantic sampling','semanticSamples',p.settings.semanticSamples,'number')}${field('Remote AI request limit','maxAICalls',p.settings.maxAICalls,'number')}${field('Director engine','provider',p.settings.provider,'text',[['heuristic','Quick local topic assembly'],['semantic','Local semantic AI (downloads embeddings model)'],['remote','Remote language-model Director (HTTPS)']])}<label class="field">Quick PvP focus<select id="pvpFocusPreset">
 <option value="">Custom directions — type below</option>
@@ -229,6 +231,8 @@ function synchronizePovManually(){
 }
 async function generateMultiPovDirector(){
  if(directorBusy||gameplayBusy)return;
+ if(p.settings.provider!=='remote')return toast('Multi-POV frame verification requires Director engine: Remote language-model Director. Local keywords cannot detect gunfights.',true);
+ if(!providerKey?.trim())return toast('Enter a DeepSeek key in AI Director. The vision model inspects real frames. No keyword-only fallback clips.',true);
  const storyFocus=($('directorPrompt')?.value??p.settings.directorInstructions??'').trim();
  const brief=interpretStoryBrief(storyFocus,{defaultTarget:5});
  const pacing=$('povStoryPacing')?.value||povStoryPacing;
@@ -267,7 +271,7 @@ async function generateMultiPovDirector(){
   const windows=overlappingPovWindows(sync,sourceA,sourceB);
   directorStatus='Analyzing only '+fmt(windows[ref].end-windows[ref].start)+' of matching gameplay, not the rest of the VODs…';
   await runGameplayScan(null,{silent:true,windows});
-  const dir='Multi-POV EVENT-LOCKED STORY v4: same encounter, action evidence, meaningful A+B. '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale+' | '+pacing+' | '+storyFocus;
+  const dir='Multi-POV FRAME-VERIFIED STORY v5: actual frame evidence, no recycled heuristic clips. '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale+' | '+pacing+' | '+storyFocus;
   const options={...p.settings,...shape,mode:'multi-pov-story',directorInstructions:dir,
    storyEditorialDirection:brief.longForm?'':storyFocus,
    storyMaxSeconds:brief.longForm?210:undefined,
@@ -276,37 +280,59 @@ async function generateMultiPovDirector(){
   const plan=planDirectorBatch(p,options,{id:uid()});
   options.existingCandidates=plan.existingCandidates;
   options.history=plan.history;
-  const pool=buildMultiPovStories(p.words,p.assets,p.gameplayTracks||{},sync,options,
-   (fraction,message)=>{directorStatus=Math.round(fraction*100)+'% · '+message;if($('directorStatus'))$('directorStatus').textContent=directorStatus});
-  const suggestions=selectEditorialStories(pool,brief,{count:brief.targetCount});
-  if(brief.longForm)directorStatus='Interpreted long instructions as an editorial brief (not restrictive keywords). '+
-   'Prioritized '+brief.windows.length+' source scouting windows and selected '+suggestions.length+
-   ' candidate story drafts from '+pool.length+' possible encounters. Editing quality is still provisional until real video is reviewed.';
+  const pool=discoverVisionScouts(p.words,p.assets,p.gameplayTracks||{},sync,{direction:storyFocus});
+  // Search the ENTIRE overlapping match for new action candidates; ignore
+  // the old montage builder and skip all previously reviewed source windows.
+  const maxChecks=Math.min(pool.length,Math.max(1,Math.min(40,Number(p.settings.maxAICalls)||8)));
+  const previousTimes=[...(p.visionAudit||[]).map(x=>x.time),
+   ...p.candidates.filter(c=>c.pov?.visionVerified===true).map(c=>c.anchorTime)];
+  const scouts=chooseFreshVisionScouts(pool,{limit:maxChecks,previousTimes});
+  const inspected=[],rejected=[],reviewed=[],fileMap={};
+  for(const id of [ref,target]){
+   fileMap[id]=asset(id)?.file;
+   if(!fileMap[id])throw Error('Relink original '+p.assets.find(x=>x.id===id)?.name+' before actual frame review.');
+  }
+  directorAbort=new AbortController();
+  for(let i=0;i<scouts.length;i++){
+   if(directorAbort.signal.aborted)throw Error('Visual review stopped');
+   const candidate=scouts[i];
+   directorStatus='Inspecting ACTUAL frames: '+(i+1)+'/'+scouts.length+
+    ' shared encounters · '+fmt(candidate.pov.globalStart)+' · '+inspected.length+' accepted, '+rejected.length+' rejected';
+   if($('directorStatus'))$('directorStatus').textContent=directorStatus;
+   const verdict=await reviewWithVision(candidate,{sync,assets:p.assets,files:fileMap,
+    key:providerKey,brief:storyFocus,signal:directorAbort.signal});
+   if(verdict.accepted)inspected.push(verdict.candidate);
+   else rejected.push({time:candidate.anchorTime,reason:verdict.reason});
+   reviewed.push({time:candidate.anchorTime,accepted:verdict.accepted,
+    reason:verdict.reason||'Frame evidence accepted',createdAt:Date.now()});
+   if(inspected.length>=brief.targetCount)break;
+  }
+  p.visionAudit=[...(p.visionAudit||[]),...reviewed].slice(-500);
+  const suggestions=inspected;
   if(plan.newBatch){
    commit('New multi-POV search');
    p.directorBatches=[...(p.directorBatches||[]),plan.batch].slice(-100);
    p.directorActiveBatchId=plan.batch.id;
   }
   const prior=new Set(plan.existingCandidates.map(clipSignature));
-  const fresh=assignDirectorBatch(suggestions.filter(c=>isAssembledPovStory(c)&&!prior.has(clipSignature(c))),plan.batch);
+  const fresh=assignDirectorBatch(suggestions.filter(c=>c.pov?.visionVerified===true&&
+   isAssembledPovStory(c)&&!prior.has(clipSignature(c))),plan.batch);
   directorResultView='active';directorHour='all';directorShown=48;
   if(!fresh.length){
-   directorStatus=pool.length
-    ?'Found '+pool.length+' draft encounters, but the top '+brief.targetCount+
-      ' for this direction are already saved. Switch to Compare saved searches → All completed multi-POV stories to see them; no new duplicates were added.'
-    :'Found ZERO coherent encounters with matching visual and audio activity on both POVs. No unrelated scenes or unsupported alternate angles were stitched together. Verify the shared timestamps and inspect the original source.';
+   directorStatus='No new visually supported multi-POV fights: '+inspected.length+
+    ' accepted frame reviews, '+rejected.length+' rejected, '+pool.length+' scouting windows.'+
+    ' No old clips or dialogue-only footage were substituted.';
    update();toast(directorStatus,true);return;
   }
   commit('Generated '+fresh.length+' synchronized multi-POV highlights');
   p.candidates.push(...fresh);
   p.directorHistory.push(...historyEntries(fresh).map(h=>({...h,directorBatchId:plan.batch.id})));
   plan.batch.count=(plan.batch.count||0)+fresh.length;
-  directorStatus='Drafted '+fresh.length+' of '+brief.targetCount+' requested multi-POV stories using '+(brief.windows.length||0)+
-   ' scouting windows, with separate beats and A+B source cuts. These are algorithmic rough edits, NOT five reviewed or verified finished highlights. Inspect action before export.';
+  directorStatus='Built '+fresh.length+' NEW edits from actual source frames; '+rejected.length+' candidates failed visual inspection. Verify continuous action and outcomes in preview before export.';
   if(fresh.length<brief.targetCount)directorStatus+=' Fewer than requested met the candidate requirements; remaining stories were not fabricated.';
   update();toast(directorStatus);
  }catch(e){directorStatus='Multi-POV Director: '+e.message;toast(directorStatus,true)}
- finally{directorBusy=false;if(tab==='director')renderInspector()}
+ finally{directorBusy=false;directorAbort=null;if(tab==='director')renderInspector()}
 }
 
 /** Generate a fresh full-recording batch without replacing or recycling previous proposals. */
@@ -571,6 +597,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('syncPovManual',()=>synchronizePovManually());
  const storyPacingSelect=$('povStoryPacing');if(storyPacingSelect)storyPacingSelect.onchange=()=>{povStoryPacing=storyPacingSelect.value};
  on('generateMultiPovHighlights',()=>generateMultiPovDirector());
+ on('cancelVisionReview',()=>directorAbort?.abort());
  on('scanGameplayBtn',async()=>{
   try{
    if(directorOutputMode(p,directorOutputPreference)==='stories'){
@@ -586,7 +613,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('clearCandidates',()=>{commit('Cleared saved proposals');p.candidates=[];directorShown=48;update();toast('Cards cleared. Previously discovered source moments remain excluded from future searches.')});
  on('resetDirectorHistory',()=>{
   if(!confirm('Reset all previous Director searches and proposed clips? Your video source, transcript and edited timeline will remain unchanged.'))return;
-  commit('Reset Director history');p.directorHistory=[];p.candidates=[];p.directorBatches=[];p.directorActiveBatchId=null;directorResultView='active';directorShown=48;directorHour='all';update();toast('Director search history reset without changing the source recording, subtitles or editor cuts.');
+  commit('Reset Director history');p.directorHistory=[];p.candidates=[];p.visionAudit=[];p.directorBatches=[];p.directorActiveBatchId=null;directorResultView='active';directorShown=48;directorHour='all';update();toast('Director search history reset without changing the source recording, subtitles or editor cuts.');
  });
  on('moreCandidates',()=>{directorShown+=48;renderInspector()});
  const viewSelect=$('directorResultsView');if(viewSelect)viewSelect.onchange=()=>{directorResultView=viewSelect.value;directorShown=48;directorHour='all';renderInspector()};

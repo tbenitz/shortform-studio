@@ -4,13 +4,15 @@
 
 > **Project status: functional alpha.** This is a real editor foundation with working workflows, not a promise that every professional production feature has been implemented. Please read the [Feature status](#feature-status) and [Limitations](#limitations) sections before using it for important content.
 
-## Multi-POV action editing (v0.8.4)
+## Visually reviewed multi-POV fights (v0.9.0)
 
-**Same event, two original cameras.** Import/relink both VODs and their original-time SRTs, then use **Match POVs by shared spoken phrases**. Confirm the match-clock alignment at both ends. Under **AI Director → ASSEMBLED MULTI-POV STORIES**, run the action scan or Generate. When the two recordings have different lengths, only the **overlap** is decoded: e.g. a three-hour VOD aligned with the middle of a twelve-hour stream scans the same ~three hours in both files, not the other nine hours.
+1. Import/relink both original videos and their original-timestamp SRTs. **Match POVs by shared spoken phrases**, then verify the alignment at the start and end of the shared recording.
+2. In AI Director, choose **Remote language-model Director** and supply your own DeepSeek API key. Multi-POV generation calls the **vision-capable `deepseek-flash` model** regardless of the optional text-Director model value. Contact-sheet JPEG frames are sent to DeepSeek and billed according to your API plan. They are NOT uploaded to GitHub.
+3. Generate. The local audio/motion signals scan **only the synchronized overlapping original source times**, not the extra nine hours of a longer stream. They locate possible encounter windows; they do NOT make the finished cuts.
+4. The vision reviewer inspects up to twelve decoded frames from **each** camera at matching reference-clock timestamps for each selected encounter. It must cite visible combat-action evidence in multiple frames across the same event, from both cameras. No source image evidence means **no generated story**, not a generic montage.
+5. **New cuts are constructed from approved frame timestamps**, not recycled from the prior algorithmic segments. They preserve chronological shared-match time, switch only at evidence-backed camera frames, and leave the original media intact. Past unreviewed montage cards are hidden in Director (retained in the project for non-destructive migration).
 
-Each candidate must be a **single chronological local encounter**, with audio action bursts and actual decoded frame movement on **both** viewpoints close to the same match time. The editor may preserve action for longer cuts and switch only to the other POV when that clip has a relevant synchronized evidence signal. It will return **zero** clips instead of inventing a rescue, opponent, alternate angle, or unrelated ending. A specifically requested down-then-rescue needs corresponding ordered speech evidence; even then, speaker/kill identity is not proven.
-
-**Important limitation:** This lightweight local scan analyzes sound intensity and video movement; it does **not** run an object/weapon/action recognition model. A moving screen and loud audio **cannot establish that a gun is visible, a bullet hits, a revive succeeds, or which player made a kill**. The results are **candidate drafts**, never verified fight clips. Watch the actual action and adjust in the Editor before exporting. Earlier v0.8.3 cards do not gain new evidence automatically; regenerate to obtain the new event-locked clips.
+**Important limitation:** The visual model sees sampled frames, not every frame of the video. It can miss brief muzzle flashes, misread small HUD labels or mistake gameplay effects for damage. An image cannot by itself verify a continuous gunfight, shot/kill ownership, or completed teammate rescue; review the entire source clip before publishing. If the model or browser decoder fails, the application reports the failure instead of falling back to the previous keyword-only montage. Multi-POV visual verification requires a working remote DeepSeek API connection and incurs API usage. Raw one-camera scouting remains available independently.
 
 ## Start using it
 
