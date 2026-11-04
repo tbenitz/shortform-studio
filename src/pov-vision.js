@@ -8,7 +8,23 @@ const EVIDENCE=new Set(['muzzle_flash','enemy_visible','enemy_shooting','explosi
 export function storyboardTimes(candidate,count=12){
  const a=Number(candidate?.pov?.globalStart),b=Number(candidate?.pov?.globalEnd);
  if(!(Number.isFinite(a)&&Number.isFinite(b)&&b-a>=10))return [];
- return Array.from({length:count},(_,i)=>+(a+Math.min(2,(b-a)*.05)+(b-a-2*Math.min(2,(b-a)*.05))*i/(count-1)).toFixed(2));
+ const samples=Array.from({length:count},(_,i)=>+(a+Math.min(2,(b-a)*.05)+(b-a-2*Math.min(2,(b-a)*.05))*i/(count-1)).toFixed(2));
+ // Short muzzle flashes often fall BETWEEN uniform 5–8 second samples.
+ // Add real action-beat centers (and +/- 1 sec) from the same encounter,
+ // not static hardcoded source timestamps.
+ const beats=(candidate.pov.storyBeats||[]).filter(x=>
+   /action|combat|engage|down|clutch|gunfight|revive/i.test(x.role||''));
+ for(const beat of beats){
+  if(samples.length>=18)break;
+  const mid=(Number(beat.sharedStart)+Number(beat.sharedEnd))/2;
+  if(!Number.isFinite(mid))continue;
+  for(const t of [mid-1,mid,mid+1]){
+   if(samples.length>=18)break;
+   const value=+t.toFixed(2);
+   if(value>a&&value<b&&!samples.some(x=>Math.abs(x-value)<.65))samples.push(value);
+  }
+ }
+ return samples.sort((x,y)=>x-y);
 }
 export async function captureContactSheet(file,sync,id,times,{label,signal,moduleLoader=loadStreamingMedia}={}){
  if(!file)throw Error('Relink original POV video '+label+' before frame inspection');
@@ -126,10 +142,10 @@ export async function reviewWithVision(candidate,{sync,assets,files,key,brief=''
   throw Error('Use the official DeepSeek HTTPS chat completions endpoint for frame review');
  const times=storyboardTimes(candidate);
  if(times.length<6)return {accepted:false,reason:'Insufficient video length'};
- const [imgA,imgB]=await Promise.all([
-  capture(files[sync.referenceId],sync,sync.referenceId,times,{label:'A',signal}),
-  capture(files[sync.targetId],sync,sync.targetId,times,{label:'B',signal})
- ]);
+ // Decode one huge original at a time to avoid loading two WebCodecs
+ // video decoder pipelines concurrently on memory-constrained Chromebooks.
+ const imgA=await capture(files[sync.referenceId],sync,sync.referenceId,times,{label:'A',signal});
+ const imgB=await capture(files[sync.targetId],sync,sync.targetId,times,{label:'B',signal});
  const text=[
   'Analyze these TWO chronological contact sheets from separately recorded Call of Duty player POVs.',
   'The tiles share match timestamps. Cite only evidence VISIBLE IN AN INDIVIDUAL labelled tile.',
