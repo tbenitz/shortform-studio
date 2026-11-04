@@ -8,6 +8,7 @@ import {syncFromTranscripts,checkSynchronization} from './pov-sync.js';
 import {buildMultiPovHighlights} from './pov-director.js';
 import {buildMultiPovStories} from './pov-story.js';
 import {reviewWithVision} from './pov-vision.js';
+import {discoverVisionScouts,chooseFreshVisionScouts} from './pov-scout.js';
 import {overlappingPovWindows,scopedScanFingerprint,validScopedScan} from './pov-scan.js';
 import {interpretStoryBrief,selectEditorialStories} from './story-brief.js';
 import {directorOutputMode,visibleDirectorCandidates as filterDirectorCandidates,directorResultCounts,usableAutoSync,isAssembledPovStory} from './director-mode.js';
@@ -280,12 +281,14 @@ async function generateMultiPovDirector(){
   const plan=planDirectorBatch(p,options,{id:uid()});
   options.existingCandidates=plan.existingCandidates;
   options.history=plan.history;
-  const pool=buildMultiPovStories(p.words,p.assets,p.gameplayTracks||{},sync,options,
-   (fraction,message)=>{directorStatus=Math.round(fraction*100)+'% · '+message;if($('directorStatus'))$('directorStatus').textContent=directorStatus});
-  // Local heuristics ONLY propose timestamps for review; NEVER publish these cuts.
+  const pool=discoverVisionScouts(p.words,p.assets,p.gameplayTracks||{},sync,{direction:storyFocus});
+  // Search the ENTIRE overlapping match for new action candidates; ignore
+  // the old montage builder and skip all previously reviewed source windows.
   const maxChecks=Math.min(pool.length,Math.max(12,Math.min(36,(Number(p.settings.maxAICalls)||8)*3)));
-  const scouts=selectEditorialStories(pool,brief,{count:maxChecks});
-  const inspected=[],rejected=[],fileMap={};
+  const previousTimes=[...(p.visionAudit||[]).map(x=>x.time),
+   ...p.candidates.filter(c=>c.pov?.visionVerified===true).map(c=>c.anchorTime)];
+  const scouts=chooseFreshVisionScouts(pool,{limit:maxChecks,previousTimes});
+  const inspected=[],rejected=[],reviewed=[],fileMap={};
   for(const id of [ref,target]){
    fileMap[id]=asset(id)?.file;
    if(!fileMap[id])throw Error('Relink original '+p.assets.find(x=>x.id===id)?.name+' before actual frame review.');
@@ -301,9 +304,11 @@ async function generateMultiPovDirector(){
     key:providerKey,brief:storyFocus,signal:directorAbort.signal});
    if(verdict.accepted)inspected.push(verdict.candidate);
    else rejected.push({time:candidate.anchorTime,reason:verdict.reason});
+   reviewed.push({time:candidate.anchorTime,accepted:verdict.accepted,
+    reason:verdict.reason||'Frame evidence accepted',createdAt:Date.now()});
    if(inspected.length>=brief.targetCount)break;
   }
-  p.visionAudit=[...(p.visionAudit||[]),...rejected.map(x=>({...x,createdAt:Date.now()}))].slice(-250);
+  p.visionAudit=[...(p.visionAudit||[]),...reviewed].slice(-500);
   const suggestions=inspected;
   if(plan.newBatch){
    commit('New multi-POV search');
@@ -609,7 +614,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('clearCandidates',()=>{commit('Cleared saved proposals');p.candidates=[];directorShown=48;update();toast('Cards cleared. Previously discovered source moments remain excluded from future searches.')});
  on('resetDirectorHistory',()=>{
   if(!confirm('Reset all previous Director searches and proposed clips? Your video source, transcript and edited timeline will remain unchanged.'))return;
-  commit('Reset Director history');p.directorHistory=[];p.candidates=[];p.directorBatches=[];p.directorActiveBatchId=null;directorResultView='active';directorShown=48;directorHour='all';update();toast('Director search history reset without changing the source recording, subtitles or editor cuts.');
+  commit('Reset Director history');p.directorHistory=[];p.candidates=[];p.visionAudit=[];p.directorBatches=[];p.directorActiveBatchId=null;directorResultView='active';directorShown=48;directorHour='all';update();toast('Director search history reset without changing the source recording, subtitles or editor cuts.');
  });
  on('moreCandidates',()=>{directorShown+=48;renderInspector()});
  const viewSelect=$('directorResultsView');if(viewSelect)viewSelect.onchange=()=>{directorResultView=viewSelect.value;directorShown=48;directorHour='all';renderInspector()};
