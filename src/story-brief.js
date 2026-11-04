@@ -29,7 +29,7 @@ export function interpretStoryBrief(input='',{defaultTarget=5}={}){
  const text=String(input||'').trim(),words=text.split(/\s+/).filter(Boolean);
  const longForm=text.length>=950||words.length>=175||/\b(?:STORY FIRST|PRIMARY OBJECTIVE|STRICT QUALITY CONTROL|REQUIRED OUTPUT FOR EACH SHORT)\b/i.test(text);
  const windows=parseScoutingWindows(text);
- const requested=/\b(?:at least|minimum|generate|create|produce|find|want)\s+(?:the\s+)?(?:top\s+)?(?:five|5|six|6|three|3|four|4|[1-9]\d?)\b/i.exec(text);
+ const requested=/\b(?:at least|minimum|generate|create|produce|find|want)\s+(?:the\s+)?(?:top\s+)?(five|5|six|6|three|3|four|4|[1-9]\d?)\b/i.exec(text);
  const token=requested?.[1]?.toLowerCase();
  const count=token?({'three':3,'four':4,'five':5,'six':6}[token]||Number(token)):defaultTarget;
  const targetCount=Math.max(1,Math.min(20,Number.isFinite(count)?count:defaultTarget));
