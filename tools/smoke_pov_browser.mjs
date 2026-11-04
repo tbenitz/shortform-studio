@@ -71,7 +71,7 @@ try{
  '1. Player pursuit: POV A 00:00:16–00:01:12; POV B 00:00:12–00:01:08.',
  'Look for separate angle at the same encounter. Do not confuse stream intros with enemy combat.',
  'Return a screenplay with original in-out times and a review, do not label fake single clips as stories.'
- ].join('\\n');
+ ].join('\n');
  await page.locator('#directorPrompt').fill(pastedBrief);
  if(!await page.locator('#directionEvidenceHint').count())throw Error('Creative direction editor not available');
  // Click the SAME generic generation button the user clicked, without touching manual POV sync.
