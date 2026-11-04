@@ -125,6 +125,7 @@ export function editFromVision(candidate,review,sync,assets){
  const switches=segments.slice(1).filter((x,i)=>x.assetId!==segments[i].assetId).length;
  if(!switches)return null;
  return {...candidate,id:'vision-v1-'+candidate.id,
+  mode:'multi-pov-story',source:'vision-verified-pov',
   title:'Visually reviewed action · '+fmt(start)+' · '+segments.length+' cuts',
   segments,duration:segments.reduce((sum,s)=>sum+(s.end-s.start)/s.speed,0),
   pov:{...candidate.pov,globalStart:start,globalEnd:end,visionVerified:true,visionVersion:VISION_VERSION,
