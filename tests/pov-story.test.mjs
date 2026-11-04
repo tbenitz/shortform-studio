@@ -21,7 +21,7 @@ test('generates genuine A+B montage with non-contiguous source ranges and named 
  assert.equal(c.mode,'multi-pov-story');
  assert.ok(c.segments.length>=4,'Must be multiple different parts, not a single source link');
  assert.equal(new Set(c.segments.map(s=>s.assetId)).size,2,'Must actually use both video sources');
- assert.ok(c.pov.jumpCuts>=1,'Must trim out dead space instead of remaining continuous');
+ assert.ok(c.pov.povSwitches>=1,'Must really switch between cameras, not add filler');
  assert.ok(c.pov.storyBeats[0].role.includes('Hook'));
  assert.ok(c.pov.storyBeats.at(-1).role.includes('Payoff')||c.pov.storyBeats.at(-1).role.includes('Reaction'));
  assert.ok(c.segments.some(s=>s.title.includes('POV A')));
