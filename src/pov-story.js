@@ -1,6 +1,6 @@
-/** Story-oriented montage builder for two synchronized Call of Duty recordings.
- * Timeline is the shared A/source-reference clock, while every segment stores
- * its own ORIGINAL video timestamps. No event classification is a confirmed kill.
+/** Coherent two-camera edits built on a single synchronized match clock.
+ * Audio intensity and frame movement are supporting signals, not proof of a
+ * visible firearm, a kill, or a particular player's identity.
  */
 import {makeSegment,clamp,fmt} from './model.js';
 import {alignedPovEvents,pointOfViewScore} from './pov-director.js';
@@ -8,252 +8,285 @@ import {checkSynchronization,sourceAtAlignment} from './pov-sync.js';
 import {selectDiverseCandidates} from './director-coverage.js';
 import {parseEditorialDirection,matchEditorialDirection} from './director-intent.js';
 
-const PAYOFF=new Set(['down','revive','clutch','laugh','trash','troll']);
-const ENGAGEMENT=new Set(['combat','down','spotted','clutch','possible-action']);
-const relevant=e=>e.kind==='audio'||e.kind==='motion'&&e.score>=.25||
-  e.kind==='dialogue'&&(e.tags||[]).some(t=>['spotted','combat','down','revive','clutch','laugh','trash','troll','enemychat','squadbanter'].includes(t));
+const ACTION_TAGS=new Set(['combat','down','revive','clutch','spotted']);
+const PAYOFF_TAGS=new Set(['down','revive','clutch','laugh','trash','troll']);
+const hasTag=(e,t)=>Array.isArray(e.tags)&&e.tags.includes(t);
+const actionDialogue=e=>e.kind==='dialogue'&&(e.tags||[]).some(t=>ACTION_TAGS.has(t));
+const relevant=e=>e.kind==='audio'&&(e.score||0)>=.32||
+  e.kind==='motion'&&(e.score||0)>=.22||
+  e.kind==='dialogue'&&(e.tags||[]).some(t=>ACTION_TAGS.has(t)||PAYOFF_TAGS.has(t));
 const strength=e=>{
- const tags=new Set(e.tags||[]);
- let result=e.kind==='audio'?12+Math.max(0,e.score||0)*25:
-  e.kind==='motion'?Math.max(0,e.score||0)*18:5;
- if(tags.has('spotted'))result+=8;
- if(tags.has('combat'))result+=13;
- if(tags.has('down'))result+=19;
- if(tags.has('revive'))result+=19;
- if(tags.has('clutch'))result+=22;
- if(tags.has('trash')||tags.has('troll'))result+=13;
- if(tags.has('laugh'))result+=12;
- return result;
+  let n=e.kind==='audio'?14+(e.score||0)*20:
+    e.kind==='motion'?(e.score||0)*18:5;
+  for(const t of e.tags||[]){
+    if(t==='combat'||t==='spotted')n+=8;
+    if(t==='down'||t==='revive'||t==='clutch')n+=14;
+    if(t==='trash'||t==='troll'||t==='laugh')n+=6;
+  }
+  return n;
 };
-/** Group events from nearby firefight/voice sequences; never combine hours apart. */
-export function groupStoryEncounters(events,{maxGap=48,maxSpan=175}={}){
- const groups=[];let current=null;
- for(const e of events.filter(relevant).sort((a,b)=>a.globalTime-b.globalTime)){
-  if(!Number.isFinite(e.globalTime))continue;
-  if(!current||e.globalStart-current.end>maxGap||e.globalEnd-current.start>maxSpan){
-   if(current)groups.push(current);
-   current={start:e.globalStart,end:e.globalEnd,events:[e]};
-  }else{
-   current.end=Math.max(current.end,e.globalEnd);
-   current.start=Math.min(current.start,e.globalStart);
-   current.events.push(e);
+/** No montage can bridge unrelated fights or jump several minutes forward. */
+export function groupStoryEncounters(events,{maxGap=14,maxSpan=85}={}){
+  const groups=[];let group=null;
+  for(const e of (events||[]).filter(relevant).sort((a,b)=>a.globalStart-b.globalStart)){
+    if(!Number.isFinite(e.globalStart)||!Number.isFinite(e.globalEnd))continue;
+    if(!group||e.globalStart-group.end>maxGap||Math.max(e.globalEnd,group.end)-group.start>maxSpan){
+      if(group)groups.push(group);
+      group={start:e.globalStart,end:e.globalEnd,events:[e]};
+    }else{
+      group.start=Math.min(group.start,e.globalStart);
+      group.end=Math.max(group.end,e.globalEnd);
+      group.events.push(e);
+    }
   }
- }
- if(current)groups.push(current);
- return groups;
+  if(group)groups.push(group);
+  return groups;
 }
-export function storyMoments(group,{bucketSeconds=6}={}){
- const buckets=new Map();
- for(const e of group.events){
-  // Long sustained firefights get multiple distinct narrative opportunities.
-  const times=[e.globalTime];
-  if(e.kind==='audio'&&e.globalEnd-e.globalStart>12){
-   times.push(e.globalStart+2,e.globalEnd-3);
+/** Find action-like sound with matching *actual decoded* visual movement.
+ * Loud voice alone, transcript keywords alone, and unrelated motion do not pass.
+ */
+export function pairedActionEvidence(events,{start=-Infinity,end=Infinity,assetId=null}={}){
+  const scoped=(events||[]).filter(e=>
+    (!assetId||e.assetId===assetId)&&e.globalEnd>=start&&e.globalStart<=end);
+  const audio=scoped.filter(e=>e.kind==='audio'&&(e.score||0)>=.38);
+  const motion=scoped.filter(e=>e.kind==='motion'&&(e.score||0)>=.23);
+  const pairs=[];
+  for(const a of audio){
+    const near=motion.filter(m=>Math.abs(m.globalTime-a.globalTime)<=6||
+      m.globalTime>=a.globalStart-2&&m.globalTime<=a.globalEnd+2)
+      .sort((x,y)=>Math.abs(x.globalTime-a.globalTime)-Math.abs(y.globalTime-a.globalTime))[0];
+    if(near)pairs.push({assetId:a.assetId,time:a.globalTime,
+      score:Math.min(1,(a.score||0)*.65+(near.score||0)*.35),
+      audio:a,motion:near});
   }
-  for(const time of times){
-   const key=Math.floor(time/bucketSeconds);
-   if(!buckets.has(key))buckets.set(key,{start:Infinity,end:-Infinity,time,events:[],quality:0});
-   const b=buckets.get(key);
-   b.start=Math.min(b.start,e.globalStart);b.end=Math.max(b.end,e.globalEnd);
-   if(!b.events.includes(e))b.events.push(e);
-   const quality=strength(e);
-   if(quality>b.quality){b.quality=quality;b.time=time}
-  }
- }
- return [...buckets.values()].sort((a,b)=>a.time-b.time);
+  return pairs.sort((a,b)=>a.time-b.time);
 }
-function pickMoments(moments,maxCount){
- if(moments.length<=maxCount)return moments;
- const earliest=moments[0],latest=moments.at(-1),chosen=[earliest,latest];
- const payoff=moments.filter(m=>m.events.some(e=>(e.tags||[]).some(t=>PAYOFF.has(t))));
- const action=moments.filter(m=>m.events.some(e=>e.kind==='audio'||(e.tags||[]).some(t=>ENGAGEMENT.has(t))));
- const insert=list=>{
-  for(const m of list){
-   if(chosen.length>=maxCount)break;
-   if(chosen.includes(m)||chosen.some(c=>Math.abs(c.time-m.time)<7))continue;
-   chosen.push(m);
+export function storyMoments(group,{bucketSeconds=5}={}){
+  const buckets=new Map();
+  for(const e of group.events){
+    const times=[e.globalTime];
+    if(e.kind==='audio'&&e.globalEnd-e.globalStart>11)
+      times.push(e.globalStart+2,e.globalEnd-2);
+    for(const time of times){
+      if(!Number.isFinite(time))continue;
+      const key=Math.floor(time/bucketSeconds);
+      if(!buckets.has(key))buckets.set(key,{time,start:time,end:time,events:[],quality:0});
+      const b=buckets.get(key);
+      b.start=Math.min(b.start,e.globalStart);
+      b.end=Math.max(b.end,e.globalEnd);
+      if(!b.events.includes(e))b.events.push(e);
+      if(strength(e)>b.quality){b.quality=strength(e);b.time=time}
+    }
   }
- };
- insert(payoff.sort((a,b)=>b.time-a.time));
- insert(action.sort((a,b)=>b.quality-a.quality));
- insert(moments.slice().sort((a,b)=>b.quality-a.quality));
- return chosen.sort((a,b)=>a.time-b.time);
+  return [...buckets.values()].sort((a,b)=>a.time-b.time);
+}
+function pickMoments(moments,maxCount,pairs){
+  if(moments.length<=maxCount)return moments;
+  const selected=[moments[0],moments.at(-1)];
+  const peaks=moments.slice(1,-1).sort((a,b)=>{
+    const p=m=>pairs.some(e=>Math.abs(e.time-m.time)<6)?20:0;
+    return (b.quality+p(b))-(a.quality+p(a));
+  });
+  for(const m of peaks){
+    if(selected.length>=maxCount)break;
+    if(selected.some(x=>Math.abs(x.time-m.time)<5.5))continue;
+    selected.push(m);
+  }
+  return selected.sort((a,b)=>a.time-b.time);
 }
 function roleFor(moment,index,length){
- const tags=new Set(moment.events.flatMap(e=>e.tags||[]));
- if(index===0)return 'Hook / setup';
- if(index===length-1)return tags.has('laugh')||tags.has('trash')||tags.has('troll')?'Reaction / trash talk':
-  tags.has('revive')?'Rescue / aftermath':tags.has('down')?'Down callout / aftermath':'Payoff / context';
- if(tags.has('revive'))return 'Rescue / revive';
- if(tags.has('down'))return 'Down / elimination callout';
- if(tags.has('clutch'))return 'Clutch callout';
- if(tags.has('spotted'))return 'Spotting / approach';
- if(moment.events.some(e=>e.kind==='audio'))return 'Engagement / combat audio';
- return 'Alternate angle / context';
+  const tags=new Set(moment.events.flatMap(e=>e.tags||[]));
+  if(index===0)return 'Hook / setup';
+  if(index===length-1)return tags.has('laugh')||tags.has('trash')||tags.has('troll')?
+    'Reaction / aftermath':tags.has('revive')?'Rescue / aftermath':'Payoff / context';
+  if(tags.has('revive'))return 'Revive callout (unverified)';
+  if(tags.has('down'))return 'Down callout (unverified)';
+  if(tags.has('clutch'))return 'Clutch callout (unverified)';
+  if(moment.events.some(e=>e.kind==='audio'))return 'Action audio + gameplay';
+  if(tags.has('spotted'))return 'Enemy callout / approach';
+  return 'Synchronized alternate angle';
 }
 function beatBounds(moment,role,limits){
- // Keep real sustained gunfire or gunplay audio intact instead of arbitrarily
- // slicing every action event to a 7–9 second fragment.
- const fighting=moment.events.filter(e=>e.kind==='audio'&&e.globalEnd>e.globalStart);
- if(fighting.length&&(role.includes('Engagement')||role.includes('Down')||role.includes('Clutch'))){
-  const relevant=fighting.filter(e=>e.globalStart<=moment.time+5&&e.globalEnd>=moment.time-5);
-  if(relevant.length){
-   let start=Math.min(...relevant.map(e=>e.globalStart))-3;
-   let end=Math.max(...relevant.map(e=>e.globalEnd))+4;
-   // A single combat beat may run up to 70 seconds if the source supports it.
-   if(end-start>70){start=Math.max(start,moment.time-28);end=Math.min(end,start+70)}
-   return {start:Math.max(limits.commonStart,start),end:Math.min(limits.commonEnd,end)};
+  const local=moment.events.filter(e=>e.kind==='audio'&&
+    e.globalStart<=(moment.time+4)&&e.globalEnd>=moment.time-4);
+  let start=moment.time-(role.startsWith('Hook')?5:3);
+  let end=moment.time+(role.startsWith('Reaction')?7:5);
+  if(local.length){
+    start=Math.min(start,...local.map(e=>e.globalStart-2.5));
+    end=Math.max(end,...local.map(e=>e.globalEnd+3.5));
+    if(end-start>27){start=Math.max(start,moment.time-10);end=Math.min(end,start+27)}
   }
- }
- let lead=3.5,tail=4.5;
- if(role.startsWith('Hook')){lead=5;tail=5}
- if(role.includes('Reaction')){lead=3;tail=6}
- return {start:Math.max(limits.commonStart,moment.time-lead),end:Math.min(limits.commonEnd,moment.time+tail)};
+  return {start:Math.max(limits.commonStart,start),end:Math.min(limits.commonEnd,end)};
 }
 function segmentFromBeat(sync,beat){
- const a=sourceAtAlignment(sync,beat.assetId,beat.start);
- const b=sourceAtAlignment(sync,beat.assetId,beat.end);
- if(!(Number.isFinite(a)&&Number.isFinite(b)&&b-a>.6))return null;
- const seg=makeSegment(beat.assetId,+a.toFixed(3),+b.toFixed(3));
- seg.speed=beat.assetId===sync.referenceId?1:sync.scale;
- seg.storyRole=beat.role;
- seg.storyGlobalStart=+beat.start.toFixed(3);
- seg.storyGlobalEnd=+beat.end.toFixed(3);
- seg.title=beat.role+' · '+(beat.assetId===sync.referenceId?'POV A':'POV B');
- seg.transition='cut';
- return seg;
+  const start=sourceAtAlignment(sync,beat.assetId,beat.start);
+  const end=sourceAtAlignment(sync,beat.assetId,beat.end);
+  if(!(Number.isFinite(start)&&Number.isFinite(end)&&end-start>=2))return null;
+  const seg=makeSegment(beat.assetId,+start.toFixed(3),+end.toFixed(3));
+  seg.speed=beat.assetId===sync.referenceId?1:sync.scale;
+  seg.storyRole=beat.role;
+  seg.storyGlobalStart=+beat.start.toFixed(3);
+  seg.storyGlobalEnd=+beat.end.toFixed(3);
+  seg.title=beat.role+' · '+(beat.assetId===sync.referenceId?'POV A':'POV B');
+  seg.transition='cut';
+  return seg;
 }
-function chooseBeatPov(events,sync,beat,previous){
- const ids=[sync.referenceId,sync.targetId];
- const score=id=>pointOfViewScore(events,id,beat.start,beat.end).value+
-   beat.moment.events.filter(e=>e.assetId===id).reduce((acc,e)=>acc+Math.min(12,strength(e)*.45),0);
- const scores=ids.map(id=>({id,score:score(id)})).sort((a,b)=>b.score-a.score);
- const prior=scores.find(x=>x.id===previous);
- if(prior&&scores[0].score-prior.score<5)return {assetId:previous,score:prior.score};
- return {assetId:scores[0].id,score:scores[0].score};
+function beatPov(group,sync,bounds,previous,pairs){
+  const ids=[sync.referenceId,sync.targetId];
+  const ranked=ids.map(assetId=>{
+    const nearby=pairs.filter(x=>x.assetId===assetId&&
+      x.time>=bounds.start-5&&x.time<=bounds.end+5);
+    const action=nearby.length>0;
+    const views=group.events.filter(e=>e.assetId===assetId&&
+      e.globalTime>=bounds.start-4&&e.globalTime<=bounds.end+4);
+    const speech=views.some(e=>actionDialogue(e));
+    const interest=action||speech&&views.some(e=>e.kind==='motion'&&(e.score||0)>=.23);
+    const score=pointOfViewScore(group.events,assetId,bounds.start,bounds.end).value+
+      nearby.reduce((sum,e)=>sum+e.score*23,0);
+    return {assetId,score,interest,action};
+  }).filter(x=>x.interest).sort((a,b)=>b.score-a.score);
+  if(!ranked.length)return null;
+  const prior=ranked.find(x=>x.assetId===previous);
+  if(prior&&prior.score>=ranked[0].score-4)return prior;
+  return ranked[0];
 }
-/** Draft a story using distinct temporal beats, not a continuous 7-second grid.
- * Require both POVs to appear. When second-POV evidence is weak, label it as an
- * alternate synchronized angle, NOT the killer's view.
+function rescueRequested(text){
+  return /\b(?:save(?:s|d)? the day|saves? (?:his|her|their|the) teammate|other teammate saves?|teammate (?:gets? )?downed|gets? downed and (?:then )?saves?|downs? (?:an? )?enemy.*(?:downed|saves?))\b/i.test(text||'');
+}
+function hasRescueSequence(events){
+  const sorted=events.filter(e=>e.kind==='dialogue').sort((a,b)=>a.globalTime-b.globalTime);
+  const down=sorted.filter(e=>hasTag(e,'down'));
+  const save=sorted.filter(e=>hasTag(e,'revive')||hasTag(e,'clutch'));
+  return down.some(d=>save.some(s=>s.globalTime>d.globalTime+1&&s.globalTime<d.globalTime+42));
+}
+/** A story is one incident in chronological order. Neither source may be forced
+ * into the edit merely to manufacture the appearance of multi-camera action.
  */
 export function composePovStory(events,sync,group,limits,options={}){
- const maxCuts=clamp(options.storyMaxCuts??6,4,9);
- const moments=pickMoments(storyMoments(group),maxCuts);
- if(moments.length<3||moments.at(-1).time-moments[0].time<11)return null;
- let beats=[];
- for(let index=0;index<moments.length;index++){
-  const moment=moments[index],role=roleFor(moment,index,moments.length);
-  const bounds=beatBounds(moment,role,limits);
-  if(bounds.end-bounds.start<2)continue;
-  // Short, intentional jump cuts remove time between narrative beats.
-  const last=beats.at(-1);
-  if(last&&bounds.start<last.end+1){
-   bounds.start=last.end+.5;
-   if(bounds.end-bounds.start<2.6)continue;
+  const ids=[sync.referenceId,sync.targetId];
+  const pairs=pairedActionEvidence(group.events);
+  if(pairs.length<2||ids.some(id=>!pairs.some(p=>p.assetId===id)))return null;
+  // Both perspectives must depict the action at approximately the same time.
+  if(!pairs.some(a=>a.assetId===ids[0]&&pairs.some(b=>b.assetId===ids[1]&&
+    Math.abs(a.time-b.time)<=12)))return null;
+  const tags=new Set(group.events.flatMap(e=>e.tags||[]));
+  if(![...tags].some(t=>ACTION_TAGS.has(t))&&pairs.length<3)return null;
+  if(rescueRequested(options.storyEditorialDirection)&&!hasRescueSequence(group.events))return null;
+  const maxCuts=clamp(options.storyMaxCuts??7,3,9);
+  const moments=pickMoments(storyMoments(group),maxCuts,pairs);
+  if(moments.length<3||moments.at(-1).time-moments[0].time<9)return null;
+  let beats=[];
+  for(let i=0;i<moments.length;i++){
+    const moment=moments[i],role=roleFor(moment,i,moments.length);
+    const bounds=beatBounds(moment,role,limits);
+    const prev=beats.at(-1);
+    if(prev&&bounds.start<prev.end+.25)bounds.start=prev.end+.25;
+    if(bounds.end-bounds.start<2.6)continue;
+    if(prev&&bounds.start-prev.end>14)return null;
+    const pov=beatPov(group,sync,bounds,prev?.assetId,pairs);
+    if(!pov)continue;
+    beats.push({...bounds,moment,role,assetId:pov.assetId,
+      evidence:pov.action?'paired audio + video movement':'spoken callout + video movement'});
   }
-  const view=chooseBeatPov(group.events,sync,{...bounds,moment},last?.assetId);
-  beats.push({...bounds,moment,assetId:view.assetId,viewScore:view.score,role,evidence:moment.events.map(e=>e.kind)});
- }
- if(beats.length<3)return null;
- const ids=[sync.referenceId,sync.targetId],used=new Set(beats.map(b=>b.assetId));
- if(used.size<2){
-  const missing=ids.find(id=>!used.has(id));
-  // Place the other synchronized camera in the middle, never just repeat
-  // the same file while labeling the result as a multi-POV highlight.
-  const candidates=beats.map((b,i)=>{
-   const alt=pointOfViewScore(group.events,missing,b.start,b.end);
-   const original=pointOfViewScore(group.events,b.assetId,b.start,b.end);
-   return {i,alt:alt.value,diff:original.value-alt.value};
-  }).filter(x=>x.i>0&&x.i<beats.length-1)
-   .sort((a,b)=>(b.alt-a.alt)||a.diff-b.diff);
-  if(!candidates.length)return null;
-  const best=candidates[0];
-  beats[best.i]={...beats[best.i],assetId:missing,
-   role:best.alt>2?beats[best.i].role+' · alternate POV':'Alternate POV · context only (unverified)',
-   alternateEvidence:best.alt>2?'activity':'none'};
- }
- // A single source still must never leave this function as a completed story.
- if(new Set(beats.map(b=>b.assetId)).size!==2)return null;
- const minSeconds=clamp(options.storyMinSeconds??Math.max(17,options.clipMin||20),12,150);
- const maxSeconds=clamp(options.storyMaxSeconds??Math.max(minSeconds+5,options.clipMax||75),minSeconds+3,240);
- // Keep the key setup/action/payoff beats while respecting target short duration.
- const length=()=>beats.reduce((sum,b)=>sum+b.end-b.start,0);
- while(beats.length>3&&length()>maxSeconds){
-  const interior=beats.slice(1,-1);
-  const removable=interior.reduce((a,b)=>b.moment.quality<a.moment.quality?b:a);
-  beats=beats.filter(b=>b!==removable);
- }
- if(length()>maxSeconds){
-  // Trim around the moment rather than letting the short expand uncontrollably.
-  const factor=maxSeconds/length();
-  beats=beats.map(b=>{
-   const center=b.moment.time,w=(b.end-b.start)*factor;
-   const start=Math.max(b.start,Math.min(center-w/2,b.end-w));
-   return {...b,start,end:start+w};
-  });
- }
- if(length()<Math.min(12,minSeconds*.55))return null;
- const segments=beats.map(b=>segmentFromBeat(sync,b));
- if(segments.some(s=>!s))return null;
- let jumpCuts=0;
- for(let i=1;i<segments.length;i++){
-  if(beats[i].start-beats[i-1].end>1.2)jumpCuts++;
- }
- if(jumpCuts===0){
-  // The request is a montage; do not publish a single uninterrupted block.
-  return null;
- }
- const sourceIds=new Set(segments.map(s=>s.assetId));
- const storyBeats=beats.map((b,i)=>({
-  order:i+1,role:b.role,sourceId:b.assetId,
-  sharedStart:+b.start.toFixed(3),sharedEnd:+b.end.toFixed(3),
-  evidence:b.alternateEvidence||b.evidence.join(', ')
- }));
- const starts=segments.map(s=>s.storyGlobalStart);
- const total=segments.reduce((sum,s)=>sum+(s.end-s.start)/s.speed,0);
- return {segments,duration:total,sourceIds:[...sourceIds],jumpCuts,
-  storyBeats,globalStart:Math.min(...starts),globalEnd:beats.at(-1).end,
-  storySpan:beats.at(-1).end-beats[0].start};
+  if(beats.length<3)return null;
+  const missing=ids.find(id=>!beats.some(b=>b.assetId===id));
+  if(missing){
+    // Only move a cut to B when B actually shows synchronized gameplay
+    // evidence at that *exact* beat. Never inject an arbitrary context shot.
+    const alternate=beats.map((beat,i)=>({beat,i,
+      pairs:pairs.filter(p=>p.assetId===missing&&p.time>=beat.start-3&&p.time<=beat.end+3),
+      original:pointOfViewScore(group.events,beat.assetId,beat.start,beat.end).value,
+      score:pointOfViewScore(group.events,missing,beat.start,beat.end).value}))
+      .filter(x=>x.i>0&&x.i<beats.length-1&&x.pairs.length)
+      .sort((a,b)=>b.score-a.score);
+    if(!alternate.length)return null;
+    beats[alternate[0].i]={...alternate[0].beat,assetId:missing,
+      role:'Same fight · other POV',evidence:'paired audio + frame motion'};
+  }
+  if(new Set(beats.map(b=>b.assetId)).size!==2)return null;
+  const minSeconds=clamp(options.storyMinSeconds??options.clipMin??20,12,150);
+  const maxSeconds=clamp(options.storyMaxSeconds??options.clipMax??75,minSeconds+3,210);
+  const length=()=>beats.reduce((sum,b)=>sum+b.end-b.start,0);
+  while(beats.length>3&&length()>maxSeconds){
+    const interior=beats.slice(1,-1);
+    const weakest=interior.reduce((a,b)=>b.moment.quality<a.moment.quality?b:a);
+    const next=beats.filter(x=>x!==weakest);
+    if(new Set(next.map(x=>x.assetId)).size!==2)break;
+    beats=next;
+  }
+  if(length()>maxSeconds){
+    const factor=maxSeconds/length();
+    if(factor<.34)return null;
+    beats=beats.map(b=>{
+      const t=Math.max(2.6,(b.end-b.start)*factor);
+      const center=Math.min(b.end-t/2,Math.max(b.start+t/2,b.moment.time));
+      return {...b,start:center-t/2,end:center+t/2};
+    });
+  }
+  if(beats.length<3||length()<Math.min(14,minSeconds*.65))return null;
+  if(beats.some((b,i)=>i&&b.start-beats[i-1].end>14))return null;
+  const segments=beats.map(b=>segmentFromBeat(sync,b));
+  if(segments.some(x=>!x))return null;
+  const jumpCuts=beats.reduce((n,b,i)=>n+(i&&b.start-beats[i-1].end>1.1?1:0),0);
+  const povSwitches=beats.reduce((n,b,i)=>n+(i&&b.assetId!==beats[i-1].assetId?1:0),0);
+  if(!povSwitches)return null; // A+B really cut between cameras.
+  const storyBeats=beats.map((b,i)=>({order:i+1,role:b.role,sourceId:b.assetId,
+    sharedStart:+b.start.toFixed(3),sharedEnd:+b.end.toFixed(3),evidence:b.evidence}));
+  return {segments,duration:segments.reduce((sum,s)=>sum+(s.end-s.start)/s.speed,0),
+    sourceIds:ids,jumpCuts,povSwitches,storyBeats,pairCount:pairs.length,
+    globalStart:beats[0].start,globalEnd:beats.at(-1).end,
+    storySpan:beats.at(-1).end-beats[0].start};
 }
 export function buildMultiPovStories(words,assets,tracks,sync,settings={},onProgress=()=>{}){
- const byId=new Map((assets||[]).filter(a=>a.type==='video').map(a=>[a.id,a]));
- const A=byId.get(sync?.referenceId),B=byId.get(sync?.targetId);
- if(!A||!B||A.id===B.id)throw Error('Select two different original video recordings.');
- const limits=checkSynchronization(sync,A.duration,B.duration);
- if(!limits.valid)throw Error(limits.reason);
- const events=alignedPovEvents(words,tracks,sync)
-  .filter(e=>e.globalEnd>limits.commonStart&&e.globalStart<limits.commonEnd);
- const groups=groupStoryEncounters(events),candidates=[];
- const editorial=parseEditorialDirection(settings.storyEditorialDirection||'');
- for(const group of groups){
-  const totalActions=group.events.filter(e=>e.kind==='audio'||(e.tags||[]).some(t=>ENGAGEMENT.has(t))).length;
-  if(totalActions<1)continue;
-  const groupTags=new Set(group.events.flatMap(e=>e.tags||[]));
-  const editorialMatch=matchEditorialDirection(editorial,groupTags);
-  if(!editorialMatch.eligible)continue;
-  const story=composePovStory(events,sync,group,limits,settings);
-  if(!story||story.segments.length<3||story.sourceIds.length!==2||story.jumpCuts<1)continue;
-  const tags=new Set(group.events.flatMap(e=>e.tags||[]));
-  const title=(tags.has('clutch')?'Clutch story':tags.has('revive')?'Rescue story':
-   tags.has('trash')||tags.has('troll')?'Banter & fight story':'Gunfight story')+
-   ' · '+story.segments.length+' edits · A+B · '+fmt(story.globalStart);
-  const score=clamp(40+story.segments.length*3+story.jumpCuts*4+Math.min(20,totalActions*2)+
-   (tags.has('clutch')||tags.has('revive')?9:0)+editorialMatch.scoreDelta,0,99);
-  candidates.push({
-   id:'pov-story-'+A.id+'-'+B.id+'-'+Math.round(story.globalStart*10),
-   mode:'multi-pov-story',source:'multi-pov-story',title,
-   anchorAssetId:A.id,anchorTime:story.globalStart,
-   segments:story.segments,duration:story.duration,score,
-   pov:{referenceId:A.id,targetId:B.id,sourceCount:2,
-    cutCount:story.segments.length,jumpCuts:story.jumpCuts,storyBeats:story.storyBeats,
-    globalStart:story.globalStart,globalEnd:story.globalEnd,confidence:sync.confidence||'manual',directionMatch:editorialMatch},
-   reason:'EDITED STORY, not a single source clip: '+story.segments.length+
-    ' separate cuts from '+A.name+' and '+B.name+' across '+fmt(story.storySpan)+
-    ' of source action. Story beats: '+story.storyBeats.map(b=>b.order+'. '+b.role+' ('+(b.sourceId===A.id?'A':'B')+')').join(' → ')+
-    '. Skips '+story.jumpCuts+' gaps and switches between both POVs. '+editorialMatch.reason+'. A reaction, knock, revive, or kill is NOT visually confirmed; review the exact scenes and audio.'
-  });
- }
- onProgress(1,'Built '+candidates.length+' cut-together two-POV stories from '+groups.length+' possible encounter arcs');
- return selectDiverseCandidates(candidates,settings)
-  .sort((a,b)=>b.score-a.score||a.anchorTime-b.anchorTime);
+  const byId=new Map((assets||[]).filter(a=>a.type==='video').map(a=>[a.id,a]));
+  const A=byId.get(sync?.referenceId),B=byId.get(sync?.targetId);
+  if(!A||!B||A.id===B.id)throw Error('Select two distinct video recordings.');
+  const limits=checkSynchronization(sync,A.duration,B.duration);
+  if(!limits.valid)throw Error(limits.reason);
+  // An older transcript-only or full-VOD analysis cannot serve as visual
+  // evidence of this synchronized overlap.
+  const hasVideo=id=>tracks?.[id]?.status==='complete'&&Array.isArray(tracks[id].motion)&&tracks[id].motion.length>0;
+  if(!hasVideo(A.id)||!hasVideo(B.id)){
+    onProgress(1,'Both synchronized POVs need real decoded video frames inside their shared time range');
+    return [];
+  }
+  const events=alignedPovEvents(words,tracks,sync)
+    .filter(e=>e.globalEnd>limits.commonStart&&e.globalStart<limits.commonEnd);
+  const groups=groupStoryEncounters(events),candidates=[];
+  const editorial=parseEditorialDirection(settings.storyEditorialDirection||'');
+  for(const group of groups){
+    const pairs=pairedActionEvidence(group.events);
+    if(pairs.length<2||new Set(pairs.map(x=>x.assetId)).size<2)continue;
+    const tags=new Set(group.events.flatMap(e=>e.tags||[]));
+    const match=matchEditorialDirection(editorial,tags);
+    if(!match.eligible)continue;
+    const story=composePovStory(events,sync,group,limits,settings);
+    if(!story)continue;
+    const kind=tags.has('revive')?'Possible rescue sequence':
+      tags.has('clutch')?'Possible clutch sequence':
+      tags.has('down')?'Down callout + engagement':'Possible combat encounter';
+    const title=kind+' · '+story.segments.length+' cuts · '+fmt(story.globalStart);
+    const score=clamp(Math.round(30+Math.min(24,story.pairCount*6)+
+      Math.min(12,story.povSwitches*4)+
+      (tags.has('down')||tags.has('revive')||tags.has('clutch')?12:0)+
+      match.scoreDelta*.35),0,92);
+    candidates.push({
+      id:'pov-story-v4-'+A.id+'-'+B.id+'-'+Math.round(story.globalStart*10),
+      mode:'multi-pov-story',source:'multi-pov-story',title,
+      anchorAssetId:A.id,anchorTime:story.globalStart,
+      segments:story.segments,duration:story.duration,score,
+      pov:{referenceId:A.id,targetId:B.id,sourceCount:2,
+        cutCount:story.segments.length,jumpCuts:story.jumpCuts,povSwitches:story.povSwitches,
+        storyBeats:story.storyBeats,globalStart:story.globalStart,globalEnd:story.globalEnd,
+        actionEvidencePairs:story.pairCount,confidence:sync.confidence||'manual',directionMatch:match},
+      reason:'One synchronized encounter ('+fmt(story.globalStart)+'–'+fmt(story.globalEnd)+
+        ') with '+story.pairCount+' nearby audio/decoded-frame activity pairs. Cut order: '+
+        story.storyBeats.map(b=>b.order+'. '+b.role+' ('+(b.sourceId===A.id?'A':'B')+')').join(' → ')+
+        '. '+match.reason+'. The footage was not visually classified as a gunfight: a kill, gun, revive or player identity is NOT visually confirmed. Check the exact frames before export.'
+    });
+  }
+  onProgress(1,'Found '+candidates.length+' coherent shared encounters from '+groups.length+
+    ' local clusters; no forced alternate angles or unrelated timestamps');
+  return selectDiverseCandidates(candidates,settings)
+    .sort((a,b)=>b.score-a.score||a.anchorTime-b.anchorTime);
 }
