@@ -6,7 +6,6 @@ import {scanGameplay,GAMEPLAY_SCAN_VERSION} from './gameplay-analysis.js';
 import {generatePvPHighlights} from './gameplay-director.js';
 import {syncFromTranscripts,checkSynchronization} from './pov-sync.js';
 import {buildMultiPovHighlights} from './pov-director.js';
-import {buildMultiPovStories} from './pov-story.js';
 import {reviewWithVision} from './pov-vision.js';
 import {discoverVisionScouts,chooseFreshVisionScouts} from './pov-scout.js';
 import {overlappingPovWindows,scopedScanFingerprint,validScopedScan} from './pov-scan.js';
