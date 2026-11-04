@@ -4,6 +4,14 @@
 
 > **Project status: functional alpha.** This is a real editor foundation with working workflows, not a promise that every professional production feature has been implemented. Please read the [Feature status](#feature-status) and [Limitations](#limitations) sections before using it for important content.
 
+## Multi-POV action editing (v0.8.4)
+
+**Same event, two original cameras.** Import/relink both VODs and their original-time SRTs, then use **Match POVs by shared spoken phrases**. Confirm the match-clock alignment at both ends. Under **AI Director → ASSEMBLED MULTI-POV STORIES**, run the action scan or Generate. When the two recordings have different lengths, only the **overlap** is decoded: e.g. a three-hour VOD aligned with the middle of a twelve-hour stream scans the same ~three hours in both files, not the other nine hours.
+
+Each candidate must be a **single chronological local encounter**, with audio action bursts and actual decoded frame movement on **both** viewpoints close to the same match time. The editor may preserve action for longer cuts and switch only to the other POV when that clip has a relevant synchronized evidence signal. It will return **zero** clips instead of inventing a rescue, opponent, alternate angle, or unrelated ending. A specifically requested down-then-rescue needs corresponding ordered speech evidence; even then, speaker/kill identity is not proven.
+
+**Important limitation:** This lightweight local scan analyzes sound intensity and video movement; it does **not** run an object/weapon/action recognition model. A moving screen and loud audio **cannot establish that a gun is visible, a bullet hits, a revive succeeds, or which player made a kill**. The results are **candidate drafts**, never verified fight clips. Watch the actual action and adjust in the Editor before exporting. Earlier v0.8.3 cards do not gain new evidence automatically; regenerate to obtain the new event-locked clips.
+
 ## Start using it
 
 * Deploy on GitHub Pages via the included workflow. In your repository's Settings → Pages set Source to **GitHub Actions**, then push `main` (Actions may need enabling first).
