@@ -7,6 +7,7 @@ import {generatePvPHighlights} from './gameplay-director.js';
 import {syncFromTranscripts,checkSynchronization} from './pov-sync.js';
 import {buildMultiPovHighlights} from './pov-director.js';
 import {buildMultiPovStories} from './pov-story.js';
+import {interpretStoryBrief,selectEditorialStories} from './story-brief.js';
 import {directorOutputMode,visibleDirectorCandidates as filterDirectorCandidates,directorResultCounts,usableAutoSync,isAssembledPovStory} from './director-mode.js';
 import {parseEditorialDirection} from './director-intent.js';
 import {planDirectorBatch,directorViewCandidates,assignDirectorBatch} from './director-batches.js';
@@ -114,7 +115,12 @@ ${povAssets.length>=2&&outputCounts.raw?'<b>'+outputCounts.raw+' earlier raw one
 <option value="ONLY action-packed gunfights and combat">Action and gunfights</option>
 </select></label>
 <label class="field">Creative direction<textarea id="directorPrompt" rows="4" placeholder="Find enemy proximity-chat trolling, or ONLY revives and rescues. Say what you want and don't want.">${esc(p.settings.directorInstructions)}</textarea></label>
-<p class="tiny muted" id="directionEvidenceHint">${esc(directionHelp)} Opponent vs teammate identity is inferred from words, not verified from a mixed audio track.</p>${p.settings.provider==='remote'?`<div class="info warning">API mode sends transcript text to your chosen provider. Enter credentials only for services you trust. This browser stores the key in memory for this tab only. A browser CORS policy or provider requirement may block direct access.</div>${field('API HTTPS endpoint','providerUrl',p.settings.providerUrl)}${field('Model','providerModel',p.settings.providerModel)}<label class="field">AI Director API key<input type="password" id="providerKey" autocomplete="off" value="${esc(providerKey)}" placeholder="Paste your API key"></label><label class="checkrow"><input type="checkbox" id="rememberDirectorKey" ${directorKeyRemembered()?'checked':''}>Remember API key in this browser across sessions</label><p class="tiny muted">Stored unencrypted in this browser only (localStorage); not sent to GitHub or saved in project JSON. Do not enable on shared devices.</p><div class="row"><button id="forgetDirectorKey" class="small">Forget stored key</button></div><p class="tiny muted">If the AI service returns 503 or 429, Director retries automatically and then generates labeled local fallback clips if needed.</p>`:''}<button id="generateAllClips" class="primary full" ${directorBusy?'disabled':''}>${outputMode==='stories'?'🎬 Build multiple-cut stories using BOTH POVs':'🔎 Find RAW one-cut moments across whole recording'}</button><button id="generateClips" class="full" ${directorBusy?'disabled':''}>${outputMode==='stories'?'More assembled A+B stories':'More RAW one-cut moments'}</button><div id="directorStatus" class="tiny muted" style="padding:8px 0">${esc(directorStatus||'Exhaustive search finds up to 500 new clips per batch, evenly across all transcribed hours.')}</div><div class="separator"></div><label class="field">Compare saved creative-direction searches<select id="directorResultsView">
+<p class="tiny muted" id="directionEvidenceHint">${esc(directionHelp)} Opponent vs teammate identity is inferred from words, not verified from a mixed audio track.</p>
+<div class="info warning"><b>Creative direction is NOT an AI editing prompt in Quick local topic assembly.</b>
+Local mode can use short topics or interpret a detailed brief as general storytelling goals and timestamp scouting windows.
+It does not understand arbitrary instructions, view actual kills, or perform agentic editing.
+This story search drafts up to five distinct candidates; you must review them before export. ${esc(interpretStoryBrief(p.settings.directorInstructions||'').windows.length?
+'Detected '+interpretStoryBrief(p.settings.directorInstructions||'').windows.length+' POV A scouting time ranges in your brief.':'')}</div>${p.settings.provider==='remote'?`<div class="info warning">API mode sends transcript text to your chosen provider. Enter credentials only for services you trust. This browser stores the key in memory for this tab only. A browser CORS policy or provider requirement may block direct access.</div>${field('API HTTPS endpoint','providerUrl',p.settings.providerUrl)}${field('Model','providerModel',p.settings.providerModel)}<label class="field">AI Director API key<input type="password" id="providerKey" autocomplete="off" value="${esc(providerKey)}" placeholder="Paste your API key"></label><label class="checkrow"><input type="checkbox" id="rememberDirectorKey" ${directorKeyRemembered()?'checked':''}>Remember API key in this browser across sessions</label><p class="tiny muted">Stored unencrypted in this browser only (localStorage); not sent to GitHub or saved in project JSON. Do not enable on shared devices.</p><div class="row"><button id="forgetDirectorKey" class="small">Forget stored key</button></div><p class="tiny muted">If the AI service returns 503 or 429, Director retries automatically and then generates labeled local fallback clips if needed.</p>`:''}<button id="generateAllClips" class="primary full" ${directorBusy?'disabled':''}>${outputMode==='stories'?'🎬 Build multiple-cut stories using BOTH POVs':'🔎 Find RAW one-cut moments across whole recording'}</button><button id="generateClips" class="full" ${directorBusy?'disabled':''}>${outputMode==='stories'?'More assembled A+B stories':'More RAW one-cut moments'}</button><div id="directorStatus" class="tiny muted" style="padding:8px 0">${esc(directorStatus||'Exhaustive search finds up to 500 new clips per batch, evenly across all transcribed hours.')}</div><div class="separator"></div><label class="field">Compare saved creative-direction searches<select id="directorResultsView">
 <option value="active" ${directorResultView==='active'?'selected':''}>${outputMode==='stories'?'CURRENT ASSEMBLED STORIES: ':'Current RAW search: '}${esc((currentBatch?.direction||'none generated yet').slice(0,65))}</option>
 ${viewOptions}
 <option value="stories" ${directorResultView==='stories'?'selected':''}>ALL completed multi-POV stories (${outputCounts.stories})</option>
@@ -220,6 +226,7 @@ function synchronizePovManually(){
 async function generateMultiPovDirector(){
  if(directorBusy||gameplayBusy)return;
  const storyFocus=($('directorPrompt')?.value??p.settings.directorInstructions??'').trim();
+ const brief=interpretStoryBrief(storyFocus,{defaultTarget:5});
  const pacing=$('povStoryPacing')?.value||povStoryPacing;
  povStoryPacing=pacing;
  const shape=pacing==='punchy'?{clipMin:20,clipMax:45,storyMaxCuts:5}:
@@ -261,12 +268,20 @@ async function generateMultiPovDirector(){
    }
   }
   const dir='Multi-POV NARRATIVE STORY v3: setup, action, reaction, A+B. '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale+' | '+pacing+' | '+storyFocus;
-  const options={...p.settings,...shape,mode:'multi-pov-story',directorInstructions:dir,storyEditorialDirection:storyFocus,clipCount:0};
+  const options={...p.settings,...shape,mode:'multi-pov-story',directorInstructions:dir,
+   storyEditorialDirection:brief.longForm?'':storyFocus,
+   storyMaxSeconds:brief.longForm?210:undefined,
+   storyTargetCount:brief.targetCount,
+   clipCount:0};
   const plan=planDirectorBatch(p,options,{id:uid()});
   options.existingCandidates=plan.existingCandidates;
   options.history=plan.history;
-  const suggestions=buildMultiPovStories(p.words,p.assets,p.gameplayTracks||{},sync,options,
+  const pool=buildMultiPovStories(p.words,p.assets,p.gameplayTracks||{},sync,options,
    (fraction,message)=>{directorStatus=Math.round(fraction*100)+'% · '+message;if($('directorStatus'))$('directorStatus').textContent=directorStatus});
+  const suggestions=selectEditorialStories(pool,brief,{count:brief.targetCount});
+  if(brief.longForm)directorStatus='Interpreted long instructions as an editorial brief (not restrictive keywords). '+
+   'Prioritized '+brief.windows.length+' source scouting windows and selected '+suggestions.length+
+   ' candidate story drafts from '+pool.length+' possible encounters. Editing quality is still provisional until real video is reviewed.';
   if(plan.newBatch){
    commit('New multi-POV search');
    p.directorBatches=[...(p.directorBatches||[]),plan.batch].slice(-100);
@@ -276,14 +291,19 @@ async function generateMultiPovDirector(){
   const fresh=assignDirectorBatch(suggestions.filter(c=>isAssembledPovStory(c)&&!prior.has(clipSignature(c))),plan.batch);
   directorResultView='active';directorHour='all';directorShown=48;
   if(!fresh.length){
-   directorStatus='No NEW two-POV montage stories found with distinct setup, action and payoff moments. A single unedited source or continuous one-player excerpt is no longer returned as a multi-POV story. Transcribe both VODs or check the gameplay scans.';
+   directorStatus=pool.length
+    ?'Found '+pool.length+' draft encounters, but the top '+brief.targetCount+
+      ' for this direction are already saved. Switch to Compare saved searches → All completed multi-POV stories to see them; no new duplicates were added.'
+    :'Found ZERO story candidates. Local quick assembly does not execute long-form prompts as an AI. Verify sync, relink missing recordings, and scan both gameplays. If either video lacks action metadata, the SRT alone cannot verify the fight. No fake clips were generated.';
    update();toast(directorStatus,true);return;
   }
   commit('Generated '+fresh.length+' synchronized multi-POV highlights');
   p.candidates.push(...fresh);
   p.directorHistory.push(...historyEntries(fresh).map(h=>({...h,directorBatchId:plan.batch.id})));
   plan.batch.count=(plan.batch.count||0)+fresh.length;
-  directorStatus='Created '+fresh.length+' EDITED multi-POV STORIES with separated beats, intentional jump cuts, and source A+B. Open a story in Editor to play and export its assembled timeline.';
+  directorStatus='Drafted '+fresh.length+' of '+brief.targetCount+' requested multi-POV stories using '+(brief.windows.length||0)+
+   ' scouting windows, with separate beats and A+B source cuts. These are algorithmic rough edits, NOT five reviewed or verified finished highlights. Inspect action before export.';
+  if(fresh.length<brief.targetCount)directorStatus+=' Fewer than requested met the candidate requirements; remaining stories were not fabricated.';
   update();toast(directorStatus);
  }catch(e){directorStatus='Multi-POV Director: '+e.message;toast(directorStatus,true)}
  finally{directorBusy=false;if(tab==='director')renderInspector()}

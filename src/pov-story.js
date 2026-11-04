@@ -92,10 +92,22 @@ function roleFor(moment,index,length){
  return 'Alternate angle / context';
 }
 function beatBounds(moment,role,limits){
- let lead=3.1,tail=3.5;
- if(role.includes('Engagement')){lead=4;tail=5}
- if(role.startsWith('Hook')){lead=3.5;tail=3}
- if(role.includes('Reaction')){lead=2.2;tail=4.6}
+ // Keep real sustained gunfire or gunplay audio intact instead of arbitrarily
+ // slicing every action event to a 7–9 second fragment.
+ const fighting=moment.events.filter(e=>e.kind==='audio'&&e.globalEnd>e.globalStart);
+ if(fighting.length&&(role.includes('Engagement')||role.includes('Down')||role.includes('Clutch'))){
+  const relevant=fighting.filter(e=>e.globalStart<=moment.time+5&&e.globalEnd>=moment.time-5);
+  if(relevant.length){
+   let start=Math.min(...relevant.map(e=>e.globalStart))-3;
+   let end=Math.max(...relevant.map(e=>e.globalEnd))+4;
+   // A single combat beat may run up to 70 seconds if the source supports it.
+   if(end-start>70){start=Math.max(start,moment.time-28);end=Math.min(end,start+70)}
+   return {start:Math.max(limits.commonStart,start),end:Math.min(limits.commonEnd,end)};
+  }
+ }
+ let lead=3.5,tail=4.5;
+ if(role.startsWith('Hook')){lead=5;tail=5}
+ if(role.includes('Reaction')){lead=3;tail=6}
  return {start:Math.max(limits.commonStart,moment.time-lead),end:Math.min(limits.commonEnd,moment.time+tail)};
 }
 function segmentFromBeat(sync,beat){
@@ -163,7 +175,7 @@ export function composePovStory(events,sync,group,limits,options={}){
  // A single source still must never leave this function as a completed story.
  if(new Set(beats.map(b=>b.assetId)).size!==2)return null;
  const minSeconds=clamp(options.storyMinSeconds??Math.max(17,options.clipMin||20),12,150);
- const maxSeconds=clamp(options.storyMaxSeconds??Math.max(minSeconds+5,options.clipMax||75),minSeconds+3,150);
+ const maxSeconds=clamp(options.storyMaxSeconds??Math.max(minSeconds+5,options.clipMax||75),minSeconds+3,240);
  // Keep the key setup/action/payoff beats while respecting target short duration.
  const length=()=>beats.reduce((sum,b)=>sum+b.end-b.start,0);
  while(beats.length>3&&length()>maxSeconds){
