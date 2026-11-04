@@ -60,16 +60,30 @@ try{
   return {sync:p.povSync,count:p.candidates.length};
  });
  if(initial.sync!==null||initial.count!==500)throw Error('Fixture should have 500 raw clips and no sync: '+JSON.stringify(initial));
+ // Regression: user pastes a LONG filmmaking brief and previously gets ZERO.
+ // This must be treated as editing goals, not dozens of contradictory hard filters.
+ const pastedBrief=[
+ '# AI DIRECTOR — MULTI-POV CALL OF DUTY STORY EDITOR',
+ 'Create at least FIVE genuinely entertaining edited stories. Do not group random moments together.',
+ 'PRIMARY OBJECTIVE: gunfights, player sightings, death, revives, funny trash talk, full action.',
+ 'STORY FIRST — CUT SECOND: setup, action, turning point and payoff. Preserve gunplay without arbitrary 7-second cuts.',
+ 'STRICT QUALITY CONTROL: reject random banter, no dialogue-only clips, never fabricate kills or identity.',
+ '1. Player pursuit: POV A 00:00:16–00:01:12; POV B 00:00:12–00:01:08.',
+ 'Look for separate angle at the same encounter. Do not confuse stream intros with enemy combat.',
+ 'Return a screenplay with original in-out times and a review, do not label fake single clips as stories.'
+ ].join('\\n');
+ await page.locator('#directorPrompt').fill(pastedBrief);
+ if(!await page.locator('#directionEvidenceHint').count())throw Error('Creative direction editor not available');
  // Click the SAME generic generation button the user clicked, without touching manual POV sync.
  await page.locator('#generateAllClips').click();
- await page.waitForFunction(()=>/Created \d+ EDITED multi-POV STORIES|No NEW two-POV montage stories|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
+ await page.waitForFunction(()=>/Drafted \d+ of \d+ requested multi-POV stories|No NEW two-POV montage stories|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
  await page.waitForTimeout(1200);
  const sync=await page.evaluate(async()=> (await (await import('./src/storage.js')).loadProject()).povSync);
  if(!sync||sync.referenceId!=='a'||sync.targetId!=='b'||Math.abs(sync.offset+4)>.6)
   throw Error('One-click GENERATE failed to synchronize both original recordings: '+JSON.stringify(sync));
  const modeAfter=await page.locator('#directorOutputMode').inputValue();
  if(modeAfter!=='stories')throw Error('Director fell back to raw clips after automatic sync');
- await page.waitForFunction(()=>/Created \d+ EDITED multi-POV STORIES|No NEW two-POV montage stories|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
+ await page.waitForFunction(()=>/Drafted \d+ of \d+ requested multi-POV stories|No NEW two-POV montage stories|Multi-POV Director:/.test(document.querySelector('#directorStatus')?.textContent||''),null,{timeout:50000});
  await page.waitForTimeout(1200);
  const result=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
@@ -81,6 +95,7 @@ try{
  if(storyOnlyView.includes('Old one-cut moment'))throw Error('Generated multi-POV results remain mixed with old one-cuts');
  const combined=result.find(c=>c.mode==='multi-pov-story'&&new Set(c.segments.map(s=>s.assetId)).size===2);
  if(!combined)throw Error('No actual edited story uses both source POVs: '+JSON.stringify(result));
+ if(result.filter(c=>c.mode==='multi-pov-story').length>=5)throw Error('One synthetic 80s encounter should not fabricate five independent stories');
  if(combined.segments.length<4||combined.pov.cutCount!==combined.segments.length||combined.pov.jumpCuts<1)
   throw Error('Proposed story is one continuous source instead of multiple parts stitched together: '+JSON.stringify(combined));
  if(!combined.segments[0].storyRole.includes('Hook')||!combined.segments.at(-1).storyRole.match(/Payoff|Reaction|aftermath/i))
