@@ -7,6 +7,7 @@ import {generatePvPHighlights} from './gameplay-director.js';
 import {syncFromTranscripts,checkSynchronization} from './pov-sync.js';
 import {buildMultiPovHighlights} from './pov-director.js';
 import {buildMultiPovStories} from './pov-story.js';
+import {overlappingPovWindows,scopedScanFingerprint,validScopedScan} from './pov-scan.js';
 import {interpretStoryBrief,selectEditorialStories} from './story-brief.js';
 import {directorOutputMode,visibleDirectorCandidates as filterDirectorCandidates,directorResultCounts,usableAutoSync,isAssembledPovStory} from './director-mode.js';
 import {parseEditorialDirection} from './director-intent.js';
@@ -83,15 +84,17 @@ const savedPovSync=p.povSync;
 const povStatus=savedPovSync&&savedPovSync.referenceId===povReferenceId&&savedPovSync.targetId===povTargetId?
   'Saved alignment: second POV time = '+savedPovSync.offset.toFixed(2)+'s + '+savedPovSync.scale.toFixed(7)+' × first POV time. '+(savedPovSync.confidence||'manual')+' confidence, '+(savedPovSync.inliers||0)+' independent phrase anchors.':
   'NOT SYNCHRONIZED: Generating an assembled story will automatically search both transcripts for matching speech. If that fails, use Match POVs or manually align a known shared event; raw one-cut results are not multi-POV stories.';
-const gameplayStatusText=p.assets.filter(a=>a.type==='video').map(a=>{const t=p.gameplayTracks?.[a.id];return esc(a.name)+': '+(t?.status==='complete'?'scanned · '+(t.events?.length||0)+' possible combat-audio bursts · '+(t.motion?.length||0)+' sampled frames':t?.status==='scanning'?'partial scan · '+fmt(t.processed)+' / '+fmt(a.duration):'not scanned')}).join(' | ');const discoveryMap=coverage.sources.map(s=>`<div class="tiny muted" style="margin:8px 0 4px">${esc(s.name)} · ${fmt(s.duration)} · ${s.transcribed.toLocaleString()} recognized words · ${s.coveredBins}/${s.totalBins} text-bearing five-minute sections · ${fmt(s.processed)} transcribed by Whisper</div><div class="row tight" style="gap:2px;flex-wrap:nowrap;overflow:hidden">${s.bins.map((count,i)=>`<span title="${fmt(i*300)}–${fmt(Math.min(s.duration,(i+1)*300))}: ${count} words" style="display:block;flex:1;min-width:2px;height:12px;border-radius:2px;background:${count?'#59ddbe':'#354354'}"></span>`).join('')}</div>`).join('');html=`<div class="info"><b>Director output · choose what gets created</b>
+const gameplayStatusText=p.assets.filter(a=>a.type==='video').map(a=>{const t=p.gameplayTracks?.[a.id];return esc(a.name)+': '+(t?.status==='complete'?'scanned '+(t.window?fmt(t.window.start)+'–'+fmt(t.window.end)+' · ':'')+(t.events?.length||0)+' action-like audio bursts · '+(t.motion?.length||0)+' sampled frames':t?.status==='scanning'?'partial scan · '+fmt(t.processed)+' / '+fmt(a.duration):'not scanned')}).join(' | ');const discoveryMap=coverage.sources.map(s=>`<div class="tiny muted" style="margin:8px 0 4px">${esc(s.name)} · ${fmt(s.duration)} · ${s.transcribed.toLocaleString()} recognized words · ${s.coveredBins}/${s.totalBins} text-bearing five-minute sections · ${fmt(s.processed)} transcribed by Whisper</div><div class="row tight" style="gap:2px;flex-wrap:nowrap;overflow:hidden">${s.bins.map((count,i)=>`<span title="${fmt(i*300)}–${fmt(Math.min(s.duration,(i+1)*300))}: ${count} words" style="display:block;flex:1;min-width:2px;height:12px;border-radius:2px;background:${count?'#59ddbe':'#354354'}"></span>`).join('')}</div>`).join('');html=`<div class="info"><b>Director output · choose what gets created</b>
 <label class="field">Generate<select id="directorOutputMode">
 <option value="stories" ${outputMode==='stories'?'selected':''} ${povAssets.length<2?'disabled':''}>🎬 ASSEMBLED MULTI-POV STORIES — several cuts, both recordings</option>
 <option value="raw" ${outputMode==='raw'?'selected':''}>🔎 RAW single-camera moments — one cut each (discovery only)</option>
 </select></label>
 <p class="tiny muted" id="directorModeNotice">${outputMode==='stories'
-?'STORY MODE: Generate assembles multiple separate excerpts from both synced POVs. It will try transcript synchronization automatically and NEVER substitute 1-cut clips when alignment fails.'
+?'STORY MODE: Only the synchronized overlapping footage is scanned. Clips must show one coherent encounter with evidence from BOTH cameras. Missing action angles are never invented.'
 :'RAW MODE: Each result is one original-source excerpt. Select ASSEMBLED MULTI-POV STORIES to create actual edited videos.'}
-${povAssets.length>=2&&outputCounts.raw?'<b>'+outputCounts.raw+' earlier raw one-cut results are preserved under RAW single-camera moments — they are NOT assembled stories.</b>':''}</p>
+${povAssets.length>=2&&outputCounts.raw?'<b>'+outputCounts.raw+' earlier raw one-cut results are preserved under RAW single-camera moments — they are NOT assembled stories.</b>':''}
+${p.candidates.some(c=>c.mode==='multi-pov-story'&&!c.pov?.actionEvidencePairs)?
+'<strong>⚠ Previous v0.8.3 assembled stories were made without paired visual-action checks and are NOT automatically repaired. Generate again to build new event-locked edits; legacy cards remain available only for comparison.</strong>':''}</p>
 </div><div class="separator"></div><div class="info"><b>Two-player VOD → multi-POV highlights</b><p class="tiny muted">Upload both original recordings in Media and transcribe both VODs (or import their original-timestamp SRTs). Match the same spoken phrases to align match clocks, then generate a single short that switches sources when their gameplay evidence differs. An offset and optional clock drift are saved; kill ownership is NOT verified without HUD/kill-feed evidence.</p>
  ${povAssets.length>=2?`<div class="row"><label class="field" style="flex:1">POV A (match clock)<select id="povReference">${povOptions(povReferenceId)}</select></label><label class="field" style="flex:1">POV B<select id="povTarget">${povOptions(povTargetId)}</select></label></div>
  <div class="row wrap"><button class="small primary" id="syncPovTranscripts">Match POVs by shared spoken phrases</button><button class="small" id="syncPovManual">Save manual time offset</button></div>
@@ -103,9 +106,9 @@ ${povAssets.length>=2&&outputCounts.raw?'<b>'+outputCounts.raw+' earlier raw one
  <option value="extended" ${povStoryPacing==='extended'?'selected':''}>Extended · 40–120 sec · 6–9 cuts</option>
  </select></label>
  <button class="primary full" id="generateMultiPovHighlights" ${directorBusy||gameplayBusy?'disabled':''}>🎬 Build edited multi-POV STORIES (A + B)</button>
- <p class="tiny muted">Creates an assembled montage: hook/setup → engagement → other camera → climax → reaction. Separate moments are trimmed and stitched into one short, using BOTH original videos. POV selection is based on available gameplay evidence; a context angle is not proof of a kill. Check cuts and sound before export.</p>
+ <p class="tiny muted">Uses one chronological encounter and preserves the actual action rather than combining unrelated ranges. Both cameras must have useful evidence; if a requested gunfight or rescue is unsupported, no clip is invented. Review guns and outcomes before export.</p>
  `:`<p class="tiny muted">Import at least two video recordings first. You can then align them from their transcripts, or enter a manual timestamp offset.</p>`}
- </div><div class="separator"></div><div class="info"><b>Call of Duty PvP:</b> use the gameplay scan below for actual audio activity and visual movement, not just dialogue. Highlights preserve continuous footage before, during and after combat-like events. Spoken callouts can suggest enemy sightings, deaths and revives, but unverified audio or motion cannot prove a kill.</div><div class="info"><b>Gameplay analysis:</b> ${gameplayStatusText||'No video sources yet'}.</div><div class="row"><button id="scanGameplayBtn" class="full" ${gameplayBusy?'disabled':''}>🎮 Analyze actual gameplay audio + video</button><button id="cancelGameplayScan" class="small danger" ${gameplayBusy?'':'disabled'}>Stop scan</button></div><div class="tiny muted" id="gameplayStatus" aria-live="polite">${esc(gameplayStatus||'Scans original video in small audio windows, then samples motion near likely action. Results stay on your device and are saved. This may take time on a three-hour recording.')}</div><button id="generatePvPClips" class="primary full" ${directorBusy||gameplayBusy?'disabled':''}>${outputMode==='stories'?'🎬 Assemble POV A + POV B into MULTI-CUT stories':'🎮 Find RAW PvP moments (one cut)'}</button><p class="tiny muted">If Director engine is Remote, it will also critique titles, humor and payoff using timestamped transcripts. The provider does not see video pixels, so it cannot visually verify a kill or revive.</p><div class="separator"></div><div class="info">Scan EVERY transcribed section of the uploaded recording and generate many distinct short videos—not just the top few highlights. Repeated searches avoid the moments already proposed. Scores are editorial heuristics, not virality predictions.</div><div class="info"><b>Source coverage:</b> ${coverage.wordCount.toLocaleString()} words · ${coverage.coveredBins} of ${coverage.totalBins} five-minute source sections contain transcript · ${coverage.percent}% of media processed by Whisper (or imported manually). ${coverage.coveredBins<coverage.totalBins/3&&coverage.totalBins>3?'<strong>⚠ Much of the recording has no transcript yet. The Director cannot discover dialogue it has not received.</strong>':''}</div>${discoveryMap}<div class="separator"></div>${field('Clip category','mode',p.settings.mode,'text',[['all','All categories / full recording'],['comedy','Comedy & callbacks'],['story','Storytelling'],['educational','Educational'],['debate','Debate'],['dramatic','Dramatic'],['inspiration','Inspirational'],['gaming','Gaming'],['cod-pvp','Call of Duty PvP · fights, reactions and trash talk']])}<div class="row"><div style="flex:1">${field('Minimum seconds','clipMin',p.settings.clipMin,'number')}</div><div style="flex:1">${field('Maximum seconds','clipMax',p.settings.clipMax,'number')}</div></div>${field('Clips to propose (0 = ALL available, up to 500 at once)','clipCount',p.settings.clipCount,'number')}${field('Minimum heuristic score (0 = widest search)','minScore',p.settings.minScore,'number')+field('PvP action quality threshold (25–90)','gameplayMinScore',p.settings.gameplayMinScore??44,'number')}${field('Story creativity (0–100)','creativity',p.settings.creativity,'range')}<label class="checkrow"><input type="checkbox" data-setting="allowNonlinear" ${p.settings.allowNonlinear?'checked':''}>Allow non-adjacent source moments</label>${field('On-device semantic sampling','semanticSamples',p.settings.semanticSamples,'number')}${field('Remote AI request limit','maxAICalls',p.settings.maxAICalls,'number')}${field('Director engine','provider',p.settings.provider,'text',[['heuristic','Quick local topic assembly'],['semantic','Local semantic AI (downloads embeddings model)'],['remote','Remote language-model Director (HTTPS)']])}<label class="field">Quick PvP focus<select id="pvpFocusPreset">
+ </div><div class="separator"></div><div class="info"><b>Call of Duty PvP:</b> use the gameplay scan below for actual audio activity and visual movement, not just dialogue. Highlights preserve continuous footage before, during and after combat-like events. Spoken callouts can suggest enemy sightings, deaths and revives, but unverified audio or motion cannot prove a kill.</div><div class="info"><b>Gameplay analysis:</b> ${gameplayStatusText||'No video sources yet'}.</div><div class="row"><button id="scanGameplayBtn" class="full" ${gameplayBusy?'disabled':''}>🎮 Analyze actual gameplay audio + video</button><button id="cancelGameplayScan" class="small danger" ${gameplayBusy?'':'disabled'}>Stop scan</button></div><div class="tiny muted" id="gameplayStatus" aria-live="polite">${esc(gameplayStatus||'Multi-POV scans decode audio and sample video frames only inside the aligned shared interval. Raw single-POV mode can scan a full recording.')}</div><button id="generatePvPClips" class="primary full" ${directorBusy||gameplayBusy?'disabled':''}>${outputMode==='stories'?'🎬 Assemble POV A + POV B into MULTI-CUT stories':'🎮 Find RAW PvP moments (one cut)'}</button><p class="tiny muted">If Director engine is Remote, it will also critique titles, humor and payoff using timestamped transcripts. The provider does not see video pixels, so it cannot visually verify a kill or revive.</p><div class="separator"></div><div class="info">Scan EVERY transcribed section of the uploaded recording and generate many distinct short videos—not just the top few highlights. Repeated searches avoid the moments already proposed. Scores are editorial heuristics, not virality predictions.</div><div class="info"><b>Source coverage:</b> ${coverage.wordCount.toLocaleString()} words · ${coverage.coveredBins} of ${coverage.totalBins} five-minute source sections contain transcript · ${coverage.percent}% of media processed by Whisper (or imported manually). ${coverage.coveredBins<coverage.totalBins/3&&coverage.totalBins>3?'<strong>⚠ Much of the recording has no transcript yet. The Director cannot discover dialogue it has not received.</strong>':''}</div>${discoveryMap}<div class="separator"></div>${field('Clip category','mode',p.settings.mode,'text',[['all','All categories / full recording'],['comedy','Comedy & callbacks'],['story','Storytelling'],['educational','Educational'],['debate','Debate'],['dramatic','Dramatic'],['inspiration','Inspirational'],['gaming','Gaming'],['cod-pvp','Call of Duty PvP · fights, reactions and trash talk']])}<div class="row"><div style="flex:1">${field('Minimum seconds','clipMin',p.settings.clipMin,'number')}</div><div style="flex:1">${field('Maximum seconds','clipMax',p.settings.clipMax,'number')}</div></div>${field('Clips to propose (0 = ALL available, up to 500 at once)','clipCount',p.settings.clipCount,'number')}${field('Minimum heuristic score (0 = widest search)','minScore',p.settings.minScore,'number')+field('PvP action quality threshold (25–90)','gameplayMinScore',p.settings.gameplayMinScore??44,'number')}${field('Story creativity (0–100)','creativity',p.settings.creativity,'range')}<label class="checkrow"><input type="checkbox" data-setting="allowNonlinear" ${p.settings.allowNonlinear?'checked':''}>Allow non-adjacent source moments</label>${field('On-device semantic sampling','semanticSamples',p.settings.semanticSamples,'number')}${field('Remote AI request limit','maxAICalls',p.settings.maxAICalls,'number')}${field('Director engine','provider',p.settings.provider,'text',[['heuristic','Quick local topic assembly'],['semantic','Local semantic AI (downloads embeddings model)'],['remote','Remote language-model Director (HTTPS)']])}<label class="field">Quick PvP focus<select id="pvpFocusPreset">
 <option value="">Custom directions — type below</option>
 <option value="ONLY enemy proximity chat trolling and baiting">Possible opponent proximity-chat trolling</option>
 <option value="ONLY teammate trolling and squad banter">Squadmate trolling / banter</option>
@@ -139,9 +142,9 @@ function editField(label,key,value,type='text',options){return `<label class="fi
 function chooseTab(name){tab=name;all('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));renderInspector()}
 function asrProgress(n,msg){const bar=$('asrProgress');if(bar)bar.style.width=`${Math.floor(n*100)}%`;if($('asrStatus'))$('asrStatus').textContent=msg;setStatus(msg)}
 /** Analyze the actual video/audio track. Keep 24-second RAM windows and store progress in project metadata. */
-async function runGameplayScan(target=null,{silent=false}={}){
+async function runGameplayScan(target=null,{silent=false,windows=null}={}){
  if(gameplayBusy)throw Error('Gameplay analysis is already running');
- const list=target?[target]:p.assets.filter(a=>a.type==='video');
+ const list=target?[target]:p.assets.filter(a=>a.type==='video'&&(!windows||windows[a.id]));
  if(!list.length)throw Error('Import a gameplay recording first');
  gameplayBusy=true;gameplayAbort=new AbortController();
  try{
@@ -149,16 +152,17 @@ async function runGameplayScan(target=null,{silent=false}={}){
    const original=asset(a.id);
    const file=original?.file;
    if(!file){gameplayStatus='Original '+a.name+' is not linked. Relink your video to scan its action.';throw Error(gameplayStatus)}
-   const fingerprint=file.size+':'+file.lastModified+':'+GAMEPLAY_SCAN_VERSION;
+   const window=windows?.[a.id]||null;
+   const fingerprint=scopedScanFingerprint(file,GAMEPLAY_SCAN_VERSION,window);
    const previous=p.gameplayTracks?.[a.id];
-   if(previous?.status==='complete'&&previous.fingerprint===fingerprint){
+   if(validScopedScan(previous,fingerprint,window)){
     gameplayStatus='Using existing completed gameplay activity scan for '+a.name;
     continue;
    }
-   gameplayStatus='Starting '+a.name+' · '+fmt(a.duration)+' of gameplay to analyze…';
+   gameplayStatus='Starting '+a.name+' · '+(window?fmt(window.start)+'–'+fmt(window.end)+' shared footage':'full recording')+'…';
    if($('gameplayStatus'))$('gameplayStatus').textContent=gameplayStatus;
    await scanGameplay(file,{
-    durationHint:a.duration,signal:gameplayAbort.signal,resume:previous?.fingerprint===fingerprint?previous:null,
+    durationHint:a.duration,window,signal:gameplayAbort.signal,resume:previous?.fingerprint===fingerprint?previous:null,
     onProgress:(progress,message)=>{
      gameplayStatus=Math.round(progress*100)+'% · '+a.name+' · '+message;
      if($('gameplayStatus'))$('gameplayStatus').textContent=gameplayStatus;
@@ -171,7 +175,7 @@ async function runGameplayScan(target=null,{silent=false}={}){
     }
    });
   }
-  gameplayStatus='Gameplay analysis saved. PvP highlights now combine speech with actual audio and visual activity.';
+  gameplayStatus='Activity scan saved. Audio and motion are clues, not verified gunfights.';
   if(!silent)toast(gameplayStatus);
  }catch(error){
   gameplayStatus=error.message;
@@ -259,15 +263,11 @@ async function generateMultiPovDirector(){
  }catch(e){povSyncStatus=e.message;renderInspector();toast('Multi-POV Director: '+e.message,true);return}
  directorBusy=true;directorStatus='Preparing synchronized multi-POV action scan…';renderInspector();
  try{
-  for(const id of [ref,target]){
-   const a=p.assets.find(x=>x.id===id),linked=asset(id);
-   const fingerprint=linked?.file?linked.file.size+':'+linked.file.lastModified+':'+GAMEPLAY_SCAN_VERSION:'';
-   if(linked?.file&&(!p.gameplayTracks?.[id]||p.gameplayTracks[id].status!=='complete'||p.gameplayTracks[id].fingerprint!==fingerprint)){
-    directorStatus='Scanning action from '+a.name+' in bounded chunks…';
-    await runGameplayScan(a,{silent:true});
-   }
-  }
-  const dir='Multi-POV NARRATIVE STORY v3: setup, action, reaction, A+B. '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale+' | '+pacing+' | '+storyFocus;
+  const sourceA=p.assets.find(a=>a.id===ref),sourceB=p.assets.find(a=>a.id===target);
+  const windows=overlappingPovWindows(sync,sourceA,sourceB);
+  directorStatus='Analyzing only '+fmt(windows[ref].end-windows[ref].start)+' of matching gameplay, not the rest of the VODs…';
+  await runGameplayScan(null,{silent:true,windows});
+  const dir='Multi-POV EVENT-LOCKED STORY v4: same encounter, action evidence, meaningful A+B. '+ref+' → '+target+' offset '+sync.offset+' scale '+sync.scale+' | '+pacing+' | '+storyFocus;
   const options={...p.settings,...shape,mode:'multi-pov-story',directorInstructions:dir,
    storyEditorialDirection:brief.longForm?'':storyFocus,
    storyMaxSeconds:brief.longForm?210:undefined,
@@ -294,7 +294,7 @@ async function generateMultiPovDirector(){
    directorStatus=pool.length
     ?'Found '+pool.length+' draft encounters, but the top '+brief.targetCount+
       ' for this direction are already saved. Switch to Compare saved searches → All completed multi-POV stories to see them; no new duplicates were added.'
-    :'Found ZERO story candidates. Local quick assembly does not execute long-form prompts as an AI. Verify sync, relink missing recordings, and scan both gameplays. If either video lacks action metadata, the SRT alone cannot verify the fight. No fake clips were generated.';
+    :'Found ZERO coherent encounters with matching visual and audio activity on both POVs. No unrelated scenes or unsupported alternate angles were stitched together. Verify the shared timestamps and inspect the original source.';
    update();toast(directorStatus,true);return;
   }
   commit('Generated '+fresh.length+' synchronized multi-POV highlights');
@@ -571,7 +571,16 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('syncPovManual',()=>synchronizePovManually());
  const storyPacingSelect=$('povStoryPacing');if(storyPacingSelect)storyPacingSelect.onchange=()=>{povStoryPacing=storyPacingSelect.value};
  on('generateMultiPovHighlights',()=>generateMultiPovDirector());
- on('scanGameplayBtn',()=>{runGameplayScan().catch(()=>{})});
+ on('scanGameplayBtn',async()=>{
+  try{
+   if(directorOutputMode(p,directorOutputPreference)==='stories'){
+    const {reference,target}=getPovPair();
+    if(!p.povSync||p.povSync.referenceId!==reference.id||p.povSync.targetId!==target.id)
+     throw Error('Synchronize the selected POV recordings first to scan only their overlap.');
+    await runGameplayScan(null,{windows:overlappingPovWindows(p.povSync,reference,target)});
+   }else await runGameplayScan();
+  }catch(e){gameplayStatus=e.message;toast('Gameplay scan: '+e.message,true);renderInspector()}
+ });
  on('cancelGameplayScan',()=>gameplayAbort?.abort());
  on('generateAllClips',()=>runCurrentDirector(true));
  on('clearCandidates',()=>{commit('Cleared saved proposals');p.candidates=[];directorShown=48;update();toast('Cards cleared. Previously discovered source moments remain excluded from future searches.')});

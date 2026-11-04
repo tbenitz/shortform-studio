@@ -2,7 +2,7 @@
 export const isAssembledPovStory=c=>c?.mode==='multi-pov-story'
  && Array.isArray(c.segments)&&c.segments.length>=3
  && new Set(c.segments.map(s=>s.assetId)).size>=2
- && (c.pov?.jumpCuts||0)>=1;
+ && ((c.pov?.povSwitches||0)>=1||(c.pov?.jumpCuts||0)>=1);
 export function directorOutputMode(project,preference='auto'){
  if(preference==='stories'||preference==='raw')return preference;
  return (project?.assets||[]).filter(a=>a.type==='video').length>=2?'stories':'raw';

@@ -22,7 +22,7 @@ test('three-hour source uses 24-second bounded audio reads without loading whole
 });
 
 test('long PvP scan resumes saved audio checkpoint instead of decoding from zero',async()=>{
- const reads=[],resume={version:1,status:'scanning',duration:10800,processed:2400,audio:[{time:0,rms:.02,texture:.01,transients:0}]};
+ const reads=[],resume={version:2,status:'scanning',window:{start:0,end:10800},duration:10800,processed:2400,audio:[{time:0,rms:.02,texture:.01,transients:0}]};
  const fake={duration:10800,async readRange(a,b){reads.push([a,b]);return new Float32Array(Math.round((b-a)*16000))},close(){}};
  const done=await scanGameplay({},{readerFactory:async()=>fake,videoScanner:async()=>[],resume});
  assert.ok(reads[0][0]>=2376);
@@ -38,4 +38,17 @@ test('quiet game sound is part of the baseline, allowing real loud fight audio t
  assert.ok(bursts.length>=2,'Expected two fights to be found, got '+JSON.stringify(bursts));
  assert.ok(bursts[0].peakTime>=8&&bursts[0].peakTime<=18);
  assert.ok(bursts.at(-1).peakTime>50);
+});
+
+test('multi-camera overlap scan decodes no audio or frames outside its source window',async()=>{
+ const reads=[],seenFrames=[];
+ const fake={duration:20000,async readRange(a,b){reads.push([a,b]);return new Float32Array(Math.round((b-a)*16000))},close(){}};
+ const track=await scanGameplay({}, {window:{start:7000,end:7120},readerFactory:async()=>fake,
+  videoScanner:async(_,times)=>{seenFrames.push(...times);return []}});
+ assert.equal(track.duration,20000);
+ assert.deepEqual(track.window,{start:7000,end:7120});
+ assert.ok(reads.length<=5&&reads.length>=5);
+ assert.ok(reads.every(([a,b])=>a>=7000&&b<=7120&&b-a<=24));
+ assert.ok(seenFrames.every(t=>t>=7000&&t<7120));
+ assert.equal(track.audio.length,120);
 });
