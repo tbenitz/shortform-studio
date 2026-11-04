@@ -1,5 +1,5 @@
 /** Explicitly separate raw one-camera moments from assembled two-camera stories. */
-export const isAssembledPovStory=c=>c?.mode==='multi-pov-story'
+export const isAssembledPovStory=c=>c?.mode==='multi-pov-story'&&c.pov?.visionVerified===true
  && Array.isArray(c.segments)&&c.segments.length>=3
  && new Set(c.segments.map(s=>s.assetId)).size>=2
  && ((c.pov?.povSwitches||0)>=1||(c.pov?.jumpCuts||0)>=1);
@@ -8,7 +8,7 @@ export function directorOutputMode(project,preference='auto'){
  return (project?.assets||[]).filter(a=>a.type==='video').length>=2?'stories':'raw';
 }
 export function visibleDirectorCandidates(project,output='stories',view='active'){
- const all=project?.candidates||[],batches=project?.directorBatches||[];
+ const all=(project?.candidates||[]).filter(c=>c.mode!=='multi-pov-story'||c.pov?.visionVerified===true),batches=project?.directorBatches||[];
  const story=isAssembledPovStory;
  if(view==='all')return all;
  if(view==='raw')return all.filter(c=>!story(c));
@@ -23,7 +23,7 @@ export function visibleDirectorCandidates(project,output='stories',view='active'
  return current?all.filter(c=>c.directorBatchId===current.id&&!story(c)):all.filter(c=>!story(c));
 }
 export function directorResultCounts(project){
- const all=project?.candidates||[];
+ const all=(project?.candidates||[]).filter(c=>c.mode!=='multi-pov-story'||c.pov?.visionVerified===true);
  return {raw:all.filter(c=>!isAssembledPovStory(c)).length,
   stories:all.filter(isAssembledPovStory).length};
 }
