@@ -56,7 +56,7 @@ export function selectEditorialStories(candidates,brief,{count=brief?.targetCoun
  const scored=[];
  for(const c of candidates||[]){
   if(!c?.segments||c.segments.length<3||new Set(c.segments.map(s=>s.assetId)).size!==2||
-      (c.pov?.jumpCuts||0)<1)continue;
+      ((c.pov?.povSwitches||0)<1&&(c.pov?.jumpCuts||0)<1))continue;
   const w=storyWindowMatch(c,brief?.windows||[]);
   const roles=c.pov?.storyBeats||[];
   const haveHook=roles.some(r=>/hook|setup/i.test(r.role||''));
