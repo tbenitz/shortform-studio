@@ -112,14 +112,43 @@ export function createSnapshot(project,name,id,when=Date.now()) {
   return {id,projectId:project.id,name:String(name||'Untitled snapshot').trim().slice(0,100)||'Untitled snapshot',createdAt:when,project:metadata};
 }
 export function sourceMatch(project,query,limit=50) {
-  const needle=String(query||'').trim().toLowerCase();
-  if(!needle)return [];
-  const sources=new Map((project.assets||[]).map(a=>[a.id,a]));
-  return (project.words||[])
-    .filter(w=>String(w.text||'').toLowerCase().includes(needle))
-    .sort((a,b)=>a.start-b.start)
-    .slice(0,limit)
-    .map(w=>({assetId:w.assetId,sourceName:sources.get(w.assetId)?.name||'Missing source',start:w.start,end:w.end,text:w.text,speaker:w.speaker||''}));
+ const needle=String(query||'').trim().toLocaleLowerCase();
+ if(!needle)return [];
+ const words=Array.isArray(project?.words)?project.words:[];
+ const sources=new Map((project.assets||[]).map(a=>[a.id,a]));
+ const normalize=text=>String(text||'').toLocaleLowerCase().replace(/[^\\p{L}\\p{N}']+/gu,' ').trim();
+ const tokens=normalize(needle).split(/\\s+/).filter(Boolean);
+ if(!tokens.length)return [];
+ const results=[];
+ if(tokens.length===1){
+  for(const w of words){
+   if(!normalize(w.text).includes(tokens[0]))continue;
+   results.push({assetId:w.assetId,sourceName:sources.get(w.assetId)?.name||'Missing source',start:w.start,end:w.end,text:w.text,speaker:w.speaker||''});
+   if(results.length>=limit)break;
+  }
+ }else{
+  const groups=new Map();
+  for(const w of words){if(!groups.has(w.assetId))groups.set(w.assetId,[]);groups.get(w.assetId).push(w)}
+  for(const [assetId,entries] of groups){
+   entries.sort((a,b)=>a.start-b.start);
+   for(let i=0;i<entries.length;i++){
+    const first=entries[i];
+    if(normalize(first.text)!==tokens[0])continue;
+    let end=first.end,matched=1,phrase=[first.text];
+    for(let j=i+1;j<entries.length&&matched<tokens.length;j++){
+     const next=entries[j];
+     if(next.start-end>2.5||next.start<end-1)break;
+     if(normalize(next.text)!==tokens[matched])break;
+     phrase.push(next.text);end=next.end;matched++;
+    }
+    if(matched!==tokens.length)continue;
+    results.push({assetId,sourceName:sources.get(assetId)?.name||'Missing source',start:first.start,end,text:phrase.join(' '),speaker:first.speaker||''});
+    if(results.length>=limit)break;
+   }
+   if(results.length>=limit)break;
+  }
+ }
+ return results.sort((a,b)=>a.start-b.start).slice(0,limit);
 }
 
 const htmlEscape = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
