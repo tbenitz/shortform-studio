@@ -13,6 +13,7 @@
 - [Newest feature review (R15–R25)](#new-implementation-review-r15r25-favorites-mp4-and-recoverable-projects) — favorites, MP4 output, fresh startup and media reconnection.
 - [Humor, compilation and cropping review (R26–R40)](#new-implementation-review-r26r40-humor-compilations-and-cropping) — what to click and how to approve.
 - [All 40 prioritized future updates](#full-future-update-tracking-queue-next-001next-040) — planned items, plus every existing master requirement.
+- [Simple humor UI and MP4 recovery checks (R41–R46)](#new-implementation-review-r41r46-simple-humor-ai-and-mp4-recovery) — two-mode humor workflow and encoder deployment fix.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
 - [Plain-English video editing and AI glossary](#plain-english-glossary--video-and-ai-terms) — explains the unfamiliar words.
 - [All 494 desired product features](#feature-acceptance-index) — each has its own test instructions, **but many are planned, not available**.
@@ -437,6 +438,30 @@
 - [ ] **R40** Persist humor selections and crop configurations
   - **Exactly how to test:** Choose moments, reorder and build a compilation, apply face/manual crop, Save, refresh, click Load Last Project. Verify selected moments, saved order, crop mode and focus settings return.
   - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+### New implementation review R41–R46 (simple humor AI and MP4 recovery)
+
+**New code for your testing, not automatically approved.** These six review IDs extend the original 40 release items. They are owner-only acceptance checks and remain unchecked. Never mark as passed because of assistant changes or GitHub tests alone.
+
+- [ ] **R41** Two obvious Humor Finder modes, with settings hidden
+  - **How to test and pass criteria:** Open Funny Clips & Compilations. Confirm the first two primary choices are Find Funny Clips and Make a Funny Story. The search source, custom instructions, cost limit and strictness live inside a closed Advanced options section rather than taking over the page.
+
+- [ ] **R42** Single funny clip discovery without extra configuration
+  - **How to test and pass criteria:** Import timed original-source SRT, click Find Funny Clips, then preview the actual source recordings. The results should be source-grounded; selecting one should permit a single-clip timeline export. Without an AI key the UI must identify local keyword matching honestly.
+
+- [ ] **R43** Story mode combines only connected funny conversations
+  - **How to test and pass criteria:** Import a transcript with two separate jokes about the same specific event and a third unrelated topic. Click Make a Funny Story. Preview both chosen moments, build the story, and verify at least two nonoverlapping original cuts about the same subject in chronological order. Unrelated source windows must never be added to fill out a montage.
+
+- [ ] **R44** Configured AI understands repeated joke topics without extra setup
+  - **How to test and pass criteria:** With a valid existing AI Director provider key, click either humor mode and approve the transcript upload/cost prompt. Confirm the AI proposes actual funny dialogue with source timestamps and specific repeated topics. Check that the resulting story labels are grounded in both originals and that a failed model request is reported rather than counted as success.
+
+- [ ] **R45** Packaged MP4 encoder exists in the branch-hosted site
+  - **How to test and pass criteria:** Open the actual published URL /shortform-studio/vendor/mediabunny/mediabunny.mjs in a new browser tab. It must return JavaScript, not a GitHub 404. In the same browser session, create a short MP4 from actual video/audio and verify picture, sound and file extension.
+
+- [ ] **R46** MP4 export recovers from a missing or uncached encoder
+  - **How to test and pass criteria:** Confirm that the editor first uses the same-origin pinned Mediabunny bundle and falls back to pinned backup CDNs if absent. The service-worker install should not fail when optional module is temporarily unavailable. The output must be actual MP4 bytes with real H.264 video and supported audio, not renamed WebM; failures must show a meaningful error.
+
+**Known issue / cause:** The original GitHub Pages branch build was not shipping `vendor/mediabunny/mediabunny.mjs`, while the packaging-only custom deployment could fail during unrelated playback tests. The build now checks the pinned compiled encoder into the repository for branch hosting, the renderer has pinned backup sources, and the service worker no longer fails installation just because a nonessential asset is missing. Your actual Chromebook export still needs manual review before R20, R45 or R46 can be approved.
 
 ### Full future-update tracking queue (NEXT-001–NEXT-040)
 
