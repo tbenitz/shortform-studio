@@ -25,6 +25,8 @@ try{
   await saveProject(project);
  });
  await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.getElementById('loadLastProject')?.disabled===false,null,{timeout:10000});
+ await page.locator('#loadLastProject').click();
  await page.locator('[data-tab="director"]').click();
  if(!(await page.locator('#inspectorContent').innerText()).includes('36 of 36'))
   throw Error('Three-hour transcript coverage was not surfaced');
