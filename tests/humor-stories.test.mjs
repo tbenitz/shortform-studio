@@ -32,3 +32,12 @@ test('reject story with unrelated footage or overlapping clips',()=>{
  const jokes=[M('a','V',1,4,'helicopter building'),M('b','X',8,11,'helicopter building')];
  assert.throws(()=>storyMoments({momentIds:['a','b']},jokes),/unsynchronized/);
 });
+
+test('natural funny storyline can include more than 6 related cuts over more than 9 minutes',()=>{
+ const clips=Array.from({length:9},(_,i)=>M('topic-'+i,'V',i*280,i*280+9,'The helicopter crashed against the building and everyone laughed'));
+ const found=findConnectedFunnyStories(clips);
+ assert(found.length>=1);
+ assert.equal(found[0].momentIds.length,9);
+ assert(found[0].end-found[0].start>540);
+ assert.equal(storyMoments(found[0],clips).length,9);
+});
