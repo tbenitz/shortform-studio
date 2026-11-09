@@ -36,3 +36,19 @@
 .production-issue[data-severity="warning"]{border-left-color:#e0af62}
 .production-issue b{display:block;margin-bottom:4px}
 @media(max-width:1100px){.tabs{flex-wrap:wrap}.transport{flex-wrap:wrap}.topbar{gap:9px;padding:0 10px}.top-actions{gap:3px}.topbar button{padding:6px}}
+
+
+/* Favorites, safe restore and source picker additions */
+.asset-entry{display:flex;align-items:center;gap:4px;margin:3px 0}
+.asset-entry .asset{margin:0;flex:1;min-width:0}
+.asset-entry .favorite-toggle{flex:0 0 34px;min-width:34px;font-size:18px}
+.favorite-toggle[aria-pressed="true"],.favorite-toggle.is-favorite{color:#ffde7e;border-color:#ac8b4b;background:#493c25}
+.clip.is-favorite{background:#686043;border-color:#dcc16c}
+.candidate.is-favorite{border-color:#c69b50;box-shadow:inset 3px 0 0 #e3ba6d}
+#lastProjectHint{max-width:200px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+#loadLastProject:not(:disabled){border-color:#60d7bc}
+#reconnectSavedMedia:not([hidden]){border-color:#c9a55f;color:#f1d594}
+.sidebar .panehead{flex-wrap:wrap}
+.sidebar .panehead .row{gap:4px}
+.sidebar .panehead .row .btn,.sidebar .panehead .row button{font-size:10px;padding:5px 7px}
+@media(max-width:1150px){.topbar{height:auto;min-height:64px;flex-wrap:wrap;padding-top:7px;padding-bottom:7px}.top-actions{flex-wrap:wrap;justify-content:flex-end}.workspace{height:calc(100vh - 175px)}}
