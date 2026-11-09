@@ -366,566 +366,1129 @@ The master feature list is a **roadmap, not a ready-to-use menu**. For each item
 
 ### 1. Workspace, navigation and accessibility
 
+> **What this section means / where to start:** Workspace layout and accessibility. **Where:** tabs, top bar, panels and Settings. **Start with:** open one clip, move between workspaces and try keyboard-only navigation.
+
+
 - [ ] **UX-001** Five connected workspaces: Quick Create, AI Director, Pro Editor, Multi-POV, and Content Factory
+  - **How to test this feature:** Find each of the five named workspaces (Quick Create, AI Director, Pro Editor, Multi-POV, Content Factory). Switch between all five without losing the same edit. A missing workspace means the whole item is not ready. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Multicam/Multi-POV combines recordings of the same real event.
 - [ ] **UX-002** Switch workspaces without losing the active project or timeline state
+  - **How to test this feature:** Import a clip, make an edit, then switch between all available workspace tabs and return. The same clip, playhead and edited settings should still be there. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-003** Dark and light themes with readable, consistent visual hierarchy
+  - **How to test this feature:** Change the appearance setting and inspect text, buttons and controls on at least two workspaces before and after reload. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-004** Resize, collapse, dock, undock, and reset editor panels
+  - **How to test this feature:** Try dragging panel dividers and docking/collapsing panels, then restoring the default layout. If the panels cannot be resized, leave this unchecked. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-005** Custom workspace layouts saved across sessions
+  - **How to test this feature:** Change the stated UI preference, reload, and check it remains applied. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-006** Media browser, source monitor, program monitor, inspector, Director, and timeline panels
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-007** Global command palette for actions and media search
+  - **How to test this feature:** Try typing an action such as 'split clip' in a global command field. Choosing the result must perform that action, not just display search text. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-008** Keyboard shortcut search, editing, customization, and export
+  - **How to test this feature:** Open shortcut settings; change an action's shortcut, use the new keys, then reload and verify the mapping persists. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-009** Undo/redo status visible in the main toolbar
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-010** Full-screen and distraction-free playback modes
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-011** Dual-monitor editing layouts where supported
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-012** Small-screen and Chromebook-friendly adaptive layouts
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-013** Touch and trackpad-friendly controls with precise pointer editing
+  - **How to test this feature:** Use the relevant keyboard, accessibility or touch method to reach every important control without losing functionality. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-014** Accessible keyboard navigation and visible focus indicators
+  - **How to test this feature:** Use the documented shortcut for an edit, customize it if promised, and confirm its effect without a mouse. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-015** Screen-reader names for important controls
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-016** Adjustable UI scale and text size
+  - **How to test this feature:** Change the appearance setting and inspect text, buttons and controls on at least two workspaces before and after reload. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-017** High-contrast mode and accessible color choices
+  - **How to test this feature:** Change the appearance setting and inspect text, buttons and controls on at least two workspaces before and after reload. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-018** Reduced-motion option for animations
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **UX-019** Contextual help, tooltips, and searchable settings
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **UX-020** No inert buttons, simulated progress, or deceptive success messages
+  - **How to test this feature:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 2. Projects, organization and versioning
 
+> **What this section means / where to start:** Project library and recoverability. **Where:** project bar, Save/Open JSON, Production Tools. **Start with:** save a disposable project, make a change and attempt a restore.
+
+
 - [ ] **PRJ-001** Create, rename, duplicate, archive, delete, and search projects
+  - **How to test this feature:** Create a second project without destroying the first; rename, duplicate, find, archive and delete a disposable project. Every operation in the item must be present. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-002** Project dashboard with thumbnail, dates, duration, and analysis state
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-003** Multiple timelines and sequences inside one project
+  - **How to test this feature:** Make two different sequences inside one saved project and switch between them; editing one sequence must not overwrite the other. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-004** Timeline branching for alternate edits
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-005** Project bins, nested folders, tags, favorites, filters, and sorting
+  - **How to test this feature:** Organize three test assets into distinct groups and use the named filter/search control; check accurate results after reopening. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-006** Save project settings independently of global defaults
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-007** Persist all clip edits, tracks, markers, media references, and effects
+  - **How to test this feature:** Add two clips, notes and a marker; Save, refresh and check each edit, audio entry and setting returns accurately. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-008** Keep original media immutable throughout editing
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-009** Automatic project autosave after meaningful changes
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-010** Periodic recovery snapshots with restore points
+  - **How to test this feature:** Verify recovery snapshots are made automatically at the specified interval, then restore an earlier snapshot. Manual 'Save named snapshot' alone does not satisfy periodic automatic snapshots. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-011** Persistent undo history or saved version checkpoints
+  - **How to test this feature:** Save an earlier edit, change the timeline, restore it and compare the restored clips, metadata and media references. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A checkpoint is saved progress that supports resuming later.
 - [ ] **PRJ-012** Named versions and comparison between original, AI draft, and manual final
+  - **How to test this feature:** Create named Original, AI Draft and Manual Final versions. Compare their edits side by side; simple snapshot restore alone does not meet full comparison requirement. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-013** Selective revert of individual AI changes
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-014** Portable project export and import with optional source media
+  - **How to test this feature:** Save a portable project, reload it in a fresh browser session and confirm clips, settings and media links are correct. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-015** Export editable timeline interchange data where supported (EDL/FCPXML/OTIO)
+  - **How to test this feature:** Save a portable project, reload it in a fresh browser session and confirm clips, settings and media links are correct. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **PRJ-016** Re-link missing media by identity, path, or verified metadata
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-017** Show storage footprint for each project and cache category
+  - **How to test this feature:** Open the storage view and independently compare project metadata size, cached source media size and proxy/model sizes (if present). **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-018** Project templates and reusable brand profiles
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-019** Timestamp-anchored notes, comments, and review markers
+  - **How to test this feature:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-020** Optional collaboration, review links, and role permissions
+  - **How to test this feature:** Invite a test reviewer with limited access and verify their controls respect the granted permission. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-021** Project-wide search across clips, assets, transcripts, and comments
+  - **How to test this feature:** Organize three test assets into distinct groups and use the named filter/search control; check accurate results after reopening. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **PRJ-022** Portable backup integrity check and restored-project verification
+  - **How to test this feature:** Export a portable backup, corrupt a disposable copy, verify integrity checks detect the problem, then restore the valid copy. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 3. Import, formats and source inspection
 
+> **What this section means / where to start:** Media formats and correct source handling. **Where:** Media. **Start with:** small files whose codec/duration you already know.
+
+
 - [ ] **IMP-001** Drag-and-drop import of multiple video, audio, and image files
+  - **How to test this feature:** Import several videos, audio tracks and images in one operation. Confirm all appear as separate playable source items. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-002** Folder import and batch file selection where browser permissions allow
+  - **How to test this feature:** Import an appropriate test file and inspect the source entry, preview and timeline. The intended result must actually work; reporting support in text is not sufficient. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-003** Compatibility detection for MP4, MOV, MKV, WebM, AVI, M4V, and TS
+  - **How to test this feature:** Import small real files in every claimed format/codec and verify actual preview decoding or a working conversion path. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-004** Compatible handling or conversion of H.264, H.265, VP9, AV1, and other available codecs
+  - **How to test this feature:** Try small samples encoded with each claimed codec. Verify the app decodes or clearly offers working conversion rather than claiming blanket MP4 compatibility. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A codec is the method used to encode or decode actual audio/video.
 - [ ] **IMP-005** Audio import for WAV, MP3, M4A/AAC, FLAC, OGG, and Opus
+  - **How to test this feature:** Import a source with multiple audio/subtitle tracks and confirm each track is detected and selectable. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-006** Image import for JPG, PNG, WebP, GIF, SVG, TIFF, and supported RAW
+  - **How to test this feature:** Import an appropriate test file and inspect the source entry, preview and timeline. The intended result must actually work; reporting support in text is not sufficient. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-007** Import existing SRT, VTT, ASS/SSA, TTML, TXT, and timestamped transcript data where supported
+  - **How to test this feature:** Import an appropriate test file and inspect the source entry, preview and timeline. The intended result must actually work; reporting support in text is not sufficient. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-008** Import camera timecode and embedded media metadata where available
+  - **How to test this feature:** Inspect a known file's properties against a trusted media-info readout; metadata should match. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Timecode is a precise location in the source or edited video.
 - [ ] **IMP-009** Read multiple audio tracks, channel layouts, and embedded subtitles
+  - **How to test this feature:** Import a source with multiple audio/subtitle tracks and confirm each track is detected and selectable. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-010** Identify resolution, pixel format, color space, HDR, frame rate, and variable frame rate
+  - **How to test this feature:** Import small real files in every claimed format/codec and verify actual preview decoding or a working conversion path. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** HDR preserves higher brightness/color range when the whole pipeline supports it.
 - [ ] **IMP-011** Warn about unsupported formats before attempting a large decode
+  - **How to test this feature:** Import small real files in every claimed format/codec and verify actual preview decoding or a working conversion path. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-012** Never silently substitute a different source or omit undecodable segments
+  - **How to test this feature:** Open a long source at multiple distant timestamps, then save/reopen and relink the original; existing cuts must stay aligned. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-013** Check media corruption, missing frames, silent tracks, and incomplete files
+  - **How to test this feature:** Use a disposable unsupported or intentionally damaged file and confirm a clear failure with no invented preview. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-014** Find exact and near-duplicate media
+  - **How to test this feature:** Import the same media twice and a separately re-encoded copy. Confirm exact duplicates and near duplicates are recognized without false positives. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-015** Group recordings by recording time, name, camera, or matching event
+  - **How to test this feature:** Import an appropriate test file and inspect the source entry, preview and timeline. The intended result must actually work; reporting support in text is not sufficient. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-016** Generate audio waveforms and seekable filmstrip thumbnails
+  - **How to test this feature:** Import a source with multiple audio/subtitle tracks and confirm each track is detected and selectable. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-017** Generate low-resolution proxies without altering original files
+  - **How to test this feature:** Inspect a known file's properties against a trusted media-info readout; metadata should match. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-018** Allow source in/out selection before adding footage to timeline
+  - **How to test this feature:** Set In and Out on a source clip, add that portion to the timeline and verify both boundaries match the selected footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-019** Capture still frames from source material
+  - **How to test this feature:** Open a long source at multiple distant timestamps, then save/reopen and relink the original; existing cuts must stay aligned. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-020** Show source file properties and media health reports
+  - **How to test this feature:** Open a long source at multiple distant timestamps, then save/reopen and relink the original; existing cuts must stay aligned. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-021** Manual and automatic source re-linking after reopening a project
+  - **How to test this feature:** Save a project, reload without its video file, import the same original file and confirm clips and captions reattach without timestamp drift. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-022** Random-access loading without decoding an entire long video into RAM
+  - **How to test this feature:** Open a long source at multiple distant timestamps, then save/reopen and relink the original; existing cuts must stay aligned. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-023** Preserve each source file's original timestamps and timebase
+  - **How to test this feature:** Open a long source at multiple distant timestamps, then save/reopen and relink the original; existing cuts must stay aligned. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IMP-024** Optional ingest from supported recording devices and connected storage
+  - **How to test this feature:** Import an appropriate test file and inspect the source entry, preview and timeline. The intended result must actually work; reporting support in text is not sufficient. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 4. Media intelligence and universal search
 
+> **What this section means / where to start:** Searchable understanding of source footage. **Where:** source analysis/search when implemented. **Start with:** one known phrase and one known visual event in real footage.
+
+
 - [ ] **IDX-001** Build a searchable index of every imported source
+  - **How to test this feature:** Search a known phrase and a known visible event, then verify matching original source times; text-only matches do not count as visual understanding. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-002** Index shots and scene boundaries
+  - **How to test this feature:** Check detected labels against a known visible/speaking subject, including a negative example the model must not claim. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-003** Index transcript utterances and spoken keywords
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-004** Index distinct speakers and speaker corrections
+  - **How to test this feature:** Check detected labels against a known visible/speaking subject, including a negative example the model must not claim. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-005** Detect and index significant non-speech sound events
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-006** Detect and index faces, people, poses, and reactions where supported
+  - **How to test this feature:** Check detected labels against a known visible/speaking subject, including a negative example the model must not claim. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-007** Index visible objects, locations, actions, and screen text where supported
+  - **How to test this feature:** Check detected labels against a known visible/speaking subject, including a negative example the model must not claim. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-008** Extract and index camera movement and shot framing
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-009** Generate searchable visual and text embeddings
+  - **How to test this feature:** Search a known phrase and a known visible event, then verify matching original source times; text-only matches do not count as visual understanding. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-010** Connect visible events with corresponding audio and dialogue
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-011** Build event sequences rather than isolated keyword matches
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-012** Search source media with natural-language descriptions
+  - **How to test this feature:** Type 'person walks through door' or another true visual event in a recording and verify semantic source results with correct original timestamps; ordinary word matching is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-013** Filter search by source file, speaker, date, duration, or event type
+  - **How to test this feature:** Search a known phrase and a known visible event, then verify matching original source times; text-only matches do not count as visual understanding. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-014** Return playable source thumbnails with precise timestamps
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-015** Display evidence and confidence for AI-identified events
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-016** Search for action followed by reaction or dialogue
+  - **How to test this feature:** Search a known phrase and a known visible event, then verify matching original source times; text-only matches do not count as visual understanding. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-017** Search for silence, black frames, clipping, or other defects
+  - **How to test this feature:** Search a known phrase and a known visible event, then verify matching original source times; text-only matches do not count as visual understanding. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-018** Find visually similar or repeated shots
+  - **How to test this feature:** Use two related clips and an unrelated one; the index should rank the related sources together. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-019** Identify repeated content across multiple source files
+  - **How to test this feature:** Use two related clips and an unrelated one; the index should rank the related sources together. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-020** Cache analyzed segments and skip unchanged content
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-021** Use coarse scanning followed by targeted high-detail inspection
+  - **How to test this feature:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-022** Expose an editable hierarchical scene/event timeline
+  - **How to test this feature:** Check detected labels against a known visible/speaking subject, including a negative example the model must not claim. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **IDX-023** Export media index and evidence metadata as structured data
+  - **How to test this feature:** Export the index, open the JSON and confirm it includes source IDs, timestamps and the original evidence used for detected events. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 5. Transcription and transcript editing
 
+> **What this section means / where to start:** Speech-to-text and speaker timing. **Where:** Transcript. **Start with:** a short speech sample and known SRT to compare.
+
+
 - [ ] **ASR-001** Transcribe audio using a working on-device ASR engine
+  - **How to test this feature:** Run local Whisper on a short spoken recording and compare actual words, first/last phrases and progress against the real audio without an external transcription request. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-002** Support optional remote transcription with explicit media-upload consent
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-003** Choose model, language, quality level, and execution device
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-004** Show actual model download, load, and processing state
+  - **How to test this feature:** Transcribe or import a recording with known words and timings, then compare the named output against actual speech and original timestamps. Watch especially the beginning and end. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-005** Support word-level timestamps when model capability permits
+  - **How to test this feature:** Play several words at the start, middle and end and verify subtitle word times follow the original audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-006** Clearly label approximate timestamps or plain/segment fallback
+  - **How to test this feature:** Choose a model without reliable word alignment. Check that the app visibly labels estimated/segment timing instead of pretending every timestamp is exact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-007** Preserve source timecodes throughout transcription and relinking
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Timecode is a precise location in the source or edited video.
 - [ ] **ASR-008** Transcribe long files in bounded, overlapping windows
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-009** Reconcile repeated words at chunk boundaries
+  - **How to test this feature:** Transcribe or import a recording with known words and timings, then compare the named output against actual speech and original timestamps. Watch especially the beginning and end. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-010** Detect untranscribed opening, ending, and internal gaps
+  - **How to test this feature:** Use speech near the very start, around a gap and near the end. The coverage display must flag any omitted speech intervals. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-011** Show speech-coverage map including silence and uncertainty
+  - **How to test this feature:** After an incomplete transcription, use Retry ALL gaps. Confirm the missing section is restored without deleting correct words elsewhere. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-012** Retry all failed or suspicious gaps without restarting completed work
+  - **How to test this feature:** Use a recording with speech before and after silence; check coverage and retry deliberately missing windows without replacing correct words. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-013** Save incremental transcription checkpoints across sessions
+  - **How to test this feature:** Partway through a long disposable transcription, cancel, save, reload and resume at a previously saved time rather than starting over. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A checkpoint is saved progress that supports resuming later.
 - [ ] **ASR-014** Detect and display overlapping speech without discarding either speaker
+  - **How to test this feature:** Use a known two-speaker conversation, including overlap, and review speaker changes without inventing extra speakers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-015** Run speaker diarization using real supported models when configured
+  - **How to test this feature:** Use a known two-speaker conversation, including overlap, and review speaker changes without inventing extra speakers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Diarization is labeling when each speaker talks.
 - [ ] **ASR-016** Manually name, merge, split, and correct speakers
+  - **How to test this feature:** Use a known two-speaker conversation, including overlap, and review speaker changes without inventing extra speakers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-017** Support speaker-count limits, confidence thresholds, and exceptions
+  - **How to test this feature:** Use a known two-speaker conversation, including overlap, and review speaker changes without inventing extra speakers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-018** Correct words without changing source video or edit decisions
+  - **How to test this feature:** Modify a known word or speaker label, then search and save/reopen to confirm corrections without moving source footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-019** Edit video from deliberate transcript selections as a separate action
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-020** Search, filter, replace, and jump to transcript phrases
+  - **How to test this feature:** Search for both a single word and a known phrase, then jump to the correct original source timestamp. Test replace and filter separately if approving the full master requirement. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-021** Support manual transcription and imported subtitles when ASR fails
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-022** Custom vocabulary for names, slang, and technical terms
+  - **How to test this feature:** Transcribe or import a recording with known words and timings, then compare the named output against actual speech and original timestamps. Watch especially the beginning and end. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-023** Side-by-side transcript, audio waveform, and preview playback
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-024** Caption timing proofing and transcript version history
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-025** Import/export SRT, VTT, TXT, and JSON transcripts
+  - **How to test this feature:** Transcribe a short audio recording with known words; compare the full first and last phrases with the actual audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-026** Flag uncertain words for review rather than fabricating certainty
+  - **How to test this feature:** Give a few speech words low-confidence status; ensure they can be reviewed and corrected without silently altering unrelated captions. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 6. Visual understanding and source evidence
 
+> **What this section means / where to start:** Visual AI interpretation, not just transcript or audio guesses. **Where:** Media analysis / future vision tools. **Start with:** a shot containing an obviously observable action.
+
+
 - [ ] **VIS-001** Detect camera cuts and scene boundaries from decoded frames
+  - **How to test this feature:** Inspect sampled frames with a known visual action and a known absent action; verify the model's labels and timestamps match real video. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-002** Detect people and faces without falsely claiming reliable identity
+  - **How to test this feature:** Inspect sampled frames with a known visual action and a known absent action; verify the model's labels and timestamps match real video. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-003** Track visible subjects, objects, and motion across frames
+  - **How to test this feature:** Inspect sampled frames with a known visual action and a known absent action; verify the model's labels and timestamps match real video. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **VIS-004** Detect relevant visual actions from multiple supporting frames
+  - **How to test this feature:** Inspect sampled frames with a known visual action and a known absent action; verify the model's labels and timestamps match real video. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-005** Recognize scene text and HUD indicators with uncertainty flags
+  - **How to test this feature:** Inspect sampled frames with a known visual action and a known absent action; verify the model's labels and timestamps match real video. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-006** Distinguish visually observable actions from inferred outcomes
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-007** Identify frame quality issues, freeze frames, and black frames
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-008** Evaluate whether a source angle actually depicts claimed action
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-009** Connect action timestamps to corresponding original source frames
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-010** Show evidence thumbnails and original timestamps for AI conclusions
+  - **How to test this feature:** Open the original frames behind a claim and confirm whether the event is actually visible; uncertain claims should remain labeled uncertain. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-011** Allow user corrections to event labels and confidence
+  - **How to test this feature:** Open the original frames behind a claim and confirm whether the event is actually visible; uncertain claims should remain labeled uncertain. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-012** Respect custom minimum visual evidence requirements
+  - **How to test this feature:** Open the original frames behind a claim and confirm whether the event is actually visible; uncertain claims should remain labeled uncertain. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-013** Use detailed analysis around high-interest event windows
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-014** Avoid treating a single sampled image as proof of a complete event
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-015** Expose model limitations and decoder failures
+  - **How to test this feature:** Try a disposable unreadable frame source and verify a clear failure, not a fabricated claim. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-016** Separate verified observations from AI hypotheses
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-017** Allow manual selection of visual analysis ranges
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VIS-018** Reinspect contested source events at increased temporal sampling
+  - **How to test this feature:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 7. Multi-camera and multi-POV synchronization
 
+> **What this section means / where to start:** Two-camera synchronization and truthful camera switching. **Where:** AI Director / multi-POV. **Start with:** two recordings sharing the same real-world moment.
+
+
 - [ ] **MC-001** Import and organize two or more independent camera/POV files
+  - **How to test this feature:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-002** Align sources using common dialogue and audio fingerprints
+  - **How to test this feature:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-003** Align sources using timecode or reliable metadata where available
+  - **How to test this feature:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Timecode is a precise location in the source or edited video.
 - [ ] **MC-004** Align sources using game clocks, event logs, or visual event anchors where available
+  - **How to test this feature:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-005** Support user-created synchronization markers
+  - **How to test this feature:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-006** Show and correct sync offset and drift over long recordings
+  - **How to test this feature:** Align a shared event at both the start and end of two long recordings. Verify any clock drift is handled rather than an offset only. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-007** Handle variable-frame-rate recordings and differing sample clocks
+  - **How to test this feature:** Compare both recordings at a known shared event and again near the end of their overlap. Reject incorrect alignment, unrelated camera switches or evidence-free claims. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-008** Preserve master event time and individual source time mapping
+  - **How to test this feature:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-009** Display which source intervals overlap in original event time
+  - **How to test this feature:** Show the two files' true shared recording-time interval; disjoint sections must not be treated as overlapping. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-010** Limit expensive cross-POV comparison to verified overlap ranges
+  - **How to test this feature:** Compare actual computation or job logs: multi-POV analysis should inspect overlapping windows, not spend equivalent time comparing unrelated nonoverlap. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-011** Provide independent single-source analysis outside shared overlaps
+  - **How to test this feature:** Compare the real shared time interval of two recordings; nonoverlapping sections must not appear as shared footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-012** Identify events that genuinely appear in multiple recordings
+  - **How to test this feature:** Watch each full original event and compare the assembled sequence; all required setup/action/reaction time must be present. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-013** Flag uncertain or conflicting cross-source event matches
+  - **How to test this feature:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-014** Compare synchronized source monitors frame by frame
+  - **How to test this feature:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-015** Choose master dialogue/music/effects audio with manual overrides
+  - **How to test this feature:** Listen across a POV switch with headphones; speech must remain continuous without doubled audio or phase artifacts. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-016** Avoid doubled dialogue, phase cancellation, and echo during POV switches
+  - **How to test this feature:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-017** Switch only when an angle adds relevant story or visual evidence
+  - **How to test this feature:** Request an encounter where only POV A shows the fight. The final edit must not switch to POV B simply to alternate angles. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-018** Prioritize visible action over artificial alternating-camera patterns
+  - **How to test this feature:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-019** Maintain chronology and spatial continuity across edits
+  - **How to test this feature:** Watch each full original event and compare the assembled sequence; all required setup/action/reaction time must be present. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-020** Show setup, confrontation, action, reaction, and resolution for each event
+  - **How to test this feature:** Watch a complete source event and then its multi-POV edit: setup, action, reaction and resolution must be present when available. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-021** Keep gunfights/action sequences intact when relevant to the story
+  - **How to test this feature:** Compare both recordings at a known shared event and again near the end of their overlap. Reject incorrect alignment, unrelated camera switches or evidence-free claims. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-022** Allow synchronized PiP, split screen, and reaction replay
+  - **How to test this feature:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-023** Offer smart angle-switch suggestions without forced automated cuts
+  - **How to test this feature:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-024** Allow manual source angle replacement without losing synchronization
+  - **How to test this feature:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-025** Detect unrelated camera shots and reject misleading switches
+  - **How to test this feature:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MC-026** Track source provenance for every selected camera interval
+  - **How to test this feature:** Inspect each assembled cut's source file ID and original start/end timestamp. All must link back to the real media. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Provenance is the original filename and timestamp behind a shot or claim.
 - [ ] **MC-027** Require user review when a meaningful event or outcome is uncertain
+  - **How to test this feature:** Watch each full original event and compare the assembled sequence; all required setup/action/reaction time must be present. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 8. AI Director: planning and execution
 
+> **What this section means / where to start:** AI that makes genuine editable story cuts from your instructions. **Where:** AI Director. **Start with:** a specific brief and footage containing both relevant and irrelevant moments.
+
+
 - [ ] **DIR-001** Accept detailed natural-language creative briefs
+  - **How to test this feature:** Enter a specific instruction mentioning a required event and an exclusion. Verify the proposal changes in response to both parts of the brief. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-002** Support comedy, gaming, action, documentary, interview, tutorial, podcast, trailer, and custom modes
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-003** Expose target audience, purpose, tone, and editing style controls
+  - **How to test this feature:** Enter a clear request and an explicit exclusion; regenerate and verify selected source footage follows both. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-004** Set adaptive duration targets, hard limits, and story-completeness preference
+  - **How to test this feature:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-005** Set automatic, target, and maximum number of desired outputs
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-006** Allow source, speaker, topic, and time-range exclusions
+  - **How to test this feature:** Exclude a specific source and speaker; generate again and confirm none of its footage or dialogue appears in proposals. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-007** Allow locked clips and user-protected timeline sections
+  - **How to test this feature:** Lock a clip, rerun editing, and verify its content, length and position remain intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-008** Identify story candidates from actual indexed evidence
+  - **How to test this feature:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-009** Identify hook, setup, development, key moment, reaction, and payoff
+  - **How to test this feature:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-010** Assemble complete coherent stories across distant source intervals
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-011** Preserve chronology unless explicitly approved to alter it
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-012** Avoid unrelated, fabricated, or repetitively recycled clips
+  - **How to test this feature:** Ask the Director to perform an edit, then open the normal timeline and verify real editable clips changed. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-013** Prefer quality over artificially meeting an output count
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-014** Show candidate board with quality notes and original-source links
+  - **How to test this feature:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-015** Explain why each candidate is proposed or rejected
+  - **How to test this feature:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-016** Support alternate hooks and multiple draft versions
+  - **How to test this feature:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-017** Generate an edit plan with source-referenced clip ranges
+  - **How to test this feature:** Ask the Director to perform an edit, then open the normal timeline and verify real editable clips changed. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-018** Execute real timeline insert, split, trim, move, and replace operations
+  - **How to test this feature:** Ask the Director to make a cut; the normal editable timeline should change with real source ranges, rather than only receiving written advice. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-019** Add editable B-roll, captions, titles, and effects
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-020** Add audio and music only when selected or permitted
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-021** Preview proposed changes before irreversible actions
+  - **How to test this feature:** Create two different proposed edits, compare their actual selected footage and retain the prior version. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-022** Review source-to-timeline evidence after executing edits
+  - **How to test this feature:** Ask the Director to perform an edit, then open the normal timeline and verify real editable clips changed. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-023** Prevent duplicate or unchanged AI output being presented as a new result
+  - **How to test this feature:** Run the same brief twice and verify the AI does not relabel identical cuts as a brand-new discovery. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-024** Avoid hardcoded sample stories, fixed timestamps, or placeholder videos
+  - **How to test this feature:** Run the same request twice and check no fabricated timestamps, unrelated cuts or mislabeled duplicate results are produced. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-025** Allow a user to approve, reject, or revise each candidate
+  - **How to test this feature:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-026** Retain manual overrides when AI Director runs again
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-027** Stop bounded revisions when further improvements are unproven
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-028** Save AI instructions, settings, and edit-rationale history
+  - **How to test this feature:** Enter a clear request and an explicit exclusion; regenerate and verify selected source footage follows both. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **DIR-029** Support local, optional cloud, and hybrid analysis paths
+  - **How to test this feature:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 9. AI quality control and source fidelity
 
+> **What this section means / where to start:** Detect actual defects and explain them. **Where:** preflight, review and export. **Start with:** a project containing one intentionally known metadata defect.
+
+
 - [ ] **QA-001** Separate measurable technical validation from subjective quality opinions
+  - **How to test this feature:** Use both a coherent and a visibly flawed edit; verify quality notes explain specific real differences, not arbitrary impressive numbers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-002** Show explanations and evidence for each quality score
+  - **How to test this feature:** Use both a coherent and a visibly flawed edit; verify quality notes explain specific real differences, not arbitrary impressive numbers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-003** Evaluate story clarity, setup, payoff, and completeness
+  - **How to test this feature:** Use both a coherent and a visibly flawed edit; verify quality notes explain specific real differences, not arbitrary impressive numbers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-004** Detect missing context and misleading reordering
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-005** Check visual relevance to spoken dialogue and claimed actions
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-006** Check duplicate, recycled, and unrelated scene choices
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-007** Check visible action and reaction timing
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-008** Check abrupt audio cuts, dropped words, and bad crossfades
+  - **How to test this feature:** Use a safe known fault such as no captions or missing source and verify the inspector flags it at the correct position. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-009** Check silence, missing dialogue, clipping, and excessive peaks
+  - **How to test this feature:** Use a safe known fault such as no captions or missing source and verify the inspector flags it at the correct position. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-010** Detect black frames, frozen frames, and missing video
+  - **How to test this feature:** Use a safe known fault such as no captions or missing source and verify the inspector flags it at the correct position. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-011** Check subtitle accuracy, timing, readability, and safe areas
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-012** Check cropped-off faces, subjects, gameplay HUD, and important text
+  - **How to test this feature:** Use a safe known fault such as no captions or missing source and verify the inspector flags it at the correct position. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-013** Check repeated or excessive transitions and visual effects
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-014** Inspect rendered samples including opening and closing segments
+  - **How to test this feature:** Export a short sample and inspect the downloaded file, not only the editor preview or progress indicator. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-015** Link every identified issue to the exact timeline interval
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-016** Allow accepting or dismissing individual proposed fixes
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-017** Produce side-by-side before/after comparisons
+  - **How to test this feature:** Choose two drafts of the same source and inspect side-by-side playback or a clear edit diff; ensure the comparison reflects real media. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-018** Never fabricate a score or claim guaranteed engagement
+  - **How to test this feature:** Use both a coherent and a visibly flawed edit; verify quality notes explain specific real differences, not arbitrary impressive numbers. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-019** Record verification results and unresolved issues with export
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **QA-020** Block misleading success states if verification did not actually run
+  - **How to test this feature:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 10. Professional timeline and editing controls
 
+> **What this section means / where to start:** Normal manual editing operations. **Where:** timeline and Editor. **Start with:** three distinguishable clips and a saved snapshot.
+
+
 - [ ] **EDIT-001** Support unlimited practical video/audio/title tracks within resource limits
+  - **How to test this feature:** Use at least two audio/video tracks, change each named control and confirm it affects only the intended items. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-002** Show frame-accurate source/program timecodes
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Frame-accurate means the boundary is at the intended single frame.
 - [ ] **EDIT-003** Insert, overwrite, lift, extract, and reorder clips
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-004** Split clips at playhead or selected positions
+  - **How to test this feature:** Place the playhead inside a selected clip and press Split. There should be two clips with contiguous source ranges and no lost frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-005** Trim left/right edges with precise handles
+  - **How to test this feature:** Select a clip, move the playhead into it and use both trim controls; undo each change and confirm the original video remains unmodified. Draggable edge handles are also required for full approval of this master item. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-006** Ripple edit and automatic gap closure
+  - **How to test this feature:** Adjust clip boundaries with two neighboring clips and verify the named timing behavior, total duration and source range are correct. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ripple means closing/moving downstream timeline gaps.
 - [ ] **EDIT-007** Roll edit at adjacent clip boundaries
+  - **How to test this feature:** Use two adjacent clips; move the shared cut boundary forward and backward while the total combined timeline length remains the same. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Roll means moving an edit boundary between neighbors without changing combined length.
 - [ ] **EDIT-008** Slip edit while preserving timeline placement
+  - **How to test this feature:** Move the visible source interval inside a clip while keeping its timeline position and duration unchanged. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Slip means changing source frames inside a clip without moving that clip.
 - [ ] **EDIT-009** Slide edit while preserving surrounding total duration
+  - **How to test this feature:** Slide a middle clip left/right while neighboring trim ranges compensate and the total sequence duration stays unchanged. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Slide means moving a clip while adjusting both neighbors.
 - [ ] **EDIT-010** Move, duplicate, copy/paste, group, and ungroup clips
+  - **How to test this feature:** Use at least two audio/video tracks, change each named control and confirm it affects only the intended items. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-011** Link and unlink video with associated audio
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-012** Lock, hide, mute, solo, rename, and reorder tracks
+  - **How to test this feature:** Use at least two audio/video tracks, change each named control and confirm it affects only the intended items. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-013** Snapping to frames, clip edges, markers, words, and music beats
+  - **How to test this feature:** Add different marker types at known times, click them to seek and reload to confirm persistence. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-014** Editable markers, chapter points, and annotations
+  - **How to test this feature:** Add note, chapter and review markers, rename them, save/reload, and click each marker to seek to its exact time. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-015** Adjustable zoom, track height, filmstrips, and waveform density
+  - **How to test this feature:** Use at least two audio/video tracks, change each named control and confirm it affects only the intended items. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-016** Keyboard shuttle playback and frame-step editing
+  - **How to test this feature:** Try one-frame stepping and J/K/L keyboard shuttling with visibly moving video. Both are required for this broad item. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-017** Source in/out markers and source patching
+  - **How to test this feature:** Add different marker types at known times, click them to seek and reload to confirm persistence. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-018** Variable-speed playback, reverse, freeze frames, and speed ramps
+  - **How to test this feature:** Use a visibly moving clip; adjust playback mode and inspect both audio and final frames for correct timing. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-019** Trim dead air without truncating meaningful reactions
+  - **How to test this feature:** Adjust clip boundaries with two neighboring clips and verify the named timing behavior, total duration and source range are correct. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-020** Nested sequences and compound clips
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-021** Adjustment layers and reusable effect stacks
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-022** Real-time or optimized proxy playback where supported
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A proxy is a lightweight editing copy of an original recording.
 - [ ] **EDIT-023** Manual and automatic camera selection on synchronized tracks
+  - **How to test this feature:** Use at least two audio/video tracks, change each named control and confirm it affects only the intended items. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-024** Multi-select, clipboard actions, and robust undo/redo
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-025** Editable keyframes with Bézier/easing graph curves
+  - **How to test this feature:** Set two animation keyframes, change Bézier easing handles and check motion follows the visible speed graph. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Bézier handles control the ease and speed of animation between keyframes.
 - [ ] **EDIT-026** Preview render caching for expensive effects
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EDIT-027** Non-destructive AI adjustments exposed as regular editable controls
+  - **How to test this feature:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Non-destructive means original media is unchanged.
 
 ### 11. Transitions, visual effects, and compositing
 
+> **What this section means / where to start:** Visual treatments and transitions. **Where:** Editor, effects and Settings. **Start with:** two different scenes; inspect before/after *and* final output.
+
+
 - [ ] **FX-001** Clean cuts and standard audio/video crossfades
+  - **How to test this feature:** Apply the effect at a real cut between two different shots, vary its duration, then inspect the actual exported transition. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-002** Fade, dissolve, wipe, push, slide, zoom, spin, and whip-pan transitions
+  - **How to test this feature:** Apply the effect at a real cut between two different shots, vary its duration, then inspect the actual exported transition. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-003** Transition duration, alignment, direction, easing, and intensity controls
+  - **How to test this feature:** Apply the effect at a real cut between two different shots, vary its duration, then inspect the actual exported transition. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-004** Apply transitions without unexpectedly shortening source context
+  - **How to test this feature:** Apply the effect at a real cut between two different shots, vary its duration, then inspect the actual exported transition. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **FX-005** Position, scale, rotation, anchor, crop, skew, and perspective
+  - **How to test this feature:** Apply the named effect to a test clip, change its parameters, play before/after, then export and confirm the rendered effect matches the preview. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-006** Stabilization, horizon correction, and motion blur
+  - **How to test this feature:** Test with intentionally moving footage, compare before/after and inspect the exported result for unwanted distortion. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **FX-007** Speed interpolation and optical-flow slow motion where supported
+  - **How to test this feature:** Export a known high-frame-rate clip slowed down with frame interpolation, then inspect fluidity and any artifacts. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **FX-008** Keyframed pan, zoom, and subject-following camera motion
+  - **How to test this feature:** Apply the effect at a real cut between two different shots, vary its duration, then inspect the actual exported transition. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **FX-009** Brightness, exposure, contrast, highlights, shadows, temperature, and tint
+  - **How to test this feature:** Apply the look to one clip, compare with a second, and verify that the rendered file shows the same intended adjustment. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-010** Saturation, vibrance, curves, hue controls, and color wheels
+  - **How to test this feature:** Apply the look to one clip, compare with a second, and verify that the rendered file shows the same intended adjustment. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-011** Import and apply LUTs with correct color-space handling
+  - **How to test this feature:** Apply the look to one clip, compare with a second, and verify that the rendered file shows the same intended adjustment. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-012** Match grading between cameras and source segments
+  - **How to test this feature:** Apply the named effect to a test clip, change its parameters, play before/after, then export and confirm the rendered effect matches the preview. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-013** Support SDR and validated HDR workflows where engines permit
+  - **How to test this feature:** Load a LUT on one clip, switch it off/on and verify expected color correction; confirm SDR/HDR color handling as appropriate. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** HDR preserves higher brightness/color range when the whole pipeline supports it.
 - [ ] **FX-014** Sharpen, denoise, deflicker, blur, glow, grain, and vignette
+  - **How to test this feature:** Test with intentionally moving footage, compare before/after and inspect the exported result for unwanted distortion. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-015** Stylized VHS, glitch, chromatic aberration, and light leak effects
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-016** Opacity, blend modes, masks, and feathering
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-017** Chroma key and green-screen compositing
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Chroma key replaces a chosen background color.
 - [ ] **FX-018** AI background segmentation and optional replacement
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-019** Object/face tracking for effect attachment
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-020** Picture-in-picture and multi-panel split-screen layouts
+  - **How to test this feature:** Apply the named effect to a test clip, change its parameters, play before/after, then export and confirm the rendered effect matches the preview. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-021** Tracked text overlays and motion graphics
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **FX-022** Editable effect presets, strength, and parameter keyframes
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A keyframe stores an effect value at a specific time.
 - [ ] **FX-023** Optional advanced node-based compositor
+  - **How to test this feature:** Use footage with a moving object or green screen, add the effect and verify accurate placement across several frames. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-024** Warn when an effect cannot be rendered in the selected backend
+  - **How to test this feature:** Select an effect unsupported by the chosen renderer and verify the app warns rather than silently omitting it. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 12. Audio editing, mixing and restoration
 
+> **What this section means / where to start:** Speech, music and effects mixing. **Where:** Editor audio controls. **Start with:** speech plus a music overlay; use headphones.
+
+
 - [ ] **AUD-001** Waveform-based audio clip editing and fades
+  - **How to test this feature:** Build two audio layers with different levels, automate or route them and listen to the final rendered mix. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-002** Independent dialogue, music, effects, ambience, and narration tracks
+  - **How to test this feature:** Put music beneath speech, enable the option and listen at the start/middle/end for clean spoken words and correct music level. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-003** Audio meters and peak-hold monitoring
+  - **How to test this feature:** Measure known audio before/after output and compare the reported loudness or peak against the selected target. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-004** Volume and stereo pan automation with keyframes
+  - **How to test this feature:** Build two audio layers with different levels, automate or route them and listen to the final rendered mix. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A keyframe stores an effect value at a specific time.
 - [ ] **AUD-005** Audio buses, submixes, and configurable channel routing
+  - **How to test this feature:** Play a source with clearly timed sound and image; modify the named control and verify synchronization during preview and export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-006** Noise reduction and voice isolation
+  - **How to test this feature:** Use a noisy or uneven speech recording, switch the processing on/off, and compare clarity, peaks and side effects. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-007** De-echo and reverb reduction where supported
+  - **How to test this feature:** Use a noisy or uneven speech recording, switch the processing on/off, and compare clarity, peaks and side effects. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-008** Equalizer with manual bands and presets
+  - **How to test this feature:** Use a noisy or uneven speech recording, switch the processing on/off, and compare clarity, peaks and side effects. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-009** Compressor, limiter, gate, expander, and de-esser
+  - **How to test this feature:** Use a noisy or uneven speech recording, switch the processing on/off, and compare clarity, peaks and side effects. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-010** Spectral repair of selected audio defects where supported
+  - **How to test this feature:** Use a noisy or uneven speech recording, switch the processing on/off, and compare clarity, peaks and side effects. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-011** Loudness measurement and LUFS normalization
+  - **How to test this feature:** Measure known audio before/after output and compare the reported loudness or peak against the selected target. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** LUFS is a loudness measurement used for consistent sound levels.
 - [ ] **AUD-012** True-peak limiting and clipping warnings
+  - **How to test this feature:** Measure loudness against a known test clip in LUFS; export at a configured target and compare before/after measured levels. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** True peak catches possible audio peaks between sampled values.
 - [ ] **AUD-013** Music auto-ducking with adjustable threshold, attack, and release
+  - **How to test this feature:** Set a true-peak ceiling and render loud audio; inspect output to confirm no peaks exceed the chosen safe limit. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ducking automatically lowers music when speech is present.
 - [ ] **AUD-014** Manual overrides for ducking and music levels
+  - **How to test this feature:** Play music under speech, enable ducking, set attack/release times and confirm music lowers only during dialogue. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ducking automatically lowers music when speech is present.
 - [ ] **AUD-015** Crossfades and room-tone preservation across dialogue cuts
+  - **How to test this feature:** Put music beneath speech, enable the option and listen at the start/middle/end for clean spoken words and correct music level. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-016** Synchronize external audio to video with offset/drift correction
+  - **How to test this feature:** Play a source with clearly timed sound and image; modify the named control and verify synchronization during preview and export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-017** Handle multiple source audio tracks without losing the intended channel
+  - **How to test this feature:** Play a source with clearly timed sound and image; modify the named control and verify synchronization during preview and export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-018** Avoid duplicated or conflicting audio during multicam switches
+  - **How to test this feature:** Adjust the named sound control, listen before and after with headphones, and inspect the downloaded video. Confirm no unrequested source audio is lost. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Multicam/Multi-POV combines recordings of the same real event.
 - [ ] **AUD-019** Detect silence, clipping, truncated words, and unexpected dropouts
+  - **How to test this feature:** Adjust the named sound control, listen before and after with headphones, and inspect the downloaded video. Confirm no unrequested source audio is lost. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-020** Source separation into vocals/music/effects where supported
+  - **How to test this feature:** Put music beneath speech, enable the option and listen at the start/middle/end for clean spoken words and correct music level. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-021** Music beat, phrase, and section markers for edit suggestions
+  - **How to test this feature:** Put music beneath speech, enable the option and listen at the start/middle/end for clean spoken words and correct music level. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-022** Profanity masking and clean-audio alternative export
+  - **How to test this feature:** Adjust the named sound control, listen before and after with headphones, and inspect the downloaded video. Confirm no unrequested source audio is lost. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-023** Mono, stereo, and multichannel output where supported
+  - **How to test this feature:** Play a source with clearly timed sound and image; modify the named control and verify synchronization during preview and export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-024** Preserve original source audio for reversible editing
+  - **How to test this feature:** Adjust the named sound control, listen before and after with headphones, and inspect the downloaded video. Confirm no unrequested source audio is lost. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 13. Narration, dubbing, and voice generation
 
+> **What this section means / where to start:** Mic narration and optional generated speech. **Where:** Editor → Audio and narration. **Start with:** a short script and consented sample.
+
+
 - [ ] **VO-001** Record microphone narration into editable timeline tracks
+  - **How to test this feature:** Record a short phrase, play it back, place it on the timeline and verify the original recording is not overwritten. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-002** Playback and monitor a recorded narration take
+  - **How to test this feature:** Record a short phrase, play it back, place it on the timeline and verify the original recording is not overwritten. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-003** Generate TTS voiceover only through a real working engine
+  - **How to test this feature:** Enter narration text, select a real functioning TTS model and generate an audio file; browser speech preview by itself is not generated editable narration. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-004** Choose voice, language, pitch, rate, pauses, and emphasis
+  - **How to test this feature:** Enter a short script, generate or preview a real voice, adjust a phrase and inspect the audio overlay and final output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-005** Preview voice before committing generated audio to the timeline
+  - **How to test this feature:** Enter a short script, generate or preview a real voice, adjust a phrase and inspect the audio overlay and final output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-006** Replace or regenerate individual narration sentences
+  - **How to test this feature:** Enter a short script, generate or preview a real voice, adjust a phrase and inspect the audio overlay and final output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-007** Preserve completed voice segments if later generation fails
+  - **How to test this feature:** Enter a short script, generate or preview a real voice, adjust a phrase and inspect the audio overlay and final output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-008** Generate scripts based on source content with factual review
+  - **How to test this feature:** Enter a short script, generate or preview a real voice, adjust a phrase and inspect the audio overlay and final output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-009** Align narration timing to scenes and captions
+  - **How to test this feature:** Create or preview the specified narration effect, place it on an editable audio track and listen to the result. If a remote service is required, confirm consent and actual generated audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-010** Use narration to bridge authentic context, not invent events
+  - **How to test this feature:** Create or preview the specified narration effect, place it on an editable audio track and listen to the result. If a remote service is required, confirm consent and actual generated audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-011** Supported translation and dubbing workflows
+  - **How to test this feature:** Create a dubbed/translated segment and compare spoken content, timing and language to the original before approving. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-012** Clearly distinguish synthetic speech from genuine source dialogue
+  - **How to test this feature:** Create or preview the specified narration effect, place it on an editable audio track and listen to the result. If a remote service is required, confirm consent and actual generated audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-013** Require authorization before personal voice cloning
+  - **How to test this feature:** Enter a short script, generate or preview a real voice, adjust a phrase and inspect the audio overlay and final output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Voice cloning uses a permitted reference voice to synthesize matching speech.
 - [ ] **VO-014** Show model load, progress, and generation errors
+  - **How to test this feature:** Create or preview the specified narration effect, place it on an editable audio track and listen to the result. If a remote service is required, confirm consent and actual generated audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **VO-015** Automatic music ducking during narration
+  - **How to test this feature:** Create or preview the specified narration effect, place it on an editable audio track and listen to the result. If a remote service is required, confirm consent and actual generated audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ducking automatically lowers music when speech is present.
 - [ ] **VO-016** Support optional low-latency chunk preview where engine permits
+  - **How to test this feature:** Create or preview the specified narration effect, place it on an editable audio track and listen to the result. If a remote service is required, confirm consent and actual generated audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 14. Captions, subtitles and text-based graphics
 
+> **What this section means / where to start:** Subtitles and editable on-screen text. **Where:** Transcript, captions and Export. **Start with:** known timed subtitles on a short spoken clip.
+
+
 - [ ] **CAP-001** Editable dedicated caption tracks and caption regions
+  - **How to test this feature:** Apply the specified text/caption behavior, check a representative preview frame and then inspect the downloaded video or text file. Text must be readable, accurate and editable where promised. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-002** Auto-generate subtitle segments from verified transcript timing
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-003** Word, phrase, sentence, karaoke, and highlighted-word modes
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-004** Manual caption timing, splitting, merging, and retiming
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-005** Multiple languages and separate caption variants
+  - **How to test this feature:** Apply the specified text/caption behavior, check a representative preview frame and then inspect the downloaded video or text file. Text must be readable, accurate and editable where promised. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-006** Per-speaker caption styles and colors
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-007** Custom fonts, sizes, colors, outlines, shadows, backgrounds, and gradients
+  - **How to test this feature:** Change the named style on a caption, preview it at the beginning/middle/end, then inspect the downloaded video. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-008** Animate captions with editable timing and keyframes
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A keyframe stores an effect value at a specific time.
 - [ ] **CAP-009** Set character, line, and reading-speed limits
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-010** Auto-adjust captions away from faces, HUD, and important objects
+  - **How to test this feature:** Use footage with a face or HUD behind captions and verify legibility and non-obstruction in 9:16 output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-011** Preview platform safe areas and text contrast
+  - **How to test this feature:** Use footage with a face or HUD behind captions and verify legibility and non-obstruction in 9:16 output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-012** Caption proofreading, punctuation, and speaker labels
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-013** Burn captions into final video
+  - **How to test this feature:** Export the same captioned clip with burn-in and with separate subtitle sidecar. Confirm the real video has burned pixels in the first version and usable text in the second. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Burned-in captions are permanently visible in the output pixels.
 - [ ] **CAP-014** Export SRT and VTT, with supported embedded text tracks
+  - **How to test this feature:** Export both the video and subtitle file; ensure timing aligns and the required caption mode is present. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-015** Custom titles, lower thirds, chapter cards, and credits
+  - **How to test this feature:** Add the named graphical object and verify it can be edited, positioned and rendered rather than being a fixed image. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-016** Shapes, arrows, callouts, focus rings, and diagrams
+  - **How to test this feature:** Apply the specified text/caption behavior, check a representative preview frame and then inspect the downloaded video or text file. Text must be readable, accurate and editable where promised. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-017** Logo, watermark, and reusable branding overlay
+  - **How to test this feature:** Add the named graphical object and verify it can be edited, positioned and rendered rather than being a fixed image. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** An overlay is a second visual or audio layer placed over the main edit.
 - [ ] **CAP-018** Animated intros, outros, countdowns, and progress bars
+  - **How to test this feature:** Apply the specified text/caption behavior, check a representative preview frame and then inspect the downloaded video or text file. Text must be readable, accurate and editable where promised. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-019** Motion-track graphics to people or objects
+  - **How to test this feature:** Add the named graphical object and verify it can be edited, positioned and rendered rather than being a fixed image. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **CAP-020** Optional word-level censor sound and subtitle treatment
+  - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-021** Graphic element templates that remain editable
+  - **How to test this feature:** Add the named graphical object and verify it can be edited, positioned and rendered rather than being a fixed image. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 15. Automatic reframing and aspect-ratio adaptation
 
+> **What this section means / where to start:** Moving a crop for vertical video without losing the important action. **Where:** aspect selector and reframing settings. **Start with:** a horizontal shot with a moving subject.
+
+
 - [ ] **CROP-001** Set project and delivery aspect ratios independently
+  - **How to test this feature:** Change aspect ratio to 9:16 or 4:5, preview and export a test video; confirm dimensions and framing. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-002** Support 16:9, 9:16, 1:1, 4:5, ultrawide, and custom sizes
+  - **How to test this feature:** Change aspect ratio to 9:16 or 4:5, preview and export a test video; confirm dimensions and framing. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-003** Detect relevant subjects and points of interest for reframing
+  - **How to test this feature:** Use an obvious moving subject; watch the crop follow it correctly through several different positions. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-004** Track moving subjects across the entire selected shot
+  - **How to test this feature:** Use an obvious moving subject; watch the crop follow it correctly through several different positions. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-005** Switch crop priorities when action changes
+  - **How to test this feature:** Reframe a horizontal video in 9:16 and track two successive moments where the action changes location. The crop must follow the relevant subject. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-006** Keep visible faces, captions, gameplay elements, and important text
+  - **How to test this feature:** Inspect every relevant point in a vertical cut and confirm faces, important text and HUD elements remain inside safe margins. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-007** Allow user-defined safe margins and target positions
+  - **How to test this feature:** Inspect every relevant point in a vertical cut and confirm faces, important text and HUD elements remain inside safe margins. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-008** Use split screen when two important subjects cannot share one crop
+  - **How to test this feature:** Use footage with two people far apart; select split-screen output and verify neither person is silently cropped out. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-009** Keyframe and ease crop motion between positions
+  - **How to test this feature:** Correct the crop at two moments and verify interpolated motion is smooth in preview and export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **CROP-010** Preview source-to-output crop side by side
+  - **How to test this feature:** Preview several points in the shot and export the vertical cut. Important subjects and text must remain in frame, with smooth and manually correctable movement when promised. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-011** Provide manual focus point and tracking correction controls
+  - **How to test this feature:** Use an obvious moving subject; watch the crop follow it correctly through several different positions. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-012** Generate independent reframing variants per output target
+  - **How to test this feature:** Preview several points in the shot and export the vertical cut. Important subjects and text must remain in frame, with smooth and manually correctable movement when promised. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CROP-013** Flag unsatisfactory or untrackable automatic crops
+  - **How to test this feature:** Use an obvious moving subject; watch the crop follow it correctly through several different positions. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 16. Short-form discovery and Content Factory
 
+> **What this section means / where to start:** Many *complete* videos from long footage. **Where:** AI Director candidate board. **Start with:** two real events and irrelevant source material.
+
+
 - [ ] **SHORT-001** Identify comedy, action, learning, insights, interview, podcast, and gaming highlights
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-002** Require setup and payoff when generating story-based clips
+  - **How to test this feature:** Generate from a source with a complete real event and verify setup, action and resolution are visible in the edited candidate. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-003** Allow natural clip length when the complete story requires it
+  - **How to test this feature:** Generate from a source with a complete real event and verify setup, action and resolution are visible in the edited candidate. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-004** Search distant source segments when meaningfully connected
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-005** Preserve contextual reactions and relevant action footage
+  - **How to test this feature:** Generate from a source with a complete real event and verify setup, action and resolution are visible in the edited candidate. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-006** Generate several candidates only when distinct valid stories exist
+  - **How to test this feature:** Provide a recording with exactly two complete events plus unrelated material; ask for five shorts. The tool should avoid inventing three filler stories. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-007** Detect duplicate stories across proposed outputs
+  - **How to test this feature:** Generate several candidates from overlapping footage and verify unnecessary identical stories are flagged. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-008** Minimize needless reuse of identical source ranges
+  - **How to test this feature:** Generate several candidates from overlapping footage and verify unnecessary identical stories are flagged. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **SHORT-009** Rank candidates with evidence and transparent rationale
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-010** Allow manual selection, deletion, and revision of candidates
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-011** Produce editable individual timelines per candidate
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-012** Create long-form compilations of approved stories
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-013** Generate horizontal, vertical, square, and feed variants
+  - **How to test this feature:** Create different 16:9 and 9:16 versions and inspect both captions and cropping in the rendered files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-014** Generate teaser and trailer versions from the same project
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-015** Apply optional brand profiles consistently across variants
+  - **How to test this feature:** Create different 16:9 and 9:16 versions and inspect both captions and cropping in the rendered files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-016** Batch produce captions and language variants
+  - **How to test this feature:** Create different 16:9 and 9:16 versions and inspect both captions and cropping in the rendered files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-017** Create draft titles, descriptions, chapters, hashtags, and thumbnails
+  - **How to test this feature:** Produce actual suggested metadata/graphics and compare claims against the original sources for accuracy. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-018** Offer thumbnail selection and template-based design
+  - **How to test this feature:** Generate several thumbnail choices from real source footage or labeled generated assets and review them before export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-019** Maintain an output inventory showing rendered/not-rendered state
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-020** Flag outputs that use unlicensed or restricted media
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SHORT-021** Optional publication/scheduling integration with explicit authorization
+  - **How to test this feature:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 17. Generative media and responsible AI
 
+> **What this section means / where to start:** Optional computer-generated images, sound or video. **Where:** future generation workspace, if built. **Start with:** non-sensitive, licensed test content.
+
+
 - [ ] **GEN-001** Optional generated B-roll and illustrative visual assets
+  - **How to test this feature:** Use a safe prompt and verify a real asset is generated, downloadable/editable and clearly labeled as synthetic. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-002** Optional AI-assisted images and thumbnails
+  - **How to test this feature:** Use a safe prompt and verify a real asset is generated, downloadable/editable and clearly labeled as synthetic. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-003** Optional generated backgrounds and scene cards
+  - **How to test this feature:** Use a safe prompt and verify a real asset is generated, downloadable/editable and clearly labeled as synthetic. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-004** Optional AI sound effects and music subject to licensing
+  - **How to test this feature:** Use a safe prompt and verify a real asset is generated, downloadable/editable and clearly labeled as synthetic. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-005** Optional shot extension, inpainting, and object removal
+  - **How to test this feature:** Apply the named change to a short disposable clip and confirm visual continuity and original media preservation. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-006** Optional animated diagrams and visualization assets
+  - **How to test this feature:** Use a safe prompt and verify a real asset is generated, downloadable/editable and clearly labeled as synthetic. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-007** Optional AI video/style transformations with realistic capability disclosure
+  - **How to test this feature:** Use a safe prompt and verify a real asset is generated, downloadable/editable and clearly labeled as synthetic. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-008** Label generated content separately from original footage
+  - **How to test this feature:** Create a clearly labeled generated asset; confirm it's distinguishable from original footage in both the media library and project export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-009** Keep source media intact and reversible
+  - **How to test this feature:** Ask for a real generated media asset, inspect the output and whether it is distinguished from originals, then verify it can be reviewed or removed without damaging the source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-010** Never substitute synthetic scenes for real-world evidence without disclosure
+  - **How to test this feature:** Ask for a real generated media asset, inspect the output and whether it is distinguished from originals, then verify it can be reviewed or removed without damaging the source. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **GEN-011** Keep generative costs, limits, and provenance visible
+  - **How to test this feature:** Inspect the generated asset's label, rights/cost disclosure and source attribution before export. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Provenance is the original filename and timestamp behind a shot or claim.
 - [ ] **GEN-012** Require approval before generated material enters evidence-sensitive edits
+  - **How to test this feature:** Use a safe prompt and verify a real asset is generated, downloadable/editable and clearly labeled as synthetic. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 18. Export, encoding, and delivery
 
+> **What this section means / where to start:** Actual final output creation. **Where:** Export. **Start with:** a short edit with captions and audio; open the downloaded file afterward.
+
+
 - [ ] **EXP-001** Browser-compatible preview export for short jobs
+  - **How to test this feature:** Choose an output name, export, inspect the file and reopen project metadata where supported. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-002** Production-quality deterministic rendering through supported native backend
+  - **How to test this feature:** Set a nondefault value, export, and inspect the real resulting file properties rather than the UI dropdown. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-003** Encode MP4/H.264/AAC where supported
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-004** Encode H.265, AV1, VP9, or professional intermediates where available
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-005** Export WebM and supported image/animation formats
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-006** Export audio-only WAV, MP3, FLAC, or supported alternatives
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-007** Export still frames and image sequences
+  - **How to test this feature:** Choose an output name, export, inspect the file and reopen project metadata where supported. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-008** Offer 480p, 720p, 1080p, 1440p, 4K, and custom resolution
+  - **How to test this feature:** Set a nondefault value, export, and inspect the real resulting file properties rather than the UI dropdown. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-009** Offer common and source-matched frame rates including fractional FPS
+  - **How to test this feature:** Set a nondefault value, export, and inspect the real resulting file properties rather than the UI dropdown. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-010** Set CBR/VBR/quality-based bitrate and supported codec options
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A codec is the method used to encode or decode actual audio/video.
 - [ ] **EXP-011** Select SDR/HDR color profile and supported bit depth
+  - **How to test this feature:** Set a nondefault value, export, and inspect the real resulting file properties rather than the UI dropdown. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** HDR preserves higher brightness/color range when the whole pipeline supports it.
 - [ ] **EXP-012** Choose hardware or software encoder, with real capability testing
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-013** Control audio codec, channel layout, bitrate, and sample rate
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A codec is the method used to encode or decode actual audio/video.
 - [ ] **EXP-014** Burn captions, export sidecar captions, or embed supported caption tracks
+  - **How to test this feature:** Render a captioned and mixed-audio sample and confirm exact timing and intended audio/caption track behavior. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Burned-in captions are permanently visible in the output pixels.
 - [ ] **EXP-015** Export full timeline, in/out range, or selected clips
+  - **How to test this feature:** Choose an output name, export, inspect the file and reopen project metadata where supported. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-016** Export batch variants by platform, aspect, language, and quality
+  - **How to test this feature:** Set a nondefault value, export, and inspect the real resulting file properties rather than the UI dropdown. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-017** Preview expected output settings, size estimates, and unsupported features
+  - **How to test this feature:** Set the specified output option, render a real file, open it after download, and inspect its playback, format, timing and settings. A progress bar alone is not proof. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-018** Provide destination naming templates and project metadata
+  - **How to test this feature:** Choose an output name, export, inspect the file and reopen project metadata where supported. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-019** Show frame-based progress, actual errors, and render logs
+  - **How to test this feature:** Render a short video and inspect real frame counts, progress, output logs and error paths instead of relying on a cosmetic percentage. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-020** Allow queueing, cancellation, and resume where backend supports it
+  - **How to test this feature:** Queue multiple outputs, cancel one test and verify truthful status plus preservation of other finished files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-021** Verify output exists, decodes, and has correct duration and streams
+  - **How to test this feature:** Export a file, open it with a media player, and compare actual duration, video/audio tracks, and intended format to your settings. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-022** Inspect final rendered audio sync, captions, black frames, and clipping
+  - **How to test this feature:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-023** Never report export success based solely on progress reaching 100%
+  - **How to test this feature:** Cause a harmless export failure (such as unavailable output codec) and verify the app shows FAILED rather than 'Exported successfully'. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-024** Preserve completed output files if a later batch item fails
+  - **How to test this feature:** Queue multiple outputs, cancel one test and verify truthful status plus preservation of other finished files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-025** Download output with reliable filename and format extension
+  - **How to test this feature:** Choose an output name, export, inspect the file and reopen project metadata where supported. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **EXP-026** Package project and linked source metadata for portable archiving
+  - **How to test this feature:** Choose an output name, export, inspect the file and reopen project metadata where supported. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 19. Reliability, performance and resumability
 
+> **What this section means / where to start:** Avoid losing work during long processing and errors. **Where:** settings, job status, storage, Production Tools. **Start with:** saved backup and safe interrupted test.
+
+
 - [ ] **REL-001** Use bounded streaming reads for multi-hour recordings
+  - **How to test this feature:** Trigger a safe restart, disconnection or selected failure scenario and check what was actually saved, restored and reported. Do not accept a fake completion or silent fallback. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-002** Avoid decoding complete long-form media into JS heap at once
+  - **How to test this feature:** Trigger a safe restart, disconnection or selected failure scenario and check what was actually saved, restored and reported. Do not accept a fake completion or silent fallback. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-003** Chunked transcription, waveform, visual, and export jobs
+  - **How to test this feature:** Trigger a safe restart, disconnection or selected failure scenario and check what was actually saved, restored and reported. Do not accept a fake completion or silent fallback. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-004** Save granular checkpoints after completed processing chunks
+  - **How to test this feature:** Start a long disposable processing job, interrupt it, reopen and verify previously completed chunks and edits remain intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A checkpoint is saved progress that supports resuming later.
 - [ ] **REL-005** Resume safely after browser reload or server restart when persistent backend exists
+  - **How to test this feature:** Interrupt an actual backed-up analysis job, restart the backend and verify the next run resumes from a saved verified checkpoint. Browser-only work may stop when the tab closes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-006** Distinguish resumed processing from continuously running background work
+  - **How to test this feature:** Start a long disposable processing job, interrupt it, reopen and verify previously completed chunks and edits remain intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-007** Keep completed intermediate results after a later-stage error
+  - **How to test this feature:** Trigger a safe restart, disconnection or selected failure scenario and check what was actually saved, restored and reported. Do not accept a fake completion or silent fallback. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-008** Retry only failed intervals with bounded exponential backoff
+  - **How to test this feature:** Test a supported and an unsupported execution backend and verify the error/fallback label matches what actually ran. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-009** Validate each checkpoint and its source/media identity before reuse
+  - **How to test this feature:** Start a long disposable processing job, interrupt it, reopen and verify previously completed chunks and edits remain intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** A checkpoint is saved progress that supports resuming later.
 - [ ] **REL-010** Provide clear queued, running, paused, complete, warning, failed states
+  - **How to test this feature:** Test a supported and an unsupported execution backend and verify the error/fallback label matches what actually ran. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-011** Show actual current processing file, time range, model, and throughput
+  - **How to test this feature:** Test a supported and an unsupported execution backend and verify the error/fallback label matches what actually ran. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-012** Offer ETA only when grounded in observed performance
+  - **How to test this feature:** Observe a real job from start through completion/failure and confirm statuses, percentages, ETA and logs match actual work. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-013** Limit memory, worker count, model concurrency, and cache usage
+  - **How to test this feature:** Use a long source and monitor memory/storage use or cache behavior; the app must warn and retain projects instead of crashing silently. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-014** Detect GPU device loss and recover with supported fallback or clear failure
+  - **How to test this feature:** Force an unsupported GPU model/backend in a disposable test and confirm the failure is reported or a clearly labeled supported fallback is used. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-015** Handle model initialization and unsupported backend errors explicitly
+  - **How to test this feature:** Test a supported and an unsupported execution backend and verify the error/fallback label matches what actually ran. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-016** Never silently replace requested AI behavior with unrelated output
+  - **How to test this feature:** Trigger a safe restart, disconnection or selected failure scenario and check what was actually saved, restored and reported. Do not accept a fake completion or silent fallback. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-017** Detect storage quota and pause before potentially losing work
+  - **How to test this feature:** Use a long source and monitor memory/storage use or cache behavior; the app must warn and retain projects instead of crashing silently. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-018** Cache model downloads and verified analysis across sessions when storage permits
+  - **How to test this feature:** Use a long source and monitor memory/storage use or cache behavior; the app must warn and retain projects instead of crashing silently. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-019** User-controlled cache cleanup without deleting important projects
+  - **How to test this feature:** Delete a disposable cache category, then reopen the project and verify project metadata and approved snapshots remain intact. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-020** Support offline UI and eligible locally cached functionality
+  - **How to test this feature:** Use a long source and monitor memory/storage use or cache behavior; the app must warn and retain projects instead of crashing silently. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-021** Offer logs, diagnostics export, and environment capability report
+  - **How to test this feature:** Observe a real job from start through completion/failure and confirm statuses, percentages, ETA and logs match actual work. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-022** Verify saved projects reopen with correct edits and source references
+  - **How to test this feature:** Save and reopen a small project in a supported offline scenario; confirm what is cached and what is unavailable is accurately stated. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-023** Never fabricate task completion when a worker exits unexpectedly
+  - **How to test this feature:** Use a long source and monitor memory/storage use or cache behavior; the app must warn and retain projects instead of crashing silently. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **REL-024** Keep working manual editor usable while AI services fail
+  - **How to test this feature:** Test a supported and an unsupported execution backend and verify the error/fallback label matches what actually ran. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **REL-025** Prevent run-away batch work and unbounded retries
+  - **How to test this feature:** Trigger a safe restart, disconnection or selected failure scenario and check what was actually saved, restored and reported. Do not accept a fake completion or silent fallback. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 20. Model, compute and cloud provider settings
 
+> **What this section means / where to start:** Prove which model, hardware and provider did the AI work. **Where:** Settings/AI Director. **Start with:** known sample and watch actual model status.
+
+
 - [ ] **MODEL-001** Select local-only, hybrid, or authorized cloud processing per project
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-002** Separate models by ASR, diarization, vision, embeddings, Director, audio, and generation
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Diarization is labeling when each speaker talks.
 - [ ] **MODEL-003** Install/select compatible on-device models when available
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-004** Select CPU, WebGPU, WASM, or remote execution when supported
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** WebGPU is browser access to a supported graphics processor.
 - [ ] **MODEL-005** Expose actual model names, versions, download sizes, and compatibility
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-006** Verify model loads and produces expected output on a test clip
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-007** Offer downloadable or cached local models where practical
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-008** Select processing quality, visual sample rate, chunk sizes, and concurrency
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-009** Configure timeouts, context, inference limits, and retry policy
+  - **How to test this feature:** Set a visible nondefault processing limit, run a short job and verify the configured setting is honored. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-010** Allow bring-your-own-provider API keys with secure handling guidance
+  - **How to test this feature:** Switch between local and cloud modes using test credentials; verify media is not uploaded without explicit permission. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** An API/provider may be an external service, not a local model.
 - [ ] **MODEL-011** Never embed application-owner secret keys in public front-end code
+  - **How to test this feature:** Switch between local and cloud modes using test credentials; verify media is not uploaded without explicit permission. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-012** Require permission before sending media or transcripts to external providers
+  - **How to test this feature:** Switch between local and cloud modes using test credentials; verify media is not uploaded without explicit permission. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-013** Show exact provider/service used for each processing stage
+  - **How to test this feature:** Switch between local and cloud modes using test credentials; verify media is not uploaded without explicit permission. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-014** Estimate external inference costs before starting heavy jobs
+  - **How to test this feature:** Use a small real request to the configured provider and verify what exact media or transcript is sent, and only after granting consent. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-015** Show per-job model usage, tokens where applicable, and cost estimates
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-016** Set per-job and monthly external spending caps
+  - **How to test this feature:** Perform a small measured call and compare provider usage/cost estimates with the app's visible accounting. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-017** Reuse completed model output to avoid paying for duplicate analysis
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-018** Allow model/provider fallback only when disclosed and approved
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-019** Persist nonsecret model preferences across projects
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-020** Provide local model diagnostic and performance benchmarking page
+  - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 21. Privacy, licensing and provenance
 
+> **What this section means / where to start:** Privacy, permissions, originality and licensing. **Where:** AI prompts, storage and project export. **Start with:** disposable media, never private or irreplaceable files.
+
+
 - [ ] **SEC-001** Make cloud media upload opt-in and clearly labeled
+  - **How to test this feature:** Use a disposable file and verify an explicit permission request appears before any external data transfer. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-002** Show which files, frames, audio chunks, or transcripts leave the device
+  - **How to test this feature:** Verify the named privacy restriction using a real consent, export or sharing action. Reject unexpected external uploads or credentials appearing in saved files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-003** Require explicit permission for voice or likeness cloning
+  - **How to test this feature:** Use a disposable file and verify an explicit permission request appears before any external data transfer. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-004** Allow provider credentials to be removed
+  - **How to test this feature:** Export the project and inspect JSON/log files for secrets; credentials must not appear in saved project metadata. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-005** Preserve original file/source attribution and timestamp provenance
+  - **How to test this feature:** Inspect an exported sample and project metadata for appropriate original-source and generated-content labels. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Provenance is the original filename and timestamp behind a shot or claim.
 - [ ] **SEC-006** Indicate when clips, narration, captions, or images are AI-generated
+  - **How to test this feature:** Inspect an exported sample and project metadata for appropriate original-source and generated-content labels. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-007** Warn about misleading real-world event reconstructions
+  - **How to test this feature:** Verify the named privacy restriction using a real consent, export or sharing action. Reject unexpected external uploads or credentials appearing in saved files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-008** Record rights/licensing information for third-party music and assets
+  - **How to test this feature:** Verify the named privacy restriction using a real consent, export or sharing action. Reject unexpected external uploads or credentials appearing in saved files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-009** Avoid bundling unlicensed music or copyrighted media
+  - **How to test this feature:** Inspect an exported sample and project metadata for appropriate original-source and generated-content labels. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-010** Support local project deletion and cache/data cleanup
+  - **How to test this feature:** Delete only disposable project data and confirm selected cached data is removed without harming other projects. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-011** Provide optional accountless local workflows
+  - **How to test this feature:** Verify the named privacy restriction using a real consent, export or sharing action. Reject unexpected external uploads or credentials appearing in saved files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-012** Validate imported files and disallow unsafe path traversal in bundles
+  - **How to test this feature:** Verify the named privacy restriction using a real consent, export or sharing action. Reject unexpected external uploads or credentials appearing in saved files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-013** Avoid exposing API tokens in logs or exported project files
+  - **How to test this feature:** Export project metadata and logs, and confirm full API credentials are not present. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** An API/provider may be an external service, not a local model.
 - [ ] **SEC-014** Explain browser storage limitations and data-loss risks
+  - **How to test this feature:** Delete only disposable project data and confirm selected cached data is removed without harming other projects. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-015** Require explicit authorization for publishing or externally sharing projects
+  - **How to test this feature:** Verify the named privacy restriction using a real consent, export or sharing action. Reject unexpected external uploads or credentials appearing in saved files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-016** Support per-project disclosure and authenticity metadata
+  - **How to test this feature:** Verify the named privacy restriction using a real consent, export or sharing action. Reject unexpected external uploads or credentials appearing in saved files. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 22. Test coverage, validation and quality gates
 
+> **What this section means / where to start:** Regression test evidence, not a promise of finished functionality. **Where:** GitHub Actions and tests/. **Start with:** inspect a test file and its most recent successful run.
+
+
 - [ ] **TEST-001** Test basic import/playback/trim/export without any AI service
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-002** Test two-hour and three-hour video sources without unbounded memory growth
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-003** Test simultaneous large sources and independent audio tracks
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-004** Test variable-frame-rate time mapping and A/V synchronization
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-005** Test transcription includes recording start and end
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-006** Test gaps, low-volume segments, and overlapping speaker recognition
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-007** Test source SRT relinking preserves correct timestamps
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-008** Test true multi-POV overlap alignment and drift correction
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Multicam/Multi-POV combines recordings of the same real event.
 - [ ] **TEST-009** Test event matching rejects unrelated camera footage
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-010** Test story assembly contains the actual action and relevant reaction
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-011** Test candidate count cannot force filler or duplicate stories
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-012** Test selected creative brief materially changes the edited result
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-013** Test manual cuts survive later AI Director operations
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-014** Test effects, subtitles, and audio export match preview
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-015** Test browser refresh recovers saved timeline and progress
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-016** Test GPU/model/provider failure preserves existing work
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-017** Test media source moved/relinked and resumed without corruption
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-018** Test cloud API failure reports error and does not fake success
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** An API/provider may be an external service, not a local model.
 - [ ] **TEST-019** Test empty/no-match analysis yields truthful no-results state
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-020** Test export validity after cancellation, retries, and batch partial failure
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-021** Test final output audio/video is playable and duration is accurate
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-022** Test keyboard accessibility and smaller screen layout
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-023** Test different output ratios keep faces, HUD, and text in frame
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-024** Test no checked acceptance item can be added without owner's explicit approval
+  - **How to test this feature:** Inspect tests or permissions showing that a CI bot or coding agent never checks master acceptance boxes without explicit owner approval. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **TEST-025** Test regression cases for all previously reported broken features
+  - **How to test this feature:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### 23. Longer-term pro additions
 
+> **What this section means / where to start:** Long-term optional professional features. **Where:** only when an implementation exists. **Start with:** leave unchecked until a real UI and processor are delivered.
+
+
 - [ ] **FUT-001** Optional desktop Windows/macOS/Linux companion
+  - **How to test this feature:** Install and launch a real desktop app on its supported operating system; test a project import/export and compare its editing output with the browser version. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-002** Optional persistent GPU worker service for heavy video analysis
+  - **How to test this feature:** Use a configured real GPU worker with a known sample and verify jobs, checkpointing, cost, and final output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-003** Real-time screen, microphone, and webcam capture
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-004** OBS or supported live capture integration
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-005** Multichannel/surround audio mixing and monitoring
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-006** Professional HDR finishing and color-managed mastering
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** HDR preserves higher brightness/color range when the whole pipeline supports it.
 - [ ] **FUT-007** Advanced rotoscoping and tracking tools
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Rotoscoping traces objects or people to separate visual layers.
 - [ ] **FUT-008** Collaborative real-time editing and reviewer permissions
+  - **How to test this feature:** Use a second test account/device and verify edits, permissions and conflicts behave correctly. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-009** Cloud library and cross-device synchronization when authorized
+  - **How to test this feature:** Use a second test account/device and verify edits, permissions and conflicts behave correctly. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-010** Native effects/transitions/AI-model plugin extension API
+  - **How to test this feature:** Install a safe extension or template, verify it appears in the editor and can be removed without project corruption. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** An API/provider may be an external service, not a local model.
 - [ ] **FUT-011** User-manageable template and asset marketplace or library
+  - **How to test this feature:** Install a safe extension or template, verify it appears in the editor and can be removed without project corruption. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-012** Professional motion tracking and 3D compositing tools
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** These are professional editable-timeline interchange formats.
 - [ ] **FUT-013** Immersive/360 video editing where supported
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-014** Automated but explicitly authorized publishing and scheduling
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FUT-015** Advanced project analytics based on actual export/feedback data
+  - **How to test this feature:** Only test once the named real capability has a functioning UI/backend. Demonstrate its end-to-end result on real input; leave unchecked if it is not built. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 
 ### Open problems / re-review log
 
