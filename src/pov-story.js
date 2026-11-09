@@ -177,7 +177,7 @@ export function composePovStory(events,sync,group,limits,options={}){
   const tags=new Set(group.events.flatMap(e=>e.tags||[]));
   if(![...tags].some(t=>ACTION_TAGS.has(t))&&pairs.length<3)return null;
   if(rescueRequested(options.storyEditorialDirection)&&!hasRescueSequence(group.events))return null;
-  const maxCuts=clamp(options.storyMaxCuts??7,3,9);
+  const maxCuts=clamp(options.storyMaxCuts??48,3,64);
   const moments=pickMoments(storyMoments(group),maxCuts,pairs);
   if(moments.length<3||moments.at(-1).time-moments[0].time<9)return null;
   let beats=[];
@@ -209,8 +209,10 @@ export function composePovStory(events,sync,group,limits,options={}){
       role:'Same fight · other POV',evidence:'paired audio + frame motion'};
   }
   if(new Set(beats.map(b=>b.assetId)).size!==2)return null;
-  const minSeconds=clamp(options.storyMinSeconds??options.clipMin??20,12,150);
-  const maxSeconds=clamp(options.storyMaxSeconds??options.clipMax??75,minSeconds+3,210);
+  const requestedMin=Number(options.storyMinSeconds??options.clipMin);
+  const requestedMax=Number(options.storyMaxSeconds??options.clipMax);
+  const minSeconds=requestedMin>0?requestedMin:0;
+  const maxSeconds=requestedMax>0?Math.max(minSeconds+3,requestedMax):Infinity;
   const length=()=>beats.reduce((sum,b)=>sum+b.end-b.start,0);
   while(beats.length>3&&length()>maxSeconds){
     const interior=beats.slice(1,-1);
