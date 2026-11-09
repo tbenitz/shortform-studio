@@ -23,7 +23,7 @@ function asMoment(asset,turns,why,points){
  return {id:'humor:'+asset.id+':'+Math.round(turns[0].start*10)+'-'+Math.round(turns.at(-1).end*10),assetId:asset.id,start:Number(start.toFixed(3)),end:Number(end.toFixed(3)),dialogue:turns.map(t=>(t.speaker&&t.speaker!=='Speaker 1'?t.speaker+': ':'')+t.text).join('\n'),score:points,reason:why,selected:false,source:'transcript'};
 }
 /** Local heuristic discovery is a candidate finder, NOT proof of humor. */
-export function findLocalHumor(words,assets,{minScore=50,maxResults=200}={}){
+export function findLocalHumor(words,assets,{minScore=45,maxResults=200}={}){
  const found=[];
  for(const asset of assets||[]){
   const turns=transcriptTurns(words,asset.id);
