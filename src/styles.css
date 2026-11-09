@@ -84,3 +84,11 @@
 .story-card details .metric{align-items:center}
 .story-card .humor-dialogue{font-size:12px;margin:4px 0 10px}
 @media(max-width:590px){.humor-choices{grid-template-columns:1fr}.humor-choices button{min-height:60px;padding:12px}}
+
+/* Click-and-drag crop from actual displayed video frame. */
+.crop-selection-box{position:absolute;z-index:60;border:2px solid #71f5d5;background:rgba(67,225,185,.16);box-shadow:0 0 0 1px #091f25,0 0 16px #0ce6c783;pointer-events:none;border-radius:3px}
+.crop-selection-box[hidden],.crop-draw-hint[hidden]{display:none!important}
+.crop-draw-hint{position:absolute;z-index:61;left:50%;top:12px;transform:translateX(-50%);pointer-events:none;background:rgba(5,15,25,.94);border:1px solid #5bcbb1;color:#e9fff9;border-radius:8px;padding:9px 13px;text-align:center;font-weight:600;max-width:94%;width:max-content;box-shadow:0 5px 18px #0009}
+.preview-stage.is-drawing-crop #previewCanvas{cursor:crosshair!important;touch-action:none;user-select:none}
+#drawCropButton[aria-pressed="true"]{background:#245f58;border-color:#79f8d6;color:#fff}
+@media(max-width:640px){.crop-draw-hint{font-size:11px;padding:7px}}
