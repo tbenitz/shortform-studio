@@ -592,7 +592,7 @@ The master feature list is a **roadmap, not a ready-to-use menu**. For each item
 - [ ] **ASR-010** Detect untranscribed opening, ending, and internal gaps
   - **How to test this feature:** Use speech near the very start, around a gap and near the end. The coverage display must flag any omitted speech intervals. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-011** Show speech-coverage map including silence and uncertainty
-  - **How to test this feature:** After an incomplete transcription, use Retry ALL gaps. Confirm the missing section is restored without deleting correct words elsewhere. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
+  - **How to test this feature:** After transcribing a file with speech, silence and an uncertain interval, open the speech-coverage display. Confirm the full original duration is represented and the silence/uncertain/skipped intervals can be distinguished. Retrying gaps is a separate requirement. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-012** Retry all failed or suspicious gaps without restarting completed work
   - **How to test this feature:** Use a recording with speech before and after silence; check coverage and retry deliberately missing windows without replacing correct words. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **ASR-013** Save incremental transcription checkpoints across sessions
@@ -926,7 +926,7 @@ The master feature list is a **roadmap, not a ready-to-use menu**. For each item
 - [ ] **FX-012** Match grading between cameras and source segments
   - **How to test this feature:** Apply the named effect to a test clip, change its parameters, play before/after, then export and confirm the rendered effect matches the preview. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-013** Support SDR and validated HDR workflows where engines permit
-  - **How to test this feature:** Load a LUT on one clip, switch it off/on and verify expected color correction; confirm SDR/HDR color handling as appropriate. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** HDR preserves higher brightness/color range when the whole pipeline supports it.
+  - **How to test this feature:** Import known SDR footage and, if supported, an HDR sample. Select the relevant color workflow and export. Compare actual output color metadata and highlights: HDR must be preserved or intentionally tone-mapped rather than silently mislabeled. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** HDR preserves higher brightness/color range when the whole pipeline supports it.
 - [ ] **FX-014** Sharpen, denoise, deflicker, blur, glow, grain, and vignette
   - **How to test this feature:** Test with intentionally moving footage, compare before/after and inspect the exported result for unwanted distortion. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **FX-015** Stylized VHS, glitch, chromatic aberration, and light leak effects
@@ -978,11 +978,11 @@ The master feature list is a **roadmap, not a ready-to-use menu**. For each item
 - [ ] **AUD-011** Loudness measurement and LUFS normalization
   - **How to test this feature:** Measure known audio before/after output and compare the reported loudness or peak against the selected target. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** LUFS is a loudness measurement used for consistent sound levels.
 - [ ] **AUD-012** True-peak limiting and clipping warnings
-  - **How to test this feature:** Measure loudness against a known test clip in LUFS; export at a configured target and compare before/after measured levels. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** True peak catches possible audio peaks between sampled values.
+  - **How to test this feature:** Use a deliberately loud disposable audio sample. Set the true-peak ceiling, render, and inspect peak measurement/warnings. The final output should respect the configured ceiling and report clipping instead of silently distorting. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** True peak catches possible audio peaks between sampled values.
 - [ ] **AUD-013** Music auto-ducking with adjustable threshold, attack, and release
-  - **How to test this feature:** Set a true-peak ceiling and render loud audio; inspect output to confirm no peaks exceed the chosen safe limit. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ducking automatically lowers music when speech is present.
+  - **How to test this feature:** Place music under intermittent dialogue, enable auto-ducking, and adjust threshold, attack and release. Listen to verify music lowers during speech and rises smoothly between speech sections. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ducking automatically lowers music when speech is present.
 - [ ] **AUD-014** Manual overrides for ducking and music levels
-  - **How to test this feature:** Play music under speech, enable ducking, set attack/release times and confirm music lowers only during dialogue. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ducking automatically lowers music when speech is present.
+  - **How to test this feature:** Play music under dialogue. Override the automatic ducking amount in a chosen interval and manually adjust music volume. Verify the app respects your override in preview and exported audio. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Ducking automatically lowers music when speech is present.
 - [ ] **AUD-015** Crossfades and room-tone preservation across dialogue cuts
   - **How to test this feature:** Put music beneath speech, enable the option and listen at the start/middle/end for clean spoken words and correct music level. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **AUD-016** Synchronize external audio to video with offset/drift correction
@@ -1072,7 +1072,7 @@ The master feature list is a **roadmap, not a ready-to-use menu**. For each item
 - [ ] **CAP-012** Caption proofreading, punctuation, and speaker labels
   - **How to test this feature:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-013** Burn captions into final video
-  - **How to test this feature:** Export the same captioned clip with burn-in and with separate subtitle sidecar. Confirm the real video has burned pixels in the first version and usable text in the second. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Burned-in captions are permanently visible in the output pixels.
+  - **How to test this feature:** Render a short captioned video with burn-in enabled. Open the finished video outside the editor and verify captions are permanently visible at the correct times; separate subtitle-file export is a different checklist item. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Burned-in captions are permanently visible in the output pixels.
 - [ ] **CAP-014** Export SRT and VTT, with supported embedded text tracks
   - **How to test this feature:** Export both the video and subtitle file; ensure timing aligns and the required caption mode is present. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **CAP-015** Custom titles, lower thirds, chapter cards, and credits
@@ -1346,7 +1346,7 @@ The master feature list is a **roadmap, not a ready-to-use menu**. For each item
 - [ ] **MODEL-013** Show exact provider/service used for each processing stage
   - **How to test this feature:** Switch between local and cloud modes using test credentials; verify media is not uploaded without explicit permission. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-014** Estimate external inference costs before starting heavy jobs
-  - **How to test this feature:** Use a small real request to the configured provider and verify what exact media or transcript is sent, and only after granting consent. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
+  - **How to test this feature:** Before a costly external AI job, inspect its provider-specific cost estimate and approval threshold. Run a small real job, compare displayed usage to the actual provider result where available, and ensure no costly work silently starts. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-015** Show per-job model usage, tokens where applicable, and cost estimates
   - **How to test this feature:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **MODEL-016** Set per-job and monthly external spending caps
@@ -1372,7 +1372,7 @@ The master feature list is a **roadmap, not a ready-to-use menu**. For each item
 - [ ] **SEC-003** Require explicit permission for voice or likeness cloning
   - **How to test this feature:** Use a disposable file and verify an explicit permission request appears before any external data transfer. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-004** Allow provider credentials to be removed
-  - **How to test this feature:** Export the project and inspect JSON/log files for secrets; credentials must not appear in saved project metadata. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
+  - **How to test this feature:** Enter a disposable provider API key, use the actual Forget/Remove control, refresh, and verify the key is no longer present or used. Saving a project JSON without a key is not enough. **Pass only if** the entire requirement works; if the option is missing, leave unchecked.
 - [ ] **SEC-005** Preserve original file/source attribution and timestamp provenance
   - **How to test this feature:** Inspect an exported sample and project metadata for appropriate original-source and generated-content labels. **Pass only if** the entire requirement works; if the option is missing, leave unchecked. **Term:** Provenance is the original filename and timestamp behind a shot or claim.
 - [ ] **SEC-006** Indicate when clips, narration, captions, or images are AI-generated
