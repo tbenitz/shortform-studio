@@ -50,6 +50,18 @@ export function focusAt(frames=[],sourceTime,fallback=.5){
   const f=before===after?0:clamp((sourceTime-before.time)/(after.time-before.time),0,1);
   return {x:before.x+(after.x-before.x)*f,y:before.y+(after.y-before.y)*f,faces:Math.round(before.faces+(after.faces-before.faces)*f)};
 }
+/** Return a chosen face by visible horizontal position, not a guessed speaker identity.
+ * index=0 means leftmost, 1 second from the left, -1 largest tracked face.
+ * Very distant samples are rejected so missing faces don't jump across the video.
+ */
+export function focusAtFace(frames=[],sourceTime,index=0){
+ if(index===-1)return frames.length?focusAt(frames,sourceTime):null;
+ const candidate=frames.filter(f=>Array.isArray(f.boxes)&&f.boxes.length>index)
+  .reduce((best,f)=>!best||Math.abs(f.time-sourceTime)<Math.abs(best.time-sourceTime)?f:best,null);
+ if(!candidate||Math.abs(candidate.time-sourceTime)>6)return null;
+ const box=candidate.boxes[index];
+ return box?{x:clamp(box.x,0,1),y:clamp(box.y,0,1),faces:candidate.faces}:null;
+}
 /** Reject videos that have metadata but no decoded image geometry. A NaN canvas
  * height is coerced to zero by the DOM, causing MediaPipe's internal ROI failure. */
 export function faceFrameSize(video,maxEdge=480){
@@ -150,7 +162,8 @@ export async function scanFaces(file,{step=2,maxSamples=300,signal,onProgress=()
    if(boxes.length){
     const b=boxes[0];last={x:clamp((b.originX+b.width/2)/width,0,1),y:clamp((b.originY+b.height/2)/height,0,1)};
    }
-   frames.push({time:+t.toFixed(2),x:+last.x.toFixed(4),y:+last.y.toFixed(4),faces:boxes.length});
+   frames.push({time:+t.toFixed(2),x:+last.x.toFixed(4),y:+last.y.toFixed(4),faces:boxes.length,
+    boxes:boxes.slice(0,8).map(b=>({x:+clamp((b.originX+b.width/2)/width,0,1).toFixed(4),y:+clamp((b.originY+b.height/2)/height,0,1).toFixed(4),area:+(b.width*b.height/(width*height)).toFixed(4)})).sort((a,b)=>a.x-b.x)});
    onProgress(Math.min(1,(t+interval)/duration),'Scanning frame '+frames.length+' · '+boxes.length+' face(s)'+(failures?' · '+failures+' skipped':''));
   }
   if(!frames.length)throw Error('No decoded video frames were available to scan');
