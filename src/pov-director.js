@@ -80,7 +80,7 @@ export function buildMultiPovHighlights(words,assets,tracks,sync,settings={},onP
   }else{active.end=Math.max(active.end,e.globalEnd);active.events.push(e)}
  }
  if(active)clusters.push(active);
- const min=clamp(settings.clipMin??20,10,120),max=clamp(settings.clipMax??75,min+1,150),raw=[];
+ const min=Number(settings.clipMin)>0?clamp(settings.clipMin,1,21600):0,max=Number(settings.clipMax)>0?Math.max(min+1,Number(settings.clipMax)):Infinity,raw=[];
  for(const cluster of clusters){
   const peak=cluster.events.slice().sort((a,b)=>(b.score||0)-(a.score||0))[0]||cluster.events[0];
   let start=Math.max(valid.commonStart,cluster.start-8),end=Math.min(valid.commonEnd,cluster.end+10);
