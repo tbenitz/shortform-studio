@@ -1,0 +1,40 @@
+name: Check in pinned MP4 encoder for branch-hosted GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vendor-mp4.yml'
+      - 'tools/vendor_mediabunny.mjs'
+      - 'package.json'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor-mp4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact project package versions
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Generate same-origin MP4 encoder bundle
+        run: |
+          npm run vendor:audio
+          test -s vendor/mediabunny/mediabunny.mjs
+          test "$(wc -c < vendor/mediabunny/mediabunny.mjs)" -gt 10000
+      - name: Check in actual packaged encoder, not only build it in CI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f vendor/mediabunny/mediabunny.mjs
+          if git diff --cached --quiet; then
+            echo "MP4 encoder bundle already exists and is current."
+          else
+            git commit -m "build: commit pinned same-origin Mediabunny MP4 encoder for GitHub Pages"
+            git push origin HEAD:main
+          fi
