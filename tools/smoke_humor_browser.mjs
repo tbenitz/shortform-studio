@@ -39,6 +39,10 @@ try{
  if(!/No way|hilarious/i.test(dialogue)||/Local wording|score \d+|source-\d+\.\d+/i.test(dialogue))throw Error('Raw export contains invented captions or meta commentary: '+dialogue);
  await page.locator('#humorBuild').click();
  await page.waitForFunction(()=>document.querySelector('[data-tab="editor"].active')&&document.querySelectorAll('#videoTrack [data-seg]').length>=1,null,{timeout:6000});
+ await page.waitForFunction(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  return p?.segments?.length===1&&p?.segments?.[0]?.end-p?.segments?.[0]?.start<11&&p?.compilationOrder?.length===1;
+ },null,{timeout:12000});
  const result=await page.evaluate(async()=>{
   const data=await (await import('./src/storage.js')).loadProject();
   return {humorCount:data.humorMoments?.length,selected:data.compilationOrder?.length,
