@@ -6,7 +6,7 @@ await stat('_site/humor-test.webm');
 const server=spawn('python3',['-m','http.server','8798','--directory','_site'],{stdio:'ignore'});
 let browser;
 try{
- browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+ browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage({acceptDownloads:true}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  page.on('dialog',d=>d.accept());
