@@ -1069,6 +1069,48 @@ async function reconnectMissingFiles(){
 }
 
 function openJSON(file){file.text().then(text=>{try{const newp=validateProject(JSON.parse(text));engine.pause();history=[];future=[];assets.forEach(a=>a.url&&URL.revokeObjectURL(a.url));assets.clear();p=newp;sessionActive=true;draw();showMissingMedia();toast('Project loaded. Import original media to relink by filename and file size.')}catch(e){toast(`Could not open project: ${e.message}`,true)}})}
+function bindPreviewAndCropControls(){
+ const stage=$('previewStage'),canvas=$('previewCanvas'),dialog=$('humorPreviewDialog'),source=$('humorPreviewVideo');
+ const toggle=async(element)=>{
+  try{if(document.fullscreenElement)await document.exitFullscreen();else if(element?.requestFullscreen)await element.requestFullscreen();else toast('Fullscreen is not available in this browser.',true)}
+  catch(e){toast('Fullscreen failed: '+e.message,true)}
+ };
+ $('fullscreenPreview').onclick=()=>toggle(stage);
+ $('exitFullscreenPreview').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(e=>toast('Exit fullscreen: '+e.message,true))};
+ $('humorPreviewFullscreen').onclick=()=>toggle(source);
+ $('humorPreviewClose').onclick=()=>dialog.close();
+ dialog.addEventListener('close',()=>{
+  source.pause();source.removeAttribute('src');source.load();source.ontimeupdate=null;source.onloadedmetadata=null;
+ });
+ document.addEventListener('fullscreenchange',()=>{
+  $('exitFullscreenPreview').hidden=document.fullscreenElement!==stage;
+  $('fullscreenPreview').setAttribute('aria-pressed',String(document.fullscreenElement===stage));
+ });
+ canvas.onclick=e=>{
+  if(!cropPickActive)return;
+  cropPickActive=false;canvas.style.cursor='';
+  const seg=p.segments.find(s=>s.id===p.selectedSegment),v=engine.video;
+  if(!seg||!v?.videoWidth||!v?.videoHeight||engine.loadedAsset!==seg.assetId)
+   return toast('Select and seek to the original clip, and let its frame load before picking a face.',true);
+  const rect=canvas.getBoundingClientRect();
+  const px=clamp((e.clientX-rect.left)/Math.max(1,rect.width),0,1)*canvas.width;
+  const py=clamp((e.clientY-rect.top)/Math.max(1,rect.height),0,1)*canvas.height;
+  const current=segmentAt(p,engine.time),fraction=current?.seg?.id===seg.id?current.local/Math.max(.1,seg.end-seg.start):0;
+  const targetZoom=(Number(seg.zoom)||1)*(1-fraction)+(Number(seg.zoomEnd??seg.zoom)||1)*fraction;
+  const zoom=clamp(targetZoom*(Number(p.settings.zoom)||1),.5,5);
+  const sw=v.videoWidth,sh=v.videoHeight,scale=Math.max(canvas.width/sw,canvas.height/sh)*zoom;
+  const dw=sw*scale,dh=sh*scale;
+  const baseX=(seg.focusX??.5)*(1-fraction)+(seg.focusEndX??seg.focusX??.5)*fraction;
+  const baseY=(seg.focusY??.5)*(1-fraction)+(seg.focusEndY??seg.focusY??.5)*fraction;
+  const dx=clamp(canvas.width/2-baseX*dw,canvas.width-dw,0);
+  const dy=clamp(canvas.height/2-baseY*dh,canvas.height-dh,0);
+  const x=clamp((px-dx)/dw,0,1),y=clamp((py-dy)/dh,0,1);
+  commit('Clicked desired speaker in preview');
+  seg.cropMode='manual';seg.focusX=seg.focusEndX=x;seg.focusY=seg.focusEndY=y;
+  seg.zoom=seg.zoomEnd=Math.max(1.65,Number(seg.zoom)||1);
+  update();toast('Framing centered on selected visible position; adjust Zoom / focus in Editor.');
+ };
+}
 function bind(){all('.tab').forEach(b=>b.onclick=()=>chooseTab(b.dataset.tab));$('loadLastProject').onclick=loadLastProject;$('reconnectSavedMedia').onclick=reconnectMissingFiles;$('importRememberFiles').onclick=importRememberedFiles;$('favoriteSourcesFilter').onclick=()=>{sourceFavoritesOnly=!sourceFavoritesOnly;renderAssets()};$('projectName').onchange=e=>{commit();p.name=e.target.value||'Untitled Project';setStatus('Renamed')};$('newProject').onclick=()=>{if(!confirm('Create a new project? Save/export your current project first.'))return;engine.pause();clearTimeout(saving);sessionActive=false;history=[];future=[];p=newProject();assets.forEach(a=>a.url&&URL.revokeObjectURL(a.url));assets.clear();savedHandles.clear();sourceFavoritesOnly=false;directorFavoritesOnly=false;draw();refreshLastProjectButton();showMissingMedia();toast('Started a new project. Your last saved project remains available through Load Last Project.')};$('saveProject').onclick=()=>save();$('exportProject').onclick=()=>download(JSON.stringify({...p,assets:p.assets.map(({file,url,...rest})=>rest)},null,2),`${p.name}-project.json`,'application/json');$('loadProject').onchange=e=>e.target.files[0]&&openJSON(e.target.files[0]);$('goExport').onclick=()=>chooseTab('export');$('fileUpload').onchange=e=>{importFiles(e.target.files);e.target.value=''};$('relinkFromPreview').onclick=()=>{$('relinkSourceUpload').value='';$('relinkSourceUpload').click()};$('relinkSourceUpload').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;const sourceId=segmentAt(p,engine.time)?.seg?.assetId||p.selectedAsset;try{await relinkSourceFile(sourceId,file)}catch(error){toast('Relink failed: '+error.message,true)}};$('dropzone').onclick=()=>$('fileUpload').click();$('dropzone').onkeydown=e=>{if(e.key==='Enter')$('fileUpload').click()};for(const e of ['dragover','dragenter'])$('dropzone').addEventListener(e,x=>{x.preventDefault();$('dropzone').classList.add('dragover')});$('dropzone').ondragleave=()=>$('dropzone').classList.remove('dragover');$('dropzone').ondrop=e=>{e.preventDefault();$('dropzone').classList.remove('dragover');importFiles(e.dataTransfer.files)};$('addSelection').onclick=()=>{try{const a=asset(p.selectedAsset);if(!a)throw Error('Choose a source first');const seg=selectedSourceCut(a,$('sourceIn').value,$('sourceOut').value);commit();seg.transition=p.settings.transition;p.segments.push(seg);p.selectedSegment=seg.id;update();toast(`Added ${fmt(seg.end-seg.start)} from ${a.name}`)}catch(e){toast(e.message,true)}};$('addEntireSource').onclick=()=>{try{const a=asset(p.selectedAsset);const seg=entireSourceCut(a);commit();p.segments.push(seg);p.selectedSegment=seg.id;update();toast(`Added the complete ${fmt(seg.end)} source to the timeline`)}catch(e){toast(e.message,true)}};$('aspectSelect').onchange=e=>{commit();p.settings.aspect=e.target.value;engine.setSize();update()};$('toggleCaptions').onclick=()=>{commit();p.settings.captionOn=!p.settings.captionOn;update()};$('playButton').onclick=async()=>{await engine.play();engine.onTick(engine.time)};$('skipBack').onclick=()=>engine.seek(engine.time-5);$('skipForward').onclick=()=>engine.seek(engine.time+5);$('stepBackFrame').onclick=()=>engine.seek(engine.time-1/Math.max(1,Number(p.settings.fps)||30));$('stepForwardFrame').onclick=()=>engine.seek(engine.time+1/Math.max(1,Number(p.settings.fps)||30));$('playhead').oninput=e=>engine.seek(Number(e.target.value));$('mutePreview').onclick=()=>{engine.previewMuted=!engine.previewMuted;engine.syncAudio();engine.updateAudioUi(true)};
  $('previewVolume').oninput=e=>{engine.previewMuted=false;p.settings.videoVolume=Number(e.target.value)/100;engine.syncAudio();engine.updateAudioUi(true);setStatus('Preview volume updated')};
  $('restoreAudio').onclick=async()=>{
@@ -1080,4 +1122,4 @@ function bind(){all('.tab').forEach(b=>b.onclick=()=>chooseTab(b.dataset.tab));$
      toast('Unmuted the preview and restored the current clip/game audio to 100%. Try Play.');
    }catch(e){toast('Restore sound: '+e.message,true)}
  };$('undoBtn').onclick=undo;$('redoBtn').onclick=redo;$('splitBtn').onclick=splitSelected;$('deleteBtn').onclick=removeSelected;$('fitBtn').onclick=()=>{timelinePixelsPerSecond=null;renderTimeline();toast('Fit full edit to timeline')};$('zoomInBtn').onclick=()=>{timelinePixelsPerSecond=Math.min(40,(timelinePixelsPerSecond||($('timelineScroller').clientWidth/Math.max(1,duration(p))))*2);renderTimeline()};$('zoomOutBtn').onclick=()=>{timelinePixelsPerSecond=Math.max(.05,(timelinePixelsPerSecond||($('timelineScroller').clientWidth/Math.max(1,duration(p))))/2);renderTimeline()};window.addEventListener('keydown',e=>{const focus=/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'');if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();save();return}if(focus)return;if(e.key===' '){e.preventDefault();engine.play()}else if(e.key==='ArrowLeft'){e.preventDefault();engine.seek(engine.time-5)}else if(e.key==='ArrowRight'){e.preventDefault();engine.seek(engine.time+5)}else if(e.key==='Delete'||e.key==='Backspace')removeSelected();else if(e.ctrlKey&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo()}});window.addEventListener('beforeunload',()=>{clearTimeout(saving)})}
-bind();restore();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});
+bind();bindPreviewAndCropControls();restore();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});
