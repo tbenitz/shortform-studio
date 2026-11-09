@@ -1,5 +1,6 @@
 import {makeSegment} from './model.js';
 import {fetchAIWithRetry} from './director.js';
+import {storyTopicWords} from './humor-stories.js';
 const FUNNY=/\b(laugh(?:ing|ed|s)?|hahaha?|hehe|lol|lmao|rofl|jok(?:e|es|ing)|funny|hilarious|ridiculous|roast|prank|troll|sarcasm|clown|bro what|no way|are you serious|you'?re kidding|you got me|oh my god|wtf|what the hell|imagine that|ain'?t no way|i can'?t believe|that'?s crazy|gotcha|shut up)\b/gi;
 const BANTER=/\b(bro|dude|buddy|mate|guys|you|your|we|us|everyone|who|why|what|really|seriously|no|yes|wait|how)\b/gi;
 const DRY=/\b(megabyte|gigabyte|installation|documentation|configuration|debugging|technical|tutorial|instructions|requirement|version|step one|typically|algorithm|parameter|procedure|settings|api key|server endpoint)\b/gi;
@@ -31,8 +32,28 @@ export function findLocalHumor(words,assets,{minScore=45,maxResults=200}={}){
    const anchor=score([turns[i]]);
    if(!anchor.hits&&!(anchor.points>=55&&/[!?]/.test(turns[i].text)))continue;
    let l=i,r=i;
-   while(l>0&&i-l<3&&turns[l].start-turns[l-1].end<=4&&turns[i].end-turns[l-1].start<40&&(score([turns[l-1]]).dry===0||score([turns[l-1]]).hits>0))l--;
-   while(r+1<turns.length&&r-i<3&&turns[r+1].start-turns[r].end<=4&&turns[r+1].end-turns[l].start<50&&(score([turns[r+1]]).dry===0||score([turns[r+1]]).hits>0))r++;
+   // Follow actual connected conversation, not an arbitrary 50-/75-second clock.
+   const topicWords=new Set(storyTopicWords(turns[i].text));
+   const linked=turn=>{
+    const state=score([turn]);
+    return state.hits>0||storyTopicWords(turn.text).some(word=>topicWords.has(word));
+   };
+   let misses=0;
+   while(l>0&&turns[l].start-turns[l-1].end<=4){
+    const next=turns[l-1],evidence=score([next]);
+    if(evidence.dry>evidence.hits)break;
+    if(!linked(next)&&++misses>1)break;
+    if(linked(next))misses=0;
+    l--;
+   }
+   misses=0;
+   while(r+1<turns.length&&turns[r+1].start-turns[r].end<=4){
+    const next=turns[r+1],evidence=score([next]);
+    if(evidence.dry>evidence.hits)break;
+    if(!linked(next)&&++misses>1)break;
+    if(linked(next))misses=0;
+    r++;
+   }
    const section=turns.slice(l,r+1),rating=score(section);
    if(rating.points<minScore||rating.dry>rating.hits+1)continue;
    const item=asMoment(asset,section,'Local wording/banter match; verify actual joke in source footage',rating.points);
