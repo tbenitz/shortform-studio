@@ -78,7 +78,7 @@ try{
  if(stored.chosen!==1||stored.moments<1||stored.mode!=='manual')throw Error('Saved humor selection or crop mode missing: '+JSON.stringify(stored));
  // A storyline needs real separate source cuts that share the same topic.
  await page.locator('#humorFindStory').click();
- await page.waitForFunction(()=>document.querySelectorAll('[data-story-build]').length>=1,null,{timeout:12000});
+ await page.waitForFunction(()=>document.querySelectorAll('[data-story-build]').length>=1,null,{timeout:12000}).catch(async()=>{const status=await page.locator('#humorStatus').innerText();const snap=await page.evaluate(async()=>{const p=await (await import('./src/storage.js')).loadProject();return {moments:p?.humorMoments?.map(m=>({start:m.start,end:m.end,score:m.score,dialogue:m.dialogue?.slice(0,170)})),text:document.querySelector('#inspectorContent')?.innerText.slice(0,900)}});throw Error('No connected story: '+status+' '+JSON.stringify(snap))});
  await page.locator('[data-story-build]').first().click();
  await page.waitForFunction(()=>document.querySelector('[data-tab="editor"].active')&&document.querySelectorAll('#videoTrack [data-seg]').length>=2,null,{timeout:12000});
  await page.locator('#saveProject').click();
