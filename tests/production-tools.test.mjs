@@ -35,3 +35,16 @@ test('source search filters words across sources',()=>{
  assert.equal(sourceMatch(p,'world').length,1);
  assert.equal(sourceMatch(p,'',50).length,0);
 });
+
+test('phrase search matches consecutive words only and preserves source reference',()=>{
+ const p=project();
+ p.words.push({assetId:'a',start:11.4,end:11.7,text:'there!',speaker:'Alex'});
+ p.words.push({assetId:'a',start:30,end:30.3,text:'there',speaker:'Alex'});
+ assert.equal(sourceMatch(p,'hello there').length,1);
+ assert.equal(sourceMatch(p,'HELLO there!')[0].start,11);
+ assert.equal(sourceMatch(p,'hello there world').length,0);
+});
+test('transcript source search handles empty and punctuation-only queries',()=>{
+ assert.deepEqual(sourceMatch(project(),'***'),[]);
+ assert.deepEqual(sourceMatch(project(),'   '),[]);
+});
