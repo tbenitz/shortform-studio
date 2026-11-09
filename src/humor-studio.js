@@ -84,7 +84,7 @@ export async function classifyHumorWithAI(words,assets,{endpoint,model,key,instr
   const dialogue=turns.map((t,i)=>({i,start:t.start,end:t.end,speaker:t.speaker,text:t.text}));
   const system='Identify genuinely humorous banter, clever jokes, teasing and funny group dynamics from transcript ONLY. Return only JSON {"selections":[{"first":0,"last":1,"why":"brief reason"}]}. first and last are indices of the supplied transcript array. Include setup and payoff. Exclude dry technical/informational sections. No imaginary footage or dialogue. If no good humor {"selections":[]}.';
   const user='User selection instructions: '+String(instructions).slice(0,1500)+'\nSource: '+asset.name+'\nTranscript:\n'+JSON.stringify(dialogue);
-  const response=await fetchAIWithRetry(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:user}],temperature:.1,max_tokens:2000})},{maxAttempts:3,onRetry:i=>onProgress(n/Math.max(1,total),'Retrying batch '+(n+1)+' request '+i)});
+  const response=await fetchAIWithRetry(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:user}],temperature:.1,max_tokens:2000})},{maxAttempts:3,fetcher:(url,options)=>globalThis.fetch(url,{...options,signal}),onRetry:info=>onProgress(n/Math.max(1,total),'Retrying batch '+(n+1)+' attempt '+info.attempt)});
   if(!response.ok)throw Error('Humor AI HTTP '+response.status);
   const reply=await response.json(),items=decodeSelections(reply?.choices?.[0]?.message?.content);
   for(const item of items){
