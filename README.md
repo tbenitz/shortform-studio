@@ -324,7 +324,7 @@
 
 **The intended flow:** The website opens a **new empty editing project on every refresh**, while the **most recently saved project** remains stored. Use **Load Last Project** to restore it. Files up to 256 MB can be locally cached if the browser allows. For large recordings, **Import & Remember** uses Chrome's file-handle permissions; this is a saved reference to the original file rather than a duplicate upload. Chrome or the operating system can still require you to grant access again. If you imported an uncached large file via ordinary Import, it cannot be reconnected automatically without a new selection.
 
-**MP4 requirement:** Render must produce an actual ISO MP4 with **H.264 video and AAC audio**, using local browser encoding. WebM is **not** an automatic export fallback. For unsupported H.264/AAC browsers, very long videos, or memory-intensive renders, the app should report the limitation and the existing native FFmpeg renderer remains an alternative. A `.mp4` filename alone is *not* proof of an MP4 file.
+**MP4 requirement:** Render must create an actual ISO MP4 with **H.264 video**. **AAC audio is preferred** and should be used when the browser supports an AAC encoder (including supported ChromeOS configurations). When AAC encoding is unavailable, a **genuine MP4 with Opus audio** is used instead. Opus-in-MP4 can be unsupported by older players and editing applications; use the existing native FFmpeg renderer for maximum H.264/AAC compatibility. WebM is **never** the export fallback. A `.mp4` filename alone does not prove a valid MP4.
 
 - [ ] **R15** Favorite source recordings and show a source favorites filter
   - **What it means / exactly how to test:** Import two videos, click ☆ next to one source in Media, then click ☆ Favorites in the Source Library header. Only the starred source should remain visible; click again to show all sources.
@@ -346,8 +346,8 @@
   - **What it means / exactly how to test:** Star a Director candidate and leave a second proposal unstarred. Click Clear unstarred. Only unstarred proposals should disappear; the favorite must remain. Try Reset duplicate history and confirm the favorite stays.
   - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R19` as broken or incomplete.
 
-- [ ] **R20** Export a real H.264/AAC MP4 instead of WebM
-  - **What it means / exactly how to test:** Import a short video with audio, choose Export, set a moderate resolution such as 720p, and click Render MP4 and download. The downloaded file must end in .mp4, play independently, show picture and sound, and contain H.264 video and AAC audio. If the browser cannot encode MP4, it must report an error—not silently export WebM.
+- [ ] **R20** Export real H.264 MP4 (AAC preferred, supported Opus-in-MP4 fallback) instead of WebM
+  - **What it means / exactly how to test:** Import a short video with audio, choose Export, set a moderate resolution such as 720p, and click Render MP4 and download. The downloaded file must be a genuine MP4, play independently in a compatible player, show picture and sound, and contain H.264 video plus AAC (if available) or Opus audio (when AAC encoding is unsupported). Check that the exported status accurately identifies the audio codec. MP4 with Opus may not play on older platforms. If the browser cannot create MP4, it must report an error—not silently export WebM.
   - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R20` as broken or incomplete.
 
 - [ ] **R21** Open a fresh empty project on refresh; load last project by button
@@ -367,7 +367,7 @@
   - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R24` as broken or incomplete.
 
 - [ ] **R25** Run end-to-end browser test for MP4 export and restore
-  - **What it means / exactly how to test:** Open GitHub Actions → latest Deploy ShortForm Studio run. Check its browser smoke step that imports actual video, tests favorites/restore, downloads MP4 and runs ffprobe. Inspect the logs for real h264 and aac streams. A passing script is engineering evidence but cannot substitute for your own acceptance.
+  - **What it means / exactly how to test:** Open GitHub Actions → latest Deploy ShortForm Studio run. Check its browser smoke step that imports actual video, tests favorites/restore, downloads MP4 and runs ffprobe. Inspect the logs for real H.264 video with AAC where supported or Opus audio fallback when AAC is unavailable. A passing script is engineering evidence but cannot substitute for your own acceptance.
   - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R25` as broken or incomplete.
 
 **How to send your decisions:** `R15 and R17 work—approve both. R20 fails with an encoder error. R22 is not tested.` Only your explicit approval will update the relevant checkbox. Reporting a regression causes a previously accepted item to return to unchecked with a re-review note.
