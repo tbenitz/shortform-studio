@@ -69,6 +69,226 @@
 
 **Not part of this implementation batch:** full professional multitrack rendering, intelligent vision-based story editing, additional generative models, complete native codec support, or full real-world footage quality verification. Older app capabilities and claims are unaffected by this status report.
 
+### Start here: how to test without getting overwhelmed
+
+**You do NOT need to test all 494 features.** The 494-item master list describes the *desired finished product*; many entries are future features or only partly implemented. Start with **R01–R14**, which refer to the latest batch of code changes. The 494 boxes are not a claim that the corresponding controls already exist.
+
+**Use a disposable test project**, not an important ongoing edit. Open [ShortForm Studio](https://tbenitz.github.io/shortform-studio/) in Chrome, import a **short playable MP4 with audio and noticeable motion** (30–90 seconds works well), and let it appear in the timeline. If the preview cannot decode your file, try another compatible H.264/AAC MP4; report the decode error rather than approving a feature you couldn't verify. Use **Save** before deliberate edits.
+
+**How to report results:** You can say `R03 works; R06 fails when I click a search result; R08 needs improvement`. An item is checked only when you explicitly approve that item. A broken or missing control remains unchecked and is added to the re-review log. If a test is impossible with your equipment or media, simply say **not tested**.
+
+**Finding the controls:** **Production Tools** is a tab along the top next to Editor/Settings. The **Editor** inspector appears on the right after you select a timeline clip. **Frame** buttons are in the central video playback row. If you cannot find a control described below, the test is **failed/not available**, not approved.
+
+### Hands-on walkthroughs for R01–R14
+
+<details open>
+<summary><strong>R01 — Production Tools dashboard and project health</strong></summary>
+
+**What it means:** A project information screen that summarizes your imported files, timeline clips, audio overlays, transcript words, markers, and possible issues. It does **not** watch and judge the final video.
+
+**How to test:**
+1. Import one short video and confirm it appears on the timeline.
+2. Open **Production Tools**.
+3. Compare **Sources**, **Video cuts**, and the other summary numbers to what is actually in your project.
+4. Add another excerpt, return to Production Tools, and confirm the clip count increases.
+5. Read the **Project health checks** area. It should accurately describe metadata issues, if any.
+
+**Approve R01 only if:** The tab loads, counts update as edits change, and it does not falsely claim that media has been fully analyzed or rendered.
+
+**Report a problem if:** The tab is blank, the counts are wrong, or selecting it crashes the editor.
+
+</details>
+
+<details>
+<summary><strong>R02 — Save, restore, and delete named project snapshots</strong></summary>
+
+**What it means:** Save a named copy of your **project editing instructions** (clips, trim settings, transcript, markers, etc.) in browser storage so you can return to that point. This is a **manual snapshot**, not a video export, and it does **not** package the original media files.
+
+**How to test:**
+1. In Production Tools, enter a snapshot name such as `Before Test`, then click **Save named snapshot**.
+2. Change the timeline by splitting or removing a test clip. Verify the change is visible.
+3. In Production Tools, find `Before Test` and click **Restore**. Confirm the prompt.
+4. Verify your original clip layout and settings return.
+5. Refresh the page, reopen Production Tools, and check whether `Before Test` is still listed.
+6. Click **Delete** on that snapshot and verify it disappears.
+
+**Approve R02 only if:** Snapshot creation, restore, persistence across reloads, and deletion all work. Media may need relinking after reload; a snapshot preserves metadata only.
+
+**Report a problem if:** Restore loads the wrong clips, changes are not restored, or a stored snapshot vanishes unexpectedly.
+
+</details>
+
+<details>
+<summary><strong>R03 — Create, edit, and delete timeline markers</strong></summary>
+
+**What it means:** Labels attached to a moment in the edited video. A **Chapter** identifies a section; **Note**, **Review**, and **To do** identify points to revisit. None of these edits the footage itself.
+
+**How to test:**
+1. Seek to about 10 seconds in a test video.
+2. Open Production Tools. Enter `Opening moment` and choose **Chapter**, then **Add at playhead**.
+3. Find that marker in the list, rename it `Opening scene`, and click **Save**.
+4. Change its type to **Review** or **To do** and save again.
+5. Save/reload the project and verify the label, type, and time remain.
+6. Remove the marker, confirm the prompt, and verify it disappears.
+
+**Approve R03 only if:** Adding, editing, saving, loading, and removing markers behave correctly.
+
+</details>
+
+<details>
+<summary><strong>R04 — Click marker pins on the timeline to jump</strong></summary>
+
+**What it means:** The colored marks above the timeline show exactly where you placed a Chapter, Note, Review, or To-do marker.
+
+**How to test:** Add two markers at clearly different times (for example, 5 and 20 seconds). Look along the **timeline ruler** for the corresponding colored marker pins. Click each pin and observe the playback position.
+
+**Approve R04 only if:** Clicking each pin jumps to the right moment, even after saving and reopening the project.
+
+**Report a problem if:** Pins overlap incorrectly, do not appear, or clicking them seeks to the wrong time.
+
+</details>
+
+<details>
+<summary><strong>R05 — Export chapter timestamps as text</strong></summary>
+
+**What it means:** Create a downloadable text list like `0:00:00 Opening` and `0:00:25 Next scene` that can be used for YouTube descriptions. It does **not** add animated chapter title cards to the video.
+
+**How to test:** Create two markers of type **Chapter** at different times. Also add a **Note** marker to distinguish them. In Production Tools, select **Download chapter timestamps (.txt)**, open the file, and check that chapter names and times are correct, in time order, with the ordinary Note left out.
+
+**Approve R05 only if:** The downloaded text matches your Chapter markers.
+
+</details>
+
+<details>
+<summary><strong>R06 — Search all source transcripts and jump to matching footage</strong></summary>
+
+**What it means:** Search for words actually spoken in your recordings, across all imported files. This is **transcript text search**, not AI visual search of actions.
+
+**How to test:**
+1. Import a video that has speech, then use **Transcript → Import SRT/VTT** or **Run local Whisper** to obtain timed words.
+2. If you have two files, give each a transcript and choose a distinctive phrase present in only one.
+3. Open Production Tools and type a spoken word in **Search all source transcripts**.
+4. Check that results show the correct source, time, and matching word.
+5. Search for a **two- or three-word phrase** that occurs consecutively in the transcript.
+6. Click a result. The app should select the original media file and set the Source In/Out range around that match.
+7. Try a made-up phrase; the app should report **no matching transcript words**, not invent a result.
+
+**Approve R06 only if:** Word search, phrase search, and navigation all work with actual matching timestamps.
+
+**Limitation:** A phrase search may fail if transcription timing or punctuation is incorrect. Confirm the underlying transcript before blaming the search.
+
+</details>
+
+<details>
+<summary><strong>R07 — Save notes attached to an individual clip</strong></summary>
+
+**What it means:** Personal reminders stored with a particular timeline clip, such as `Keep the reaction after the shot`. These are not subtitles, audio, or visible on-screen titles.
+
+**How to test:** Choose a clip in **Editor**, enter a note in **Private clip notes**, and change focus by selecting another clip. Return to the original clip and check the note. Save and refresh the project, then check again.
+
+**Approve R07 only if:** Notes stay attached to the correct clip and survive project reload.
+
+</details>
+
+<details>
+<summary><strong>R08 — Trim a clip from the playhead</strong></summary>
+
+**What it means:** Shorten the selected clip without editing its original source file. **Trim left** discards the earlier part of that timeline clip; **Trim right** discards its later part.
+
+**How to test:**
+1. Use a 30–60 second clip. Note its current Source In and Source Out.
+2. Click the clip to select it, then move the main timeline playhead **inside that clip**, away from its beginning or end.
+3. In Editor, click **Trim left to playhead**. Confirm the clip begins later and the project duration decreases.
+4. Press **Undo** (or restore a snapshot), then click **Trim right to playhead** with the same interior playhead.
+5. Confirm the clip now ends earlier and the original source preview still contains the complete recording.
+
+**Approve R08 only if:** Both trims are accurate, non-destructive, and undoable. The current version uses buttons, **not** draggable edge handles.
+
+</details>
+
+<details>
+<summary><strong>R09 — Move clips earlier or later</strong></summary>
+
+**What it means:** Change the order of entire timeline clips without altering their internal source footage.
+
+**How to test:** Create at least three recognizable excerpts. Select the middle clip, choose **Move left**, then verify it becomes the first clip. Choose **Move right** and verify its new order. Play the timeline across the changed clip boundaries, then use Undo and Redo.
+
+**Approve R09 only if:** The expected clip changes position, audio and video remain associated with their source, and undo/redo restores each order.
+
+**Limitation:** This is basic adjacent reordering, not a full multi-track ripple/roll/slip/slide editor.
+
+</details>
+
+<details>
+<summary><strong>R10 — Step one frame backward or forward</strong></summary>
+
+**What it means:** Move a tiny amount in the video instead of jumping 5 seconds. At 30 frames per second, one nominal project frame is 1/30 second.
+
+**How to test:** Pause during a visibly moving part of your video. Click **Frame ▶** several times and check that the picture advances slightly. Click **◀ Frame** the same number of times and check that you return approximately to the initial position. Try near the start and end of a clip.
+
+**Approve R10 only if:** The playhead moves by one project-frame increment each click and the preview follows correctly when the browser can decode the frame.
+
+**Limitation:** The basic time display rounds to whole seconds, so watch the image/playhead rather than relying solely on that display. Browser decoder seeking may not always be perfectly frame-accurate.
+
+</details>
+
+<details>
+<summary><strong>R11 — Export a CSV edit/cut sheet</strong></summary>
+
+**What it means:** Download a spreadsheet-style table describing every clip, including which original file it came from, its source start/end, timeline start/end, playback speed, title, and private note. It is **not a video export**.
+
+**How to test:** Make a timeline with two clips from different source times. Add a title and note to one. Click **Download editable cut sheet (.csv)** in Production Tools. Open the downloaded CSV in a text editor or spreadsheet and confirm there are two data rows, the clip order is correct, and timestamps, title, and note agree with the editor.
+
+**Approve R11 only if:** Every timeline clip is represented with accurate source and project timing.
+
+</details>
+
+<details>
+<summary><strong>R12 — Download a project health audit</strong></summary>
+
+**What it means:** A JSON report listing counts, missing media references, suspicious clip boundaries, estimated transcription timing, and possible untranscribed gaps. It checks stored project **metadata**, not actual footage or final video encoding.
+
+**How to test:** Open Production Tools and choose **Download project audit (.json)**. Open the file in Chrome or a text editor. Verify your project title, source count, video cut count, and warnings. Optional: import a saved project after removing its local media, then verify the audit identifies that it needs relinking.
+
+**Approve R12 only if:** The downloadable report accurately reflects what the project knows and does not claim to have checked video frames it never decoded.
+
+</details>
+
+<details>
+<summary><strong>R13 — Automated tests for the new project utilities</strong></summary>
+
+**What it means:** Code-level regression tests check whether the report, safe CSV, chapter export, snapshot-data handling, and transcript search utilities behave as expected. This tests logic, **not** every browser interaction.
+
+**How to test without installing software:** Open the repository's [GitHub Actions page](https://github.com/tbenitz/shortform-studio/actions). Choose the latest **Test project** or **Unit tests - multi-POV safety** workflow for the commit containing this feature batch. Check that the workflow has a **green success status** and that the test step completed without errors. You can also inspect `tests/production-tools.test.mjs` in the repository.
+
+**Approve R13 only if:** The actual tests execute and pass on the relevant revision. You do not need Python or Node installed on your Chromebook.
+
+</details>
+
+<details>
+<summary><strong>R14 — Cache the new Production Tools code for offline reopening</strong></summary>
+
+**What it means:** When the site has loaded online and its service worker has installed the app files, opening it later without internet should still find the new Production Tools JavaScript file. It **does not** guarantee that all AI models, media, or cloud services work offline.
+
+**How to test:** Visit the live site online and open Production Tools successfully. Refresh once so the latest app/service worker has a chance to activate. In Chrome DevTools, use **Network → Offline** and reload the page; alternatively disconnect from the network after the app has cached. Verify that Production Tools opens without an error about `production-tools.js`. Re-enable network afterward.
+
+**Approve R14 only if:** The application shell and Production Tools load offline after a successful online cache install. Do not approve remote AI or uncached model functionality on this basis.
+
+</details>
+
+### Common problems while testing
+
+| What you see | Meaning / what to try |
+| --- | --- |
+| A test mentions a tab or button that is missing | The feature is not ready or the deployment/browser cache is stale; leave it unchecked and report the missing control. |
+| The site opens but a video stays black | Verify the original video plays in the Media source preview; browser codec support can prevent decoding. |
+| The transcript search finds nothing | Check whether the selected source has a transcript with timed words before testing search. |
+| An imported video disappears after refresh | Large media may not fit browser storage; relink the original media. Project metadata is separate. |
+| A snapshot restores cuts but not playable video | Snapshots do not contain the video files; relink or restore media from cache. |
+| A rendered file is incorrect despite the preview looking right | Report as an export issue. A metadata audit cannot prove a render is correct. |
+| A GitHub workflow is still running | Do not approve the test result yet; check the completed run. |
+| A control works once but fails repeatedly | Report the regression and keep or return the checkbox to unchecked. |
+
 ### Feature acceptance index
 
 - [Workspace, navigation and accessibility](#1-workspace-navigation-and-accessibility) — UX (20 acceptance checks)
