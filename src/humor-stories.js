@@ -14,12 +14,23 @@ export function storyTopicWords(dialogue){
  return [...unique];
 }
 function topicalMatch(a,b){const left=new Set(storyTopicWords(a.dialogue));return storyTopicWords(b.dialogue).filter(w=>left.has(w))}
+/** AI topics may link paraphrased jokes but must be present in both
+ * source excerpts, never merely repeated invented labels from a model. */
+function groundedSharedAiTopic(a,b){
+ const topicA=storyTopicWords(a.topic),topicB=new Set(storyTopicWords(b.topic));
+ const common=topicA.filter(w=>topicB.has(w));
+ if(common.length<2)return null;
+ const aWords=new Set(storyTopicWords(a.dialogue)),bWords=new Set(storyTopicWords(b.dialogue));
+ const groundedA=common.filter(w=>aWords.has(w)),groundedB=common.filter(w=>bWords.has(w));
+ if(!groundedA.length||!groundedB.length)return null;
+ return common;
+}
 function validSourceMoment(m){return m&&typeof m.id==='string'&&typeof m.assetId==='string'&&Number.isFinite(m.start)&&Number.isFinite(m.end)&&m.end>m.start&&typeof m.dialogue==='string'}
 /** At least two distinct cuts, shared topical evidence, chronology, same original source. */
 export function findConnectedFunnyStories(moments,{maxSourceGap=240,maxStorySpan=540,maxClips=6,minTopicWords=2}={}){
  const candidates=(moments||[]).filter(validSourceMoment).slice().sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start),stories=[],seen=new Set();
  for(let i=0;i<candidates.length;i++){
-  const seed=candidates[i],group=[seed],common=new Set(storyTopicWords(seed.dialogue));
+  const seed=candidates[i],group=[seed],common=new Set(storyTopicWords(seed.dialogue));let groundedAiTopic=null;
   if(!common.size)continue;
   for(let j=i+1;j<candidates.length&&group.length<maxClips;j++){
    const next=candidates[j],prior=group.at(-1);
@@ -29,19 +40,21 @@ export function findConnectedFunnyStories(moments,{maxSourceGap=240,maxStorySpan
    if(next.start<prior.end-.25)continue;
    const overlap=topicalMatch(seed,next);
    const evolving=storyTopicWords(next.dialogue).filter(w=>common.has(w));
-   if(evolving.length<minTopicWords||overlap.length<minTopicWords)continue;
+   const topicEvidence=groundedSharedAiTopic(seed,next);
+   if((evolving.length<minTopicWords||overlap.length<minTopicWords)&&!topicEvidence)continue;
+   if(topicEvidence)groundedAiTopic=topicEvidence;
    group.push(next);
    for(const word of [...common])if(!evolving.includes(word))common.delete(word);
   }
-  if(group.length<2||common.size<minTopicWords)continue;
+  if(group.length<2||(common.size<minTopicWords&&!groundedAiTopic))continue;
   const ids=group.map(m=>m.id),key=ids.join('|');
   if(seen.has(key))continue;seen.add(key);
-  const topic=[...common].sort((a,b)=>b.length-a.length).slice(0,3);
+  const topic=(common.size>=minTopicWords?[...common]:groundedAiTopic||[]).sort((a,b)=>b.length-a.length).slice(0,3);
   const t0=group[0],last=group.at(-1);
   stories.push({id:'connected:'+ids[0]+':'+ids.length,assetId:seed.assetId,title:'Funny conversation about '+topic.join(' / '),
    topic:topic.join(' · '),momentIds:ids,start:t0.start,end:last.end,cutCount:group.length,
    duration:group.reduce((n,m)=>n+m.end-m.start,0),
-   reason:'These '+group.length+' separate original-source moments share actual dialogue topics: '+topic.join(', ')+'. Review setup, order and payoff before publishing.',
+   reason:'These '+group.length+' separate original-source moments have evidence of a recurring subject: '+topic.join(', ')+(groundedAiTopic?' (AI proposed this connection; review the footage).':' (shared transcript wording).')+' Review setup, order and punchline before publishing.',
    score:group.length*10+topic.length*7+group.reduce((n,m)=>n+Number(m.score||0),0)/group.length});
  }
  stories.sort((a,b)=>b.cutCount-a.cutCount||b.score-a.score||a.start-b.start);
