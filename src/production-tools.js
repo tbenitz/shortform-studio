@@ -116,8 +116,8 @@ export function sourceMatch(project,query,limit=50) {
  if(!needle)return [];
  const words=Array.isArray(project?.words)?project.words:[];
  const sources=new Map((project.assets||[]).map(a=>[a.id,a]));
- const normalize=text=>String(text||'').toLocaleLowerCase().replace(/[^\\p{L}\\p{N}']+/gu,' ').trim();
- const tokens=normalize(needle).split(/\\s+/).filter(Boolean);
+ const normalize=text=>String(text||'').toLocaleLowerCase().replace(/[^\p{L}\p{N}']+/gu,' ').trim();
+ const tokens=normalize(needle).split(/\s+/).filter(Boolean);
  if(!tokens.length)return [];
  const results=[];
  if(tokens.length===1){
