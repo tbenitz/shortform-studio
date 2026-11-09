@@ -40,9 +40,25 @@ const engine=new Renderer(p,asset,toast);
 engine.onTick=t=>{$('timeDisplay').textContent=`${fmt(t)} / ${fmt(duration(p))}`;$('playhead').max=Math.max(.01,duration(p));$('playhead').value=String(t);$('playButton').textContent=engine.playing?'Ⅱ':'▶';updateTimelineCursor(t)};
 const clone=()=>structuredClone(p);
 function commit(label='Updated'){sessionActive=true;history.push(clone());if(history.length>60)history.shift();future=[];p.modifiedAt=Date.now();setStatus(label)}
-let saving;
+let saving,saveRevision=0,saveQueue=Promise.resolve();
 function setStatus(label='Saved'){p.modifiedAt=Date.now();$('saveStatus').textContent=label;$('statusLine').textContent=`${p.assets.length} sources · ${p.segments.length} video cuts · ${fmt(duration(p))}`;$('footerInfo').textContent=label;if(sessionActive&&p.settings.autoSave&&!asrBusy){clearTimeout(saving);saving=setTimeout(()=>save(false),1000)}}
-async function save(notify=true){try{sessionActive=true;const disk={...p,assets:p.assets.map(({url,file,...rest})=>rest)};await saveProject(disk);lastSavedInfo={id:disk.id,name:disk.name,modifiedAt:disk.modifiedAt,assets:disk.assets.length};refreshLastProjectButton();$('saveStatus').textContent='Saved locally';if(notify)toast('Project metadata saved to IndexedDB')}catch(e){toast(`Save failed: ${e.message}`,true)}}
+async function save(notify=true){
+ const version=++saveRevision;
+ saveQueue=saveQueue.catch(()=>{}).then(async()=>{
+  // A newer autosave or manual save supersedes earlier queued requests.
+  // Only one IndexedDB write may run at a time; old project metadata never
+  // overwrites the latest chosen compilation after a rapid sequence of edits.
+  if(version!==saveRevision)return false;
+  sessionActive=true;
+  const disk={...p,assets:p.assets.map(({url,file,...rest})=>rest)};
+  await saveProject(disk);
+  lastSavedInfo={id:disk.id,name:disk.name,modifiedAt:disk.modifiedAt,assets:disk.assets.length};
+  refreshLastProjectButton();$('saveStatus').textContent='Saved locally';
+  if(notify)toast('Project metadata saved to IndexedDB');
+  return true;
+ });
+ try{return await saveQueue}catch(e){toast('Save failed: '+e.message,true);return false}
+}
 function draw(){engine.setProject(p);$('previewHint').classList.toggle('hidden',p.segments.length>0);$('projectName').value=p.name;$('aspectSelect').value=p.settings.aspect;$('toggleCaptions').textContent=p.settings.captionOn?'CC On':'CC Off';$('timeDisplay').textContent=`${fmt(engine.time)} / ${fmt(duration(p))}`;$('playhead').max=Math.max(.01,duration(p));$('playhead').value=String(engine.time);renderAssets();renderTimeline();renderInspector();syncSourceRange();setStatus('Ready')}
 function update(){engine.setProject(p);$('previewHint').classList.toggle('hidden',p.segments.length>0);engine.onTick(engine.time);renderAssets();renderTimeline();renderInspector();showMissingMedia();setStatus('Edited')}
 function undo(){if(!history.length)return;sessionActive=true;engine.pause();future.push(clone());p=history.pop();update()}
