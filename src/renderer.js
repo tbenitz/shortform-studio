@@ -190,6 +190,7 @@ export class Renderer{
     if(this.lastSegmentId&&canvas.width&&canvas.height){const previous=document.createElement('canvas');previous.width=w;previous.height=h;previous.getContext('2d').drawImage(canvas,0,0);this.previousFrame=previous}
     this.lastSegmentId=seg?.id||null;
   }
+  this.lastFrameProjection=null;
   ctx.save();ctx.fillStyle='#090d13';ctx.fillRect(0,0,w,h);
   let media=null;
   if(currentVideo&&actualCaptionTime!==null)media=this.video;
@@ -215,6 +216,7 @@ export class Renderer{
       const x=clamp(baseX*(1-f)+(detected?.x??baseX)*f,0,1),y=clamp(baseY*(1-f)+(detected?.y??baseY)*f,0,1);
       const dx=clamp(w/2-x*dw,w-dw,0),dy=clamp(h/2-y*dh,h-dh,0);
       const look={grayscale:'grayscale(100%)',sepia:'sepia(80%)',vintage:'sepia(50%) contrast(115%)',soft:'blur(1.4px)'}[this.settings.videoFilter]||'';ctx.filter=`brightness(${this.settings.brightness}%) contrast(${this.settings.contrast}%) saturate(${this.settings.saturation}%) ${look}`;
+      this.lastFrameProjection={segmentId:seg.id,assetId:seg.assetId,sourceTime,dx,dy,dw,dh,zoom,outputWidth:w,outputHeight:h,sourceWidth:mw,sourceHeight:mh};
       ctx.drawImage(media,dx,dy,dw,dh);ctx.filter='none';
     }
   }
