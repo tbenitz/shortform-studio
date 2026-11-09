@@ -631,6 +631,96 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('overlayAudio',()=>{const a=asset(p.selectedAsset);if(a?.type!=='audio')return toast('Select an audio-only asset in the left library',true);commit();const newA={id:uid(),assetId:a.id,start:engine.time,sourceStart:0,duration:Math.min(a.duration||30,Math.max(1,duration(p)-engine.time)),volume:p.settings.audioVolume,role:'voice'};p.audio.push(newA);p.selectedAudio=newA.id;p.selectedSegment=null;update()});on('removeAudio',()=>{commit();p.audio=p.audio.filter(x=>x.id!==p.selectedAudio);p.selectedAudio=null;update()});
  on('recordVoice',recordVoice);
  on('doExport',doExport);on('cancelExport',()=>engine.cancelRender());on('saveEdl',()=>download(JSON.stringify({version:1,segments:p.segments,audio:p.audio,settings:p.settings},null,2),`${p.name}-cuts.json`,'application/json'));on('saveBundle',()=>download(JSON.stringify({...p,assets:p.assets.map(({file,url,...rest})=>rest)},null,2),`${p.name}-project.json`,'application/json'));
+
+ // Production Tools: metadata reports and user-managed project checkpoints.
+ const safeFile=()=>String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-').slice(0,80)||'project';
+ on('toolsExportCSV',()=>download(cutSheetCSV(p),safeFile()+'-cuts.csv','text/csv;charset=utf-8'));
+ on('toolsExportChapters',()=>download(chaptersText(p),safeFile()+'-chapters.txt','text/plain;charset=utf-8'));
+ on('toolsExportAudit',()=>download(JSON.stringify(projectAudit(p),null,2),safeFile()+'-audit.json','application/json'));
+ on('toolsAddMarker',()=>{
+  if(duration(p)<=0)return toast('Add footage before creating a timeline marker.',true);
+  const label=$('toolsMarkerName')?.value.trim()||'Marker',kind=$('toolsMarkerKind')?.value||'note';
+  commit('Marker added');p.markers||=[];p.markers.push({id:uid(),time:Number(engine.time.toFixed(3)),label:label.slice(0,120),kind});
+  update();toast('Saved timeline marker');
+ });
+ c.querySelectorAll('[data-marker-jump]').forEach(b=>b.onclick=()=>{
+  const marker=(p.markers||[]).find(m=>m.id===b.dataset.markerJump);if(marker)engine.seek(marker.time);
+ });
+ c.querySelectorAll('[data-marker-save]').forEach(b=>b.onclick=()=>{
+  const marker=(p.markers||[]).find(m=>m.id===b.dataset.markerSave);if(!marker)return;
+  const row=b.closest('article'),time=Number(row.querySelector('[data-marker-time]')?.value),label=row.querySelector('[data-marker-label]')?.value.trim();
+  if(!Number.isFinite(time)||time<0||time>duration(p))return toast('Marker is outside the current timeline.',true);
+  if(!label)return toast('Marker name is required.',true);
+  commit('Marker edited');marker.time=time;marker.label=label.slice(0,120);marker.kind=row.querySelector('[data-marker-kind]')?.value||'note';update();
+ });
+ c.querySelectorAll('[data-marker-remove]').forEach(b=>b.onclick=()=>{
+  if(!confirm('Remove this timeline marker?'))return;
+  commit('Marker removed');p.markers=(p.markers||[]).filter(m=>m.id!==b.dataset.markerRemove);update();
+ });
+ on('toolsCreateSnapshot',async()=>{
+  const button=$('toolsCreateSnapshot');button.disabled=true;
+  try{
+   const snap=createSnapshot(p,$('toolsSnapshotName')?.value,uid());
+   await saveSnapshot(snap);snapshotRecords=await listSnapshots(p.id);
+   if(tab==='tools')renderInspector();toast('Named project snapshot saved. Media files are not embedded.');
+  }catch(e){toast('Snapshot failed: '+e.message,true)}
+  finally{if(button.isConnected)button.disabled=false}
+ });
+ c.querySelectorAll('[data-snapshot-restore]').forEach(b=>b.onclick=async()=>{
+  const record=snapshotRecords.find(x=>x.id===b.dataset.snapshotRestore);
+  if(!record)return toast('Snapshot not found.',true);
+  if(!confirm('Restore "'+record.name+'"? Current unsaved edits will be replaced. Save a snapshot first if needed.'))return;
+  try{
+   const saved=await loadSnapshot(record.id);
+   if(!saved?.project)throw Error('Snapshot data not found');
+   const next=validateProject(saved.project);
+   for(const a of next.assets){
+    const cached=assets.get(a.id);
+    if(cached?.url&&cached.name===a.name&&cached.size===a.size){a.url=cached.url;continue}
+    const file=await loadMedia(a.id);
+    if(file&&file.name===a.name&&file.size===a.size){
+     const url=URL.createObjectURL(file);a.url=url;assets.set(a.id,{...a,file,url});
+    }
+   }
+   engine.pause();clearTimeout(saving);history.push(clone());future=[];p=next;update();
+   toast('Snapshot restored. Review any missing source links.');
+  }catch(e){toast('Restore failed: '+e.message,true)}
+ });
+ c.querySelectorAll('[data-snapshot-delete]').forEach(b=>b.onclick=async()=>{
+  if(!confirm('Delete this recovery snapshot?'))return;
+  try{await deleteSnapshot(b.dataset.snapshotDelete);snapshotRecords=await listSnapshots(p.id);if(tab==='tools')renderInspector();toast('Snapshot deleted')}
+  catch(e){toast('Snapshot deletion failed: '+e.message,true)}
+ });
+ const bindToolSearch=()=>c.querySelectorAll('[data-tool-result]').forEach(b=>b.onclick=()=>{
+  const a=asset(b.dataset.toolResult);if(!a)return toast('Source unavailable',true);
+  p.selectedAsset=a.id;chooseTab('media');renderAssets();syncSourceRange();
+  const start=Math.max(0,Number(b.dataset.toolStart)-1),end=Math.min(Number(a.duration)||0,Number(b.dataset.toolEnd)+2);
+  $('sourceIn').value=start.toFixed(2);$('sourceOut').value=end.toFixed(2);
+  const vid=$('sourcePreview');
+  if(vid){const seek=()=>{try{vid.currentTime=start}catch{}};if(vid.readyState)seek();else vid.addEventListener('loadedmetadata',seek,{once:true})}
+  toast('Located source transcript match. Verify the original footage.');
+ });
+ const searchField=$('toolsSearch');
+ if(searchField){searchField.oninput=()=>{
+  toolsSearch=searchField.value;
+  const result=$('toolsSearchResults');if(result){result.innerHTML=toolSearchResultsHTML(p,toolsSearch);bindToolSearch()}
+ };bindToolSearch()}
+ // Frame-relative ripple trimming; no content is deleted from the original file.
+ const trimToPlayhead=edge=>{
+  const loc=segmentAt(p,engine.time),seg=loc?.seg;
+  if(!seg||seg.id!==p.selectedSegment)return toast('Select the clip under the playhead first.',true);
+  const t=seg.start+loc.local;
+  if(t-seg.start<.1||seg.end-t<.1)return toast('Move the playhead inside the clip, away from the edges.',true);
+  commit('Clip trimmed');if(edge==='left')seg.start=t;else seg.end=t;update();
+ };
+ on('trimStartAtPlayhead',()=>trimToPlayhead('left'));
+ on('trimEndAtPlayhead',()=>trimToPlayhead('right'));
+ const moveSelected=step=>{
+  const i=p.segments.findIndex(x=>x.id===p.selectedSegment),j=i+step;
+  if(i<0||j<0||j>=p.segments.length)return;
+  commit('Reordered cut');const [item]=p.segments.splice(i,1);p.segments.splice(j,0,item);update();
+ };
+ on('moveClipEarlier',()=>moveSelected(-1));on('moveClipLater',()=>moveSelected(1));
  on('checkStorage',async()=>{const q=await quota();$('storageInfo').textContent=q?`Used: ${(q.usage/1073741824).toFixed(2)} GB, estimated quota: ${(q.quota/1073741824).toFixed(2)} GB`:'Quota information unavailable'});
  on('clearCachedMedia',async()=>{if(!confirm('Delete saved media files from browser storage? Project edits will remain, but you must relink source files.'))return;const {clearMedia}=await import('./storage.js');await clearMedia();toast('Cached files removed; source files remain available until reload')});}
 function removeSelected(){const i=p.segments.findIndex(s=>s.id===p.selectedSegment);if(i<0)return;commit();p.segments.splice(i,1);p.selectedSegment=p.segments[Math.min(i,p.segments.length-1)]?.id||null;update()}
