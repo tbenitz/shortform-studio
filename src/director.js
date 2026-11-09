@@ -33,7 +33,7 @@ export async function semanticCandidates(words,assets,settings={},progress=()=>{
   const embedding=await semanticModel(entries[i].text,{pooling:'mean',normalize:true});vectors.push(Float32Array.from(embedding.data));
   if(i%3===0)progress((i+1)/entries.length,`Indexing meaning across recording ${i+1}/${entries.length}`)
  }
- const mode=settings.mode||'comedy',recognizer=modes[mode]||comedy,min=settings.clipMin||15,max=settings.clipMax||60,used=new Set(),candidates=[];
+ const mode=settings.mode||'comedy',recognizer=modes[mode]||comedy,min=Number(settings.clipMin)>0?Number(settings.clipMin):0,max=Number(settings.clipMax)>0?Number(settings.clipMax):Infinity,used=new Set(),candidates=[];
  for(let i=0;i<entries.length;i++){
   const seed=entries[i],top=entries.map((u,j)=>({u,j,match:j===i?-1:vectors[i].reduce((n,v,k)=>n+v*vectors[j][k],0)+(recognizer.test(u.text)?.09:0)})).filter(x=>x.j!==i&&x.match>.28).sort((a,b)=>b.match-a.match);
   const picked=[{u:seed,j:i,match:1}];let seconds=seed.duration;
@@ -100,7 +100,7 @@ export async function remoteCandidates(words,assets,settings,key,onProgress=()=>
   const start=Math.floor(n*all.length/windowCount),end=Math.floor((n+1)*all.length/windowCount);
   windows.push(sampleAcrossTimeline(all.slice(start,end),windowSize).map(u=>({id:u.id,assetId:u.assetId,start:u.start,end:u.end,text:u.text.slice(0,500)})));
  }
- const instructions=`You edit faithful short-form videos. Return JSON object {"clips":[{"title":"...","reason":"...","indices":[0,1,2]}]}. Indices reference ONLY the supplied utterances. Combine non-adjacent timestamps only when their meanings genuinely connect; include setup, payoff, context. Never fabricate dialogue, misrepresent chronological events or create fake reactions. Return as many distinct coherent clips as the supplied window supports, including different topics and different original timestamps. Avoid reusing the same anchor moments. Aim ${settings.clipMin}-${settings.clipMax}s with 2-8 utterances per short. Mode: ${settings.mode}. Editor instructions: ${settings.directorInstructions||'None'}. Return ONLY JSON.`;
+ const instructions=`You edit faithful short-form videos. Return JSON object {"clips":[{"title":"...","reason":"...","indices":[0,1,2]}]}. Indices reference ONLY the supplied utterances. Combine non-adjacent timestamps only when their meanings genuinely connect; include setup, payoff, context. Never fabricate dialogue, misrepresent chronological events or create fake reactions. Return as many distinct coherent clips as the supplied window supports, including different topics and different original timestamps. Avoid reusing the same anchor moments. Use natural setup, banter, payoff and reaction duration rather than imposing a preset 75-second clip maximum. Only honor a duration limit when explicitly requested by the user. Mode: ${settings.mode}. Editor instructions: ${settings.directorInstructions||'None'}. Return ONLY JSON.`;
  const proposals=[];for(let n=0;n<windows.length;n++){
   onProgress(n/windows.length,`Analyzing transcript window ${n+1}/${windows.length}`);
   const utt=windows[n];let response;
