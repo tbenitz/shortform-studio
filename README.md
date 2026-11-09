@@ -25,6 +25,33 @@
 
 **How to approve:** The owner may say, for example, **"I tested ASR-003 and EDIT-004; mark both complete."** An explicit owner instruction can authorize exactly those checkbox changes. If the owner later says **"ASR-003 is broken"**, return it to `[ ]` and document the problem.
 
+### Implementation batch — available for YOUR review (2026-11-08)
+
+**Owner-approved: 0 / 494.** The following changes have been added to the application code, but **NONE of their feature checkboxes have been marked complete**. Passing a test does not give an assistant permission to check any box. Some rows cover only part of a larger acceptance item.
+
+| Review item | Implemented behavior to test manually | Related unchecked acceptance IDs | Limitation |
+| --- | --- | --- | --- |
+| R01 | New **Production Tools** tab with project summary and metadata warnings | IMP-020, REL-021 | Does not decode or inspect rendered video for faults |
+| R02 | Named project-metadata snapshots, listing, restore after confirmation and delete | PRJ-010, PRJ-011 | Manual snapshots, not automatic periodic snapshots; source media not embedded |
+| R03 | Timeline markers for chapter, note, review and to-do with labels and times | PRJ-019, EDIT-014 | No collaborative comments or advanced chapter card graphics |
+| R04 | Marker pins on timeline ruler; click to jump to a timestamp | EDIT-014 | Time positions rely on the current timeline duration |
+| R05 | Export timestamps for chapters as a text file | EDIT-014, CAP-015 | Timestamp text only, not rendered chapter cards |
+| R06 | Search all imported source transcripts by word or contiguous phrase and jump to source range | ASR-020, PRJ-021 | Transcript search only, not natural-language visual understanding |
+| R07 | Clip notes, saved along with the current project | PRJ-007, PRJ-019 | Notes apply to clips, not collaborative review threads |
+| R08 | Trim the selected video clip to the playhead from the left or right | EDIT-005 | Playhead controls, not draggable edge handles |
+| R09 | Move selected clip one place earlier or later in the sequence | EDIT-003 | Not a full ripple/roll/slip/slide editing system |
+| R10 | One-frame backwards/forwards controls by project FPS | EDIT-016 | No J/K/L keyboard shuttle added in this batch |
+| R11 | CSV cut sheet with source names, source/timeline times, speed, titles and notes | EXP-018, MC-026 | Not an EDL interchange file or a fully rendered export |
+| R12 | Read-only JSON metadata audit and likely duplicate-name/size warnings | IMP-014, IMP-020, REL-021 | Does not establish content-level near-duplicates |
+| R13 | New unit tests for audit, CSV safety, chapters, snapshots and transcript phrase matching | TEST-025 | Automated tests do not substitute for your browser acceptance |
+| R14 | Cache-version update for the new module on supported GitHub Pages offline sessions | REL-020 | Offline model availability still depends on separate model caches |
+
+**Where to find the new controls:** Open the site → **Production Tools**. Frame-step buttons are next to playback, while clip notes, trim, and move buttons are in **Editor** when a clip is selected.
+
+**Owner review workflow:** Test an item, then tell me something like **"R03 and R05 work; you may approve the applicable feature IDs"**. I will only check a specific master feature ID if your approval clearly covers its full stated requirement. If you report an item broken, its related previously approved feature will be returned to unchecked and entered into the re-review log.
+
+**Not part of this implementation batch:** full professional multitrack rendering, intelligent vision-based story editing, additional generative models, complete native codec support, or full real-world footage quality verification. Older app capabilities and claims are unaffected by this status report.
+
 ### Feature acceptance index
 
 - [Workspace, navigation and accessibility](#1-workspace-navigation-and-accessibility) — UX (20 acceptance checks)
