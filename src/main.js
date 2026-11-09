@@ -34,7 +34,7 @@ import {saveSnapshot,loadSnapshot,deleteSnapshot,listSnapshots} from './storage.
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
 let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',directorOutputPreference='auto',povReferenceChoice=null,povTargetChoice=null,povSyncStatus='',povStoryPacing='balanced',directorBusy=false,directorAbort=null,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
 let snapshotRecords=[],toolsSearch='',sessionActive=false,lastSavedInfo=null,sourceFavoritesOnly=false,directorFavoritesOnly=false,savedHandles=new Map(),restoreBusy=false;
-let humorScope='all',humorMinScore=50,humorMaxCalls=48,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null,humorView='clips';let cropPickActive=false;
+let humorScope='all',humorMinScore=45,humorMaxCalls=48,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null,humorView='clips';let cropPickActive=false;
 const asset=id=>assets.get(id)||p.assets.find(a=>a.id===id);
 const media=id=>assets.get(id)?.file;
 const engine=new Renderer(p,asset,toast);
