@@ -61,6 +61,33 @@ try{
  await page.locator('[data-crop-preset="left"]').click();
  const focus=await page.locator('input[data-edit="focusX"]').inputValue();
  if(Math.abs(Number(focus)-.22)>.001)throw Error('Manual speaker crop preset did not update source focus: '+focus);
+ // Real drag drawing over the decoded preview: no auto-face scanning required.
+ await page.waitForFunction(()=>{
+  const c=document.querySelector('#previewCanvas');
+  if(!c)return false;
+  const ctx=c.getContext('2d');
+  const a=ctx.getImageData(Math.floor(c.width*.5),Math.floor(c.height*.5),1,1).data;
+  return !(a[0]===9&&a[1]===13&&a[2]===19);
+ },null,{timeout:12000});
+ await page.locator('#drawCropButton').click();
+ await page.waitForFunction(()=>document.querySelector('#previewStage')?.classList.contains('is-drawing-crop'),null,{timeout:6500});
+ const canvasBox=await page.locator('#previewCanvas').boundingBox();
+ if(!canvasBox||canvasBox.width<50||canvasBox.height<50)throw Error('Video preview not visible for drawing');
+ await page.mouse.move(canvasBox.x+canvasBox.width*.42,canvasBox.y+canvasBox.height*.21);
+ await page.mouse.down();
+ await page.mouse.move(canvasBox.x+canvasBox.width*.78,canvasBox.y+canvasBox.height*.68,{steps:8});
+ if(await page.locator('#cropSelectionBox').isHidden())throw Error('Drag selection rectangle not shown');
+ await page.mouse.up();
+ await page.waitForFunction(()=>!document.querySelector('#previewStage')?.classList.contains('is-drawing-crop')&&document.querySelector('input[data-edit="zoom"]')?.value>1.5,null,{timeout:10000});
+ const zoomAfter=Number(await page.locator('input[data-edit="zoom"]').inputValue());
+ if(zoomAfter<=1.5)throw Error('Dragged box failed to zoom selected person: '+zoomAfter);
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject(),c=p?.segments?.[0];
+  return c?.manualCropBox?.right>c?.manualCropBox?.left&&c.zoom>1.5&&c.cropMode==='manual';
+ },null,{timeout:9000});
+ console.log('PASS: real mouse-drawn crop rectangle mapped to saved original source framing, zoom='+zoomAfter.toFixed(2));
+
  await page.locator('#fullscreenPreview').click();
  await page.waitForFunction(()=>document.fullscreenElement?.id==='previewStage',null,{timeout:5000});
  await page.locator('#exitFullscreenPreview').click();
@@ -76,6 +103,9 @@ try{
   return {clips:data.segments?.length,chosen:data.compilationOrder?.length,moments:data.humorMoments?.length,mode:data.segments?.[0]?.cropMode};
  });
  if(stored.chosen!==1||stored.moments<1||stored.mode!=='manual')throw Error('Saved humor selection or crop mode missing: '+JSON.stringify(stored));
+ const drawnCrop=await page.evaluate(async()=>{const p=await (await import('./src/storage.js')).loadProject();return p?.segments?.[0]?.manualCropBox});
+ if(!drawnCrop||drawnCrop.right<=drawnCrop.left)throw Error('The manually drawn crop was not restored after refresh');
+
  // A storyline needs real separate source cuts that share the same topic.
  await page.locator('#humorFindStory').click();
  await page.waitForFunction(()=>document.querySelectorAll('[data-story-build]').length>=1,null,{timeout:12000}).catch(async()=>{const status=await page.locator('#humorStatus').innerText();const snap=await page.evaluate(async()=>{const p=await (await import('./src/storage.js')).loadProject();return {moments:p?.humorMoments?.map(m=>({start:m.start,end:m.end,score:m.score,dialogue:m.dialogue?.slice(0,170)})),text:document.querySelector('#inspectorContent')?.innerText.slice(0,900)}});throw Error('No connected story: '+status+' '+JSON.stringify(snap))});
