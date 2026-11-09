@@ -38,3 +38,12 @@ jobs:
             -b:v 350k -c:a libopus -b:a 80k -t 3.5 _site/mp4-test.webm
       - name: Verify MP4 H.264/AAC, favorites, and fresh project reloading
         run: npm run smoke:mp4
+      - name: Make a 12-second recording to test source-linked funny dialogue
+        run: |
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i 'testsrc2=size=320x180:rate=12:duration=12' \
+            -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=12' \
+            -map 0:v -map 1:a -c:v libvpx -deadline realtime -cpu-used 8 \
+            -b:v 300k -c:a libopus -b:a 48k -t 12 _site/humor-test.webm
+      - name: Verify SRT humor review, compilation building, fullscreen and crop in Chrome
+        run: npm run smoke:humor
