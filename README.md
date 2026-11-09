@@ -46,6 +46,23 @@
 | R13 | New unit tests for audit, CSV safety, chapters, snapshots and transcript phrase matching | TEST-025 | Automated tests do not substitute for your browser acceptance |
 | R14 | Cache-version update for the new module on supported GitHub Pages offline sessions | REL-020 | Offline model availability still depends on separate model caches |
 
+**Release-specific acceptance checklist — 0 / 14 owner-approved.** These narrow items can be approved individually without prematurely checking the broader 494-item product requirements. Only you can mark them complete; reporting a regression returns them to unchecked.
+
+- [ ] **R01** Production Tools dashboard and metadata summary
+- [ ] **R02** Save, restore, and delete named project metadata snapshots
+- [ ] **R03** Create, edit, and remove typed timeline markers
+- [ ] **R04** Click timeline marker pins to jump to their time
+- [ ] **R05** Export chapter marker timestamps as text
+- [ ] **R06** Search source transcript words and phrases, and jump to source ranges
+- [ ] **R07** Save private notes attached to timeline clips
+- [ ] **R08** Trim selected clip from left/right to current playhead
+- [ ] **R09** Move selected clip earlier/later with editor controls
+- [ ] **R10** Step backward/forward one project frame with transport buttons
+- [ ] **R11** Export a source-referenced cut sheet as CSV
+- [ ] **R12** Download a project metadata health audit as JSON
+- [ ] **R13** Execute automated tests covering production tool helpers
+- [ ] **R14** Cache the new module for supported offline reopening
+
 **Where to find the new controls:** Open the site → **Production Tools**. Frame-step buttons are next to playback, while clip notes, trim, and move buttons are in **Editor** when a clip is selected.
 
 **Owner review workflow:** Test an item, then tell me something like **"R03 and R05 work; you may approve the applicable feature IDs"**. I will only check a specific master feature ID if your approval clearly covers its full stated requirement. If you report an item broken, its related previously approved feature will be returned to unchecked and entered into the re-review log.
