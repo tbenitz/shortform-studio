@@ -151,8 +151,18 @@ try{
  });
  if(restored.offset!==.5||restored.words.length!==2||!restored.assets.includes('long'))
   throw Error('Subtitle synchronization lost on refresh: '+JSON.stringify(restored));
- // After reload, importing a differently named original must offer to RELINK,
- // not append a new video with no subtitle association.
+ // Cached small original should auto-reconnect on explicit last-project load.
+ await page.waitForFunction(()=>document.getElementById('assetsList')?.textContent?.includes('Ready'),null,{timeout:12000});
+ console.log('PASS: Saved media reconnects automatically from the browser cache.');
+ // Deliberately clear the test browser's media cache, then reload again to
+ // verify the manual recovery flow for missing original recordings.
+ await page.evaluate(async()=>{const {clearMedia}=await import('./src/storage.js');await clearMedia()});
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.getElementById('loadLastProject')?.disabled===false,null,{timeout:10000});
+ await page.locator('#loadLastProject').click();
+ await page.waitForFunction(()=>document.getElementById('reconnectSavedMedia')?.hidden===false,null,{timeout:12000});
+ // After this uncached reload, importing a differently named original must
+ // offer to RELINK rather than create another video without subtitles.
  await page.locator('#fileUpload').setInputFiles(filename);
  await page.waitForFunction(()=>{
   const video=document.querySelector('#engineVideo');
