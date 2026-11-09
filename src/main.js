@@ -785,7 +785,90 @@ async function importFiles(files){
  syncSourceRange();update();
  toast('Imported '+imported+' source(s); relinked '+relinked+' existing recordings; added '+inserted+' new full-source cuts ('+fmt(duration(p))+').');
 }
-async function restore(){try{const saved=await loadProject();if(saved){p=validateProject(saved);for(const a of p.assets){try{const file=await loadMedia(a.id);if(file){const url=URL.createObjectURL(file);a.url=url;assets.set(a.id,{...a,file,url})}}catch{}}}}catch(e){console.warn('Restore',e.message)}draw()}
+function refreshLastProjectButton(){
+ const button=$('loadLastProject'),hint=$('lastProjectHint');
+ if(button){button.disabled=!lastSavedInfo||restoreBusy;button.title=lastSavedInfo?'Load '+lastSavedInfo.name+' · '+(lastSavedInfo.assets||0)+' sources':'No previously saved project found';}
+ if(hint)hint.textContent=lastSavedInfo?'Saved: '+lastSavedInfo.name:'New project · nothing saved';
+}
+function showMissingMedia(){
+ const missing=p.assets.filter(a=>!a.url),button=$('reconnectSavedMedia');
+ if(button){button.hidden=!missing.length;button.textContent='Reconnect '+missing.length+' file'+(missing.length===1?'':'s');}
+ return missing;
+}
+function attachStoredFile(a,file){
+ if(!file||file.name!==a.name||file.size!==a.size) return false;
+ if(Number.isFinite(a.lastModified)&&a.lastModified&&file.lastModified&&a.lastModified!==file.lastModified)return false;
+ const url=URL.createObjectURL(file);
+ a.url=url;assets.set(a.id,{...a,file,url});
+ return true;
+}
+async function linkSavedAssets(){
+ let reconnected=0; savedHandles.clear();
+ for(const a of p.assets){
+  try{
+   const cached=await loadMedia(a.id);
+   if(cached&&attachStoredFile(a,cached)){reconnected++;continue}
+  }catch(e){console.warn('Media cache unavailable',a.name,e)}
+  try{
+   const handle=await loadMediaHandle(a.id);
+   if(!handle||handle.kind!=='file')continue;
+   savedHandles.set(a.id,handle);
+   if((await handle.queryPermission({mode:'read'}))!=='granted')continue;
+   if(attachStoredFile(a,await handle.getFile()))reconnected++;
+  }catch(e){console.warn('Saved file permission unavailable',a.name,e)}
+ }
+ return reconnected;
+}
+async function loadLastProject(){
+ if(restoreBusy)return;
+ if(sessionActive&&(p.assets.length||p.segments.length||p.words.length)&&!confirm('Load your last saved project? Current unsaved work will be replaced. Save it first if needed.'))return;
+ restoreBusy=true;refreshLastProjectButton();clearTimeout(saving);
+ try{
+  const saved=await loadProject();if(!saved){lastSavedInfo=null;return toast('No previously saved project available.',true)}
+  const next=validateProject(saved);engine.pause();
+  for(const x of assets.values())if(x.url)URL.revokeObjectURL(x.url);
+  assets.clear();history=[];future=[];p=next;
+  // A user-selected project must not overwrite the stored copy until it is fully loaded.
+  sessionActive=false;engine.time=0;
+  const connected=await linkSavedAssets();
+  sessionActive=true;draw();
+  const missing=showMissingMedia();
+  if(missing.length)toast('Loaded '+p.name+': '+connected+' source(s) reconnected automatically. '+missing.length+' need file permission or relinking.',true);
+  else toast('Loaded '+p.name+' with all '+connected+' source file(s) reconnected.');
+ }catch(e){toast('Load last project failed: '+e.message,true)}
+ finally{restoreBusy=false;refreshLastProjectButton()}
+}
+async function restore(){
+ // Always open a fresh, unsaved project. Never overwrite the last saved project on startup.
+ sessionActive=false;draw();
+ try{
+  const saved=await loadProject();
+  lastSavedInfo=saved?{id:saved.id,name:saved.name,modifiedAt:saved.modifiedAt,assets:saved.assets?.length||0}:null;
+ }catch(e){console.warn('Last project metadata unavailable',e)}
+ refreshLastProjectButton();showMissingMedia();
+}
+async function reconnectMissingFiles(){
+ const missing=showMissingMedia();
+ if(!missing.length)return toast('All project media is connected.');
+ const prompts=[];
+ for(const a of missing){const handle=savedHandles.get(a.id);if(handle)prompts.push({a,handle})}
+ if(!prompts.length)return $('fileUpload').click();
+ try{
+  // Permissions must be requested only from an explicit user click.
+  const permissions=prompts.map(x=>x.handle.requestPermission({mode:'read'}).then(value=>({...x,allowed:value==='granted'})).catch(()=>({...x,allowed:false})));
+  const granted=await Promise.all(permissions);
+  let connected=0;
+  for(const {a,handle,allowed} of granted){
+   if(!allowed)continue;
+   try{if(attachStoredFile(a,await handle.getFile()))connected++}
+   catch(e){toast('Could not reconnect '+a.name+': '+e.message,true)}
+  }
+  update();const left=showMissingMedia();
+  if(left.length)toast('Reconnected '+connected+' source(s). '+left.length+' still missing; use Import/Relink to select their original files.',true);
+  else toast('All project files reconnected.');
+ }catch(e){toast('Reconnection failed: '+e.message,true)}
+}
+
 function openJSON(file){file.text().then(text=>{try{const newp=validateProject(JSON.parse(text));engine.pause();history=[];future=[];assets.forEach(a=>a.url&&URL.revokeObjectURL(a.url));assets.clear();p=newp;draw();toast('Project loaded. Import original media to relink by filename and file size.')}catch(e){toast(`Could not open project: ${e.message}`,true)}})}
 function bind(){all('.tab').forEach(b=>b.onclick=()=>chooseTab(b.dataset.tab));$('projectName').onchange=e=>{commit();p.name=e.target.value||'Untitled Project';setStatus('Renamed')};$('newProject').onclick=()=>{if(!confirm('Create a new project? Save/export your current project first.'))return;engine.pause();history=[];future=[];p=newProject();assets.forEach(a=>a.url&&URL.revokeObjectURL(a.url));assets.clear();draw()};$('saveProject').onclick=()=>save();$('exportProject').onclick=()=>download(JSON.stringify({...p,assets:p.assets.map(({file,url,...rest})=>rest)},null,2),`${p.name}-project.json`,'application/json');$('loadProject').onchange=e=>e.target.files[0]&&openJSON(e.target.files[0]);$('goExport').onclick=()=>chooseTab('export');$('fileUpload').onchange=e=>{importFiles(e.target.files);e.target.value=''};$('relinkFromPreview').onclick=()=>{$('relinkSourceUpload').value='';$('relinkSourceUpload').click()};$('relinkSourceUpload').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;const sourceId=segmentAt(p,engine.time)?.seg?.assetId||p.selectedAsset;try{await relinkSourceFile(sourceId,file)}catch(error){toast('Relink failed: '+error.message,true)}};$('dropzone').onclick=()=>$('fileUpload').click();$('dropzone').onkeydown=e=>{if(e.key==='Enter')$('fileUpload').click()};for(const e of ['dragover','dragenter'])$('dropzone').addEventListener(e,x=>{x.preventDefault();$('dropzone').classList.add('dragover')});$('dropzone').ondragleave=()=>$('dropzone').classList.remove('dragover');$('dropzone').ondrop=e=>{e.preventDefault();$('dropzone').classList.remove('dragover');importFiles(e.dataTransfer.files)};$('addSelection').onclick=()=>{try{const a=asset(p.selectedAsset);if(!a)throw Error('Choose a source first');const seg=selectedSourceCut(a,$('sourceIn').value,$('sourceOut').value);commit();seg.transition=p.settings.transition;p.segments.push(seg);p.selectedSegment=seg.id;update();toast(`Added ${fmt(seg.end-seg.start)} from ${a.name}`)}catch(e){toast(e.message,true)}};$('addEntireSource').onclick=()=>{try{const a=asset(p.selectedAsset);const seg=entireSourceCut(a);commit();p.segments.push(seg);p.selectedSegment=seg.id;update();toast(`Added the complete ${fmt(seg.end)} source to the timeline`)}catch(e){toast(e.message,true)}};$('aspectSelect').onchange=e=>{commit();p.settings.aspect=e.target.value;engine.setSize();update()};$('toggleCaptions').onclick=()=>{commit();p.settings.captionOn=!p.settings.captionOn;update()};$('playButton').onclick=async()=>{await engine.play();engine.onTick(engine.time)};$('skipBack').onclick=()=>engine.seek(engine.time-5);$('skipForward').onclick=()=>engine.seek(engine.time+5);$('stepBackFrame').onclick=()=>engine.seek(engine.time-1/Math.max(1,Number(p.settings.fps)||30));$('stepForwardFrame').onclick=()=>engine.seek(engine.time+1/Math.max(1,Number(p.settings.fps)||30));$('playhead').oninput=e=>engine.seek(Number(e.target.value));$('mutePreview').onclick=()=>{engine.previewMuted=!engine.previewMuted;engine.syncAudio();engine.updateAudioUi(true)};
  $('previewVolume').oninput=e=>{engine.previewMuted=false;p.settings.videoVolume=Number(e.target.value)/100;engine.syncAudio();engine.updateAudioUi(true);setStatus('Preview volume updated')};
