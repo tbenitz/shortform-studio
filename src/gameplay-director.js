@@ -117,10 +117,10 @@ function clipTimes(group,duration,min,max){
 export function generatePvPHighlights(words,assets,tracks={},settings={},onProgress=()=>{}){
  const signals=extractGameplaySignals(words,tracks),byId=new Map();
  for(const e of signals){if(!byId.has(e.assetId))byId.set(e.assetId,[]);byId.get(e.assetId).push(e)}
- const min=Math.max(8,Number(settings.clipMin)||15),max=Math.max(min+2,Number(settings.clipMax)||75),candidates=[];
+ const min=Math.max(0,Number(settings.clipMin)||0),max=Number(settings.clipMax)>0?Math.max(min+2,Number(settings.clipMax)):Infinity,candidates=[];
  for(const asset of assets||[]){
   if(asset.type!=='video')continue;
-  const groups=groupEvents(byId.get(asset.id)||[],{maxGap:11,maxSpan:Math.min(110,max*1.5)});
+  const groups=groupEvents(byId.get(asset.id)||[],{maxGap:11,maxSpan:Number.isFinite(max)?Math.max(110,max*1.5):Infinity});
   const length=Math.max(asset.duration||0,...groups.map(g=>g.end));
   for(const g of groups){
    const analysis=scoreGameplayEncounter(g,settings,tracks[asset.id]);
