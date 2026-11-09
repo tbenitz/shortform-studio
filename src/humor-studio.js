@@ -82,7 +82,7 @@ export async function classifyHumorWithAI(words,assets,{endpoint,model,key,instr
   if(signal?.aborted)throw Error('Humor scan canceled');
   const {asset,turns}=batches[n];
   const dialogue=turns.map((t,i)=>({i,start:t.start,end:t.end,speaker:t.speaker,text:t.text}));
-  const system='Identify genuinely humorous banter, clever jokes, teasing and funny group dynamics from transcript ONLY. Return only JSON {"selections":[{"first":0,"last":1,"why":"brief reason"}]}. first and last are indices of the supplied transcript array. Include setup and payoff. Exclude dry technical/informational sections. No imaginary footage or dialogue. If no good humor {"selections":[]}.';
+  const system='Identify genuinely humorous banter, clever jokes, teasing, witty reactions and funny group dynamics from transcript ONLY. Return only JSON {"selections":[{"first":0,"last":1,"why":"brief reason","topic":"concrete repeated conversational subject"}]}. first and last are exact indices in the supplied transcript. A single funny exchange should have its own selection, including its setup and payoff. Only use real spoken text; exclude dry technical/informational sections. For related funny exchanges, reuse exactly the same SHORT, specific topic label (such as "helicopter crash") when grounded in their actual dialogue, even when speakers use different words for the subject. Do not assign generic topics such as "humor" or "conversation". Do not invent source dialogue, timings, events or faces. If nothing is funny, {"selections":[]}.';
   const user='User selection instructions: '+String(instructions).slice(0,1500)+'\nSource: '+asset.name+'\nTranscript:\n'+JSON.stringify(dialogue);
   const response=await fetchAIWithRetry(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:user}],temperature:.1,max_tokens:2000})},{maxAttempts:3,fetcher:(url,options)=>globalThis.fetch(url,{...options,signal}),onRetry:info=>onProgress(n/Math.max(1,total),'Retrying batch '+(n+1)+' attempt '+info.attempt)});
   if(!response.ok)throw Error('Humor AI HTTP '+response.status);
@@ -91,7 +91,7 @@ export async function classifyHumorWithAI(words,assets,{endpoint,model,key,instr
    const l=Number(item.first),r=Number(item.last);
    if(!Number.isInteger(l)||!Number.isInteger(r)||l<0||r<l||r>=turns.length||r-l>15)continue;
    const found=asMoment(asset,turns.slice(l,r+1),String(item.why||'AI suggested — verify in original footage').slice(0,120),75);
-   if(found)out.push({...found,source:'AI transcript selection (not visually verified)'});
+   if(found)out.push({...found,topic:typeof item.topic==='string'?item.topic.slice(0,90):'',source:'AI transcript selection (not visually verified)'});
   }
   onProgress((n+1)/Math.max(1,total),'Scanned '+(n+1)+' of '+total+' transcript windows · '+out.length+' candidates');
  }
