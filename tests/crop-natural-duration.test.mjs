@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {cropBoxToFraming} from '../src/crop-selection.js';
 import {newProject,validateProject} from '../src/model.js';
 import {discoverFullRecording} from '../src/director-coverage.js';
+import {findLocalHumor} from '../src/humor-studio.js';
 
 const projection={segmentId:'clip1',assetId:'video',dx:-600,dy:0,dw:1800,dh:960,zoom:1,outputWidth:600,outputHeight:960,sourceWidth:1920,sourceHeight:1080};
 test('Drawn preview rectangle maps to the real source person and zooms that one clip',()=>{
@@ -37,4 +38,11 @@ test('older saved 20–75 defaults migrate to unlimited without losing source or
  const migrated=validateProject(project);
  assert.equal(migrated.settings.clipMin,0);
  assert.equal(migrated.settings.clipMax,0);
+});
+
+test('local funny clip can cover a single continuous 100+ second humorous conversation',()=>{
+ const asset={id:'long-funny',name:'Long funny chat',type:'video',duration:135};
+ const words=Array.from({length:13},(_,i)=>({assetId:asset.id,start:i*9,end:i*9+8,text:'The helicopter crashed into that building again! Hahaha, you did it again!',speaker:'Speaker 1'}));
+ const clips=findLocalHumor(words,[asset],{minScore:40,maxResults:100});
+ assert(clips.some(c=>c.end-c.start>75),'Expected source-grounded humor conversation lasting >75 seconds.');
 });
