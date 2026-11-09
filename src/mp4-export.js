@@ -1,5 +1,5 @@
 /**
- * Encode a real H.264/AAC MP4 using Mediabunny and WebCodecs.
+ * Encode a genuine H.264 MP4 (AAC preferred, Opus audio fallback where AAC is unavailable) using Mediabunny and WebCodecs.
  * The deployed static site vendors a pinned Mediabunny bundle during GitHub Actions.
  * No WebM -> MP4 renaming, no cloud API and no re-encoding on a server.
  */
@@ -12,7 +12,7 @@ export const isMp4Buffer=buffer=>{
 export async function openMp4Capture(canvas,audioTrack,{fps=30,videoBitrate=6000000,audioBitrate=160000}={}){
  if(!canvas?.captureStream)throw Error('Canvas video capture is not supported by this browser.');
  if(!audioTrack)throw Error('No audio mix track is available for MP4 export.');
- if(!globalThis.VideoEncoder||!globalThis.AudioEncoder)throw Error('This browser does not expose the H.264/AAC WebCodecs encoders required for MP4. No WebM file was exported.');
+ if(!globalThis.VideoEncoder||!globalThis.AudioEncoder)throw Error('This browser does not expose the WebCodecs video/audio encoders needed for MP4. No WebM was exported.');
  let sdk;
  try{sdk=await import('../vendor/mediabunny/mediabunny.mjs')}
  catch(e){throw Error('The MP4 encoder library did not load: '+e.message+'. Reload the page online to update its cache.')}
@@ -27,8 +27,23 @@ export async function openMp4Capture(canvas,audioTrack,{fps=30,videoBitrate=6000
  const video=new MediaStreamVideoTrackSource(videoTrack,{
   codec:'avc',quality:new Quality({bitrate:Math.max(500000,Math.min(25000000,Number(videoBitrate)||6000000))})
  });
+ // Desktop Linux Chrome does not necessarily expose an AAC WebCodecs encoder.
+ // Opus is also a supported MP4 audio codec in Mediabunny. The container
+ // remains an actual ISO MP4: only the audio codec changes when AAC is missing.
+ const sampleRate=Number(audioTrack.getSettings?.().sampleRate)||48000;
+ const channels=2;
+ const aacConfig={codec:'mp4a.40.2',sampleRate,numberOfChannels:channels,bitrate:Math.max(64000,Math.min(320000,Number(audioBitrate)||160000))};
+ let aacSupported=false;
+ try{aacSupported=Boolean((await globalThis.AudioEncoder.isConfigSupported(aacConfig)).supported)}catch{}
+ const audioCodec=aacSupported?'aac':'opus';
+ if(audioCodec==='opus'){
+  const opusConfig={codec:'opus',sampleRate,numberOfChannels:channels,bitrate:128000};
+  let supported=false;
+  try{supported=Boolean((await globalThis.AudioEncoder.isConfigSupported(opusConfig)).supported)}catch{}
+  if(!supported){videoTrack.stop();throw Error('Neither AAC nor Opus audio encoding is available for MP4 in this browser. No WebM was substituted.')}
+ }
  const audio=new MediaStreamAudioTrackSource(audioTrack,{
-  codec:'aac',quality:new Quality({bitrate:Math.max(64000,Math.min(320000,Number(audioBitrate)||160000))})
+  codec:audioCodec,quality:new Quality({bitrate:audioCodec==='aac'?aacConfig.bitrate:128000})
  });
  output.addVideoTrack(video,{frameRate:rate});output.addAudioTrack(audio);
  let fatalError=null,finished=false;
@@ -37,6 +52,7 @@ export async function openMp4Capture(canvas,audioTrack,{fps=30,videoBitrate=6000
  try{await output.start()}
  catch(err){videoTrack.stop();await output.cancel().catch(()=>{});throw Error('MP4 encoder initialization failed: '+err.message)}
  return {
+  audioCodec,
   get error(){return fatalError},
   async finish(){
    if(finished)throw Error('MP4 capture has already stopped');
