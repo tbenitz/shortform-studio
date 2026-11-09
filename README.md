@@ -289,6 +289,55 @@
 | A GitHub workflow is still running | Do not approve the test result yet; check the completed run. |
 | A control works once but fails repeatedly | Report the regression and keep or return the checkbox to unchecked. |
 
+### Plain-English glossary — video and AI terms
+
+| Term | What it actually means |
+| --- | --- |
+| **Clip / source** | A *source* is the original uploaded recording. A *clip* or *cut* is a chosen portion of that recording placed in the edited timeline. Trimming should never change the original. |
+| **Timeline / track / NLE** | The timeline is the order of the finished video. A *track* is a separate row for video, titles, captions or audio. *NLE* means non-linear editor: you can rearrange clips freely. |
+| **Source In/Out** | The beginning and ending time of the part of the original video you want to use. |
+| **Playhead / scrubbing** | The line showing the current moment. Scrubbing means dragging or clicking to jump to another time. |
+| **Frame / FPS / timecode** | A frame is one still picture in a video. FPS is frames per second. Timecode identifies an exact moment, usually hours:minutes:seconds:frames. |
+| **Razor / ripple / roll / slip / slide** | *Razor* splits a clip. *Ripple* closes a gap when trimming. *Roll* moves a boundary between two clips without changing their combined length. *Slip* changes which source frames play inside a clip without moving it. *Slide* moves a clip while adjusting both neighbors. |
+| **Proxy** | A smaller, easier-to-play copy used while editing a large video; the original is still used for final output. |
+| **Preview / render / export** | *Preview* is what plays inside the editor. *Render* creates the actual final frames and audio. *Export* saves the playable video or other output file. A good preview does not guarantee the export is correct. |
+| **Codec / container** | MP4 or MKV is usually a file container. H.264, H.265 and AV1 are ways the actual video is encoded inside it. Your browser may open one container but not decode its video. |
+| **Bitrate / CBR / VBR / CRF** | Bitrate controls the amount of data used for video. CBR stays near a fixed rate; VBR varies; CRF or an equivalent quality setting aims at consistent visual quality. |
+| **Keyframe / easing / Bézier** | A keyframe is a saved animation value at a specific time, such as zoom 100% at 0 seconds and 150% at 2 seconds. Easing/Bézier curves control how smoothly it changes. |
+| **Transition / dissolve / match cut** | An effect between shots. A dissolve blends images; a match cut switches between visually or narratively related shots. Most conversations should use ordinary clean cuts. |
+| **Color grading / LUT / HDR / SDR** | Grading changes a video's color and mood. A LUT is a preset color transformation. HDR can contain a wider brightness/color range than SDR if supported end to end. |
+| **Mask / compositing / chroma key / rotoscoping** | A mask selects part of an image. Compositing combines layers. Chroma key removes a colored screen; rotoscoping traces a person/object so effects can act behind/in front of it. |
+| **Motion tracking / smart crop / reframe** | Tracking follows a moving subject. Smart crop/reframe moves the visible portion when converting horizontal footage to vertical, keeping important things on screen. |
+| **POV / multicam / sync / drift** | POV means point of view. Multicam uses several recordings of an event. Sync aligns them; drift means their clocks gradually fall out of alignment. |
+| **Overlap window / source provenance** | The overlap window is the part of real-world time that multiple recordings share. Provenance means knowing which original recording and timestamp every edited shot came from. |
+| **ASR / Whisper / transcript** | ASR is automatic speech recognition. Whisper is a speech-to-text model. The transcript is the resulting text attached to source timestamps. |
+| **Diarization / speaker merge** | Diarization attempts to answer *who spoke when*, usually initially with labels such as Speaker 1. Speaker merge combines mistaken duplicate labels. It does not necessarily know a person's real identity. |
+| **SRT / VTT / subtitles / captions** | SRT and VTT are timestamped text files. Subtitles show speech; captions can also describe sound effects. Burned-in captions become pixels in the video and can't be toggled off. |
+| **Word-level alignment / confidence** | Alignment tries to match each spoken word to the correct time. Confidence reflects how certain a model is; it is not proof of correctness. |
+| **Semantic search / embeddings** | Search for *meaning*, not just exact words. Embeddings are numerical representations of text, audio, or images used to find related content. |
+| **VAD / ASR gap** | Voice-activity detection (VAD) identifies intervals likely to contain speech. An ASR gap is a suspicious section that may not have been transcribed. |
+| **AI Director / agentic edit** | AI Director plans a story from source footage. An *agentic edit* means it performs real timeline changes rather than merely writing a script or listing timestamps. |
+| **B-roll / hook / payoff** | B-roll is supporting video. A hook gives a reason to keep watching; a payoff is the meaningful action, answer, joke, or resolution the video builds toward. |
+| **Noise gate / compressor / limiter / de-esser** | A gate quiets low-level noise; a compressor reduces loudness differences; a limiter prevents large peaks; a de-esser tames harsh S sounds. |
+| **Ducking / LUFS / true peak** | Ducking lowers music under dialogue. LUFS measures perceived audio loudness. True peak checks whether encoded audio may exceed a safe output ceiling. |
+| **TTS / voiceover / dubbing** | Text-to-speech (TTS) generates narration from text. Voiceover is speech added over footage. Dubbing replaces dialogue in another language or voice when authorized. |
+| **WebGPU / WASM / backend** | WebGPU lets supported browsers use the GPU for computation. WASM runs compiled code in the browser, usually on CPU. A backend is the actual program or server doing heavy processing. |
+| **IndexedDB / OPFS / checkpoint** | IndexedDB and OPFS are browser storage systems. A checkpoint records processing progress so a failed task can continue without repeating everything. Browser storage may still be cleared or quota-limited. |
+| **Provider / API / endpoint / CORS** | A provider offers an external AI service. An API endpoint is its web address. CORS is a browser restriction that can block requests even when an API key is valid. |
+| **Metadata / preflight / integrity check** | Metadata describes a file or project, such as its length and source name. Preflight checks for problems before rendering. Integrity checks confirm a saved or produced file is valid. |
+| **EDL / FCPXML / OTIO** | File formats for transferring editable timelines between different video editors; a CSV cut list is useful but not a full replacement for these. |
+| **Non-destructive / fail closed** | Non-destructive means the original footage is never overwritten. Fail closed means an unavailable AI feature reports failure instead of pretending a different operation succeeded. |
+
+### How to evaluate master-list features (UX through FUT)
+
+The master feature list is a **roadmap, not a ready-to-use menu**. For each item, read its new **How to test** instruction underneath it. A feature passes only when **every part of the checkbox wording** works on real inputs; a partly working feature stays unchecked. If a test references a tab, button, supported model, format, or backend that does **not** exist yet, mark it as *not available / needs implementation* in your feedback. There is no expectation for you to install complex software just to test a future item.
+
+**Simple test routine:** Start with a small test project and save a backup. For input/output features, use a real short recording, inspect both the preview and downloaded file. For AI features, use a real recording with a known event and inspect whether the AI selected the correct original timestamp. For recovery features, save a named snapshot before trying reloads or failure scenarios. Never test destructive controls on your only copy of an important project.
+
+**How to send feedback:** `R08 pass; R10 frame skipping; ASR-011 misses the first 30 seconds; EDIT-007 doesn't exist yet.` Only an explicit **pass/approve** authorizes checking the named item. Saying `built`, `tested by CI`, or `code added` does not.
+
+**The expanded entries below explain how you would test each desired feature, including features that are not built yet.** They are not new claims of implementation or approval.
+
 ### Feature acceptance index
 
 - [Workspace, navigation and accessibility](#1-workspace-navigation-and-accessibility) — UX (20 acceptance checks)
