@@ -4,6 +4,634 @@
 
 > **Project status: functional alpha.** This is a real editor foundation with working workflows, not a promise that every professional production feature has been implemented. Please read the [Feature status](#feature-status) and [Limitations](#limitations) sections before using it for important content.
 
+## Master feature checklist — OWNER APPROVAL REQUIRED
+
+> **Acceptance status: 0 / 494 owner-approved.** This is a complete *desired-feature and verification backlog*, **not** a claim that 494 features are missing or broken. Features mentioned elsewhere as "implemented", "working", or "fixed" remain **unchecked here until the repository owner personally confirms acceptance**.
+
+### Mandatory checkbox rules
+
+1. **Only the repository owner (tbenitz) can authorize checking a feature.** This means the owner must explicitly approve that named feature/ID as working and acceptable. An assistant, coding agent, test suite, developer, CI workflow, PR author, or commit message may **never infer approval** from code changes, test passes, demos, or claims of completion.
+2. **When adding functionality:** add a new `- [ ]` item if one does not already exist. Preserve existing IDs and statuses. Implementing or testing it does **not** authorize changing `[ ]` to `[x]`.
+3. **When fixing or improving functionality:** leave the checkbox unchecked unless the owner personally re-approves the feature. Report the implementation and any tests separately from acceptance.
+4. **When the owner reports a feature broken, incomplete, regressed, or not doing what was requested:** immediately set that item's checkbox to `- [ ]` (even if previously approved), add/update its entry in the **Open problems / re-review log**, and keep it unchecked until the owner expressly re-approves it after review.
+5. **No bulk approval:** do not automatically check all items in a section or all features in a release. Each specific checkbox/ID needs an explicit approval from the owner. If the owner expressly approves a defined set of IDs, only those IDs may be checked.
+6. **Do not delete or silently rename existing items:** keep stable IDs so bugs, acceptance decisions, and future feature requests can be tracked. New features get new unused IDs; never renumber earlier IDs.
+7. **Testing and completion are separate:** record machine-test results, implementation claims, and unresolved risks in engineering logs or issue notes; `[x]` means **owner acceptance only**, not code present or test passing.
+8. **If approval is ambiguous, leave unchecked and ask which feature IDs were approved.** Never assume approval from messages such as "go ahead", "deployed", "fixed it", or "looks better" unless an item is clearly accepted as complete.
+9. **Do not change unrelated functioning code solely to make progress on the checklist.** The checklist is tracking, not permission for a feature rewrite.
+10. **Re-evaluate accepted features after regressions.** If a user-reported bug affects an approved feature, revert to `[ ]` and log the reason immediately.
+
+**Checkbox meanings:** `[ ]` = not yet personally accepted / pending review (may already exist in the app); `[x]` = owner explicitly accepted and no later breakage report has invalidated it. Reports that a feature is implemented, partly implemented, planned, experimental, failing, or untested should be written as notes, not used as checkbox substitutes.
+
+**How to approve:** The owner may say, for example, **"I tested ASR-003 and EDIT-004; mark both complete."** An explicit owner instruction can authorize exactly those checkbox changes. If the owner later says **"ASR-003 is broken"**, return it to `[ ]` and document the problem.
+
+### Feature acceptance index
+
+- [Workspace, navigation and accessibility](#1-workspace navigation and accessibility) — UX (20 acceptance checks)
+- [Projects, organization and versioning](#2-projects organization and versioning) — PRJ (22 acceptance checks)
+- [Import, formats and source inspection](#3-import formats and source inspection) — IMP (24 acceptance checks)
+- [Media intelligence and universal search](#4-media intelligence and universal search) — IDX (23 acceptance checks)
+- [Transcription and transcript editing](#5-transcription and transcript editing) — ASR (26 acceptance checks)
+- [Visual understanding and source evidence](#6-visual understanding and source evidence) — VIS (18 acceptance checks)
+- [Multi-camera and multi-POV synchronization](#7-multi-camera and multi-pov synchronization) — MC (27 acceptance checks)
+- [AI Director: planning and execution](#8-ai director planning and execution) — DIR (29 acceptance checks)
+- [AI quality control and source fidelity](#9-ai quality control and source fidelity) — QA (20 acceptance checks)
+- [Professional timeline and editing controls](#10-professional timeline and editing controls) — EDIT (27 acceptance checks)
+- [Transitions, visual effects, and compositing](#11-transitions visual effects and compositing) — FX (24 acceptance checks)
+- [Audio editing, mixing and restoration](#12-audio editing mixing and restoration) — AUD (24 acceptance checks)
+- [Narration, dubbing, and voice generation](#13-narration dubbing and voice generation) — VO (16 acceptance checks)
+- [Captions, subtitles and text-based graphics](#14-captions subtitles and text-based graphics) — CAP (21 acceptance checks)
+- [Automatic reframing and aspect-ratio adaptation](#15-automatic reframing and aspect-ratio adaptation) — CROP (13 acceptance checks)
+- [Short-form discovery and Content Factory](#16-short-form discovery and content factory) — SHORT (21 acceptance checks)
+- [Generative media and responsible AI](#17-generative media and responsible ai) — GEN (12 acceptance checks)
+- [Export, encoding, and delivery](#18-export encoding and delivery) — EXP (26 acceptance checks)
+- [Reliability, performance and resumability](#19-reliability performance and resumability) — REL (25 acceptance checks)
+- [Model, compute and cloud provider settings](#20-model compute and cloud provider settings) — MODEL (20 acceptance checks)
+- [Privacy, licensing and provenance](#21-privacy licensing and provenance) — SEC (16 acceptance checks)
+- [Test coverage, validation and quality gates](#22-test coverage validation and quality gates) — TEST (25 acceptance checks)
+- [Longer-term pro additions](#23-longer-term pro additions) — FUT (15 acceptance checks)
+
+### 1. Workspace, navigation and accessibility
+
+- [ ] **UX-001** Five connected workspaces: Quick Create, AI Director, Pro Editor, Multi-POV, and Content Factory
+- [ ] **UX-002** Switch workspaces without losing the active project or timeline state
+- [ ] **UX-003** Dark and light themes with readable, consistent visual hierarchy
+- [ ] **UX-004** Resize, collapse, dock, undock, and reset editor panels
+- [ ] **UX-005** Custom workspace layouts saved across sessions
+- [ ] **UX-006** Media browser, source monitor, program monitor, inspector, Director, and timeline panels
+- [ ] **UX-007** Global command palette for actions and media search
+- [ ] **UX-008** Keyboard shortcut search, editing, customization, and export
+- [ ] **UX-009** Undo/redo status visible in the main toolbar
+- [ ] **UX-010** Full-screen and distraction-free playback modes
+- [ ] **UX-011** Dual-monitor editing layouts where supported
+- [ ] **UX-012** Small-screen and Chromebook-friendly adaptive layouts
+- [ ] **UX-013** Touch and trackpad-friendly controls with precise pointer editing
+- [ ] **UX-014** Accessible keyboard navigation and visible focus indicators
+- [ ] **UX-015** Screen-reader names for important controls
+- [ ] **UX-016** Adjustable UI scale and text size
+- [ ] **UX-017** High-contrast mode and accessible color choices
+- [ ] **UX-018** Reduced-motion option for animations
+- [ ] **UX-019** Contextual help, tooltips, and searchable settings
+- [ ] **UX-020** No inert buttons, simulated progress, or deceptive success messages
+
+### 2. Projects, organization and versioning
+
+- [ ] **PRJ-001** Create, rename, duplicate, archive, delete, and search projects
+- [ ] **PRJ-002** Project dashboard with thumbnail, dates, duration, and analysis state
+- [ ] **PRJ-003** Multiple timelines and sequences inside one project
+- [ ] **PRJ-004** Timeline branching for alternate edits
+- [ ] **PRJ-005** Project bins, nested folders, tags, favorites, filters, and sorting
+- [ ] **PRJ-006** Save project settings independently of global defaults
+- [ ] **PRJ-007** Persist all clip edits, tracks, markers, media references, and effects
+- [ ] **PRJ-008** Keep original media immutable throughout editing
+- [ ] **PRJ-009** Automatic project autosave after meaningful changes
+- [ ] **PRJ-010** Periodic recovery snapshots with restore points
+- [ ] **PRJ-011** Persistent undo history or saved version checkpoints
+- [ ] **PRJ-012** Named versions and comparison between original, AI draft, and manual final
+- [ ] **PRJ-013** Selective revert of individual AI changes
+- [ ] **PRJ-014** Portable project export and import with optional source media
+- [ ] **PRJ-015** Export editable timeline interchange data where supported (EDL/FCPXML/OTIO)
+- [ ] **PRJ-016** Re-link missing media by identity, path, or verified metadata
+- [ ] **PRJ-017** Show storage footprint for each project and cache category
+- [ ] **PRJ-018** Project templates and reusable brand profiles
+- [ ] **PRJ-019** Timestamp-anchored notes, comments, and review markers
+- [ ] **PRJ-020** Optional collaboration, review links, and role permissions
+- [ ] **PRJ-021** Project-wide search across clips, assets, transcripts, and comments
+- [ ] **PRJ-022** Portable backup integrity check and restored-project verification
+
+### 3. Import, formats and source inspection
+
+- [ ] **IMP-001** Drag-and-drop import of multiple video, audio, and image files
+- [ ] **IMP-002** Folder import and batch file selection where browser permissions allow
+- [ ] **IMP-003** Compatibility detection for MP4, MOV, MKV, WebM, AVI, M4V, and TS
+- [ ] **IMP-004** Compatible handling or conversion of H.264, H.265, VP9, AV1, and other available codecs
+- [ ] **IMP-005** Audio import for WAV, MP3, M4A/AAC, FLAC, OGG, and Opus
+- [ ] **IMP-006** Image import for JPG, PNG, WebP, GIF, SVG, TIFF, and supported RAW
+- [ ] **IMP-007** Import existing SRT, VTT, ASS/SSA, TTML, TXT, and timestamped transcript data where supported
+- [ ] **IMP-008** Import camera timecode and embedded media metadata where available
+- [ ] **IMP-009** Read multiple audio tracks, channel layouts, and embedded subtitles
+- [ ] **IMP-010** Identify resolution, pixel format, color space, HDR, frame rate, and variable frame rate
+- [ ] **IMP-011** Warn about unsupported formats before attempting a large decode
+- [ ] **IMP-012** Never silently substitute a different source or omit undecodable segments
+- [ ] **IMP-013** Check media corruption, missing frames, silent tracks, and incomplete files
+- [ ] **IMP-014** Find exact and near-duplicate media
+- [ ] **IMP-015** Group recordings by recording time, name, camera, or matching event
+- [ ] **IMP-016** Generate audio waveforms and seekable filmstrip thumbnails
+- [ ] **IMP-017** Generate low-resolution proxies without altering original files
+- [ ] **IMP-018** Allow source in/out selection before adding footage to timeline
+- [ ] **IMP-019** Capture still frames from source material
+- [ ] **IMP-020** Show source file properties and media health reports
+- [ ] **IMP-021** Manual and automatic source re-linking after reopening a project
+- [ ] **IMP-022** Random-access loading without decoding an entire long video into RAM
+- [ ] **IMP-023** Preserve each source file's original timestamps and timebase
+- [ ] **IMP-024** Optional ingest from supported recording devices and connected storage
+
+### 4. Media intelligence and universal search
+
+- [ ] **IDX-001** Build a searchable index of every imported source
+- [ ] **IDX-002** Index shots and scene boundaries
+- [ ] **IDX-003** Index transcript utterances and spoken keywords
+- [ ] **IDX-004** Index distinct speakers and speaker corrections
+- [ ] **IDX-005** Detect and index significant non-speech sound events
+- [ ] **IDX-006** Detect and index faces, people, poses, and reactions where supported
+- [ ] **IDX-007** Index visible objects, locations, actions, and screen text where supported
+- [ ] **IDX-008** Extract and index camera movement and shot framing
+- [ ] **IDX-009** Generate searchable visual and text embeddings
+- [ ] **IDX-010** Connect visible events with corresponding audio and dialogue
+- [ ] **IDX-011** Build event sequences rather than isolated keyword matches
+- [ ] **IDX-012** Search source media with natural-language descriptions
+- [ ] **IDX-013** Filter search by source file, speaker, date, duration, or event type
+- [ ] **IDX-014** Return playable source thumbnails with precise timestamps
+- [ ] **IDX-015** Display evidence and confidence for AI-identified events
+- [ ] **IDX-016** Search for action followed by reaction or dialogue
+- [ ] **IDX-017** Search for silence, black frames, clipping, or other defects
+- [ ] **IDX-018** Find visually similar or repeated shots
+- [ ] **IDX-019** Identify repeated content across multiple source files
+- [ ] **IDX-020** Cache analyzed segments and skip unchanged content
+- [ ] **IDX-021** Use coarse scanning followed by targeted high-detail inspection
+- [ ] **IDX-022** Expose an editable hierarchical scene/event timeline
+- [ ] **IDX-023** Export media index and evidence metadata as structured data
+
+### 5. Transcription and transcript editing
+
+- [ ] **ASR-001** Transcribe audio using a working on-device ASR engine
+- [ ] **ASR-002** Support optional remote transcription with explicit media-upload consent
+- [ ] **ASR-003** Choose model, language, quality level, and execution device
+- [ ] **ASR-004** Show actual model download, load, and processing state
+- [ ] **ASR-005** Support word-level timestamps when model capability permits
+- [ ] **ASR-006** Clearly label approximate timestamps or plain/segment fallback
+- [ ] **ASR-007** Preserve source timecodes throughout transcription and relinking
+- [ ] **ASR-008** Transcribe long files in bounded, overlapping windows
+- [ ] **ASR-009** Reconcile repeated words at chunk boundaries
+- [ ] **ASR-010** Detect untranscribed opening, ending, and internal gaps
+- [ ] **ASR-011** Show speech-coverage map including silence and uncertainty
+- [ ] **ASR-012** Retry all failed or suspicious gaps without restarting completed work
+- [ ] **ASR-013** Save incremental transcription checkpoints across sessions
+- [ ] **ASR-014** Detect and display overlapping speech without discarding either speaker
+- [ ] **ASR-015** Run speaker diarization using real supported models when configured
+- [ ] **ASR-016** Manually name, merge, split, and correct speakers
+- [ ] **ASR-017** Support speaker-count limits, confidence thresholds, and exceptions
+- [ ] **ASR-018** Correct words without changing source video or edit decisions
+- [ ] **ASR-019** Edit video from deliberate transcript selections as a separate action
+- [ ] **ASR-020** Search, filter, replace, and jump to transcript phrases
+- [ ] **ASR-021** Support manual transcription and imported subtitles when ASR fails
+- [ ] **ASR-022** Custom vocabulary for names, slang, and technical terms
+- [ ] **ASR-023** Side-by-side transcript, audio waveform, and preview playback
+- [ ] **ASR-024** Caption timing proofing and transcript version history
+- [ ] **ASR-025** Import/export SRT, VTT, TXT, and JSON transcripts
+- [ ] **ASR-026** Flag uncertain words for review rather than fabricating certainty
+
+### 6. Visual understanding and source evidence
+
+- [ ] **VIS-001** Detect camera cuts and scene boundaries from decoded frames
+- [ ] **VIS-002** Detect people and faces without falsely claiming reliable identity
+- [ ] **VIS-003** Track visible subjects, objects, and motion across frames
+- [ ] **VIS-004** Detect relevant visual actions from multiple supporting frames
+- [ ] **VIS-005** Recognize scene text and HUD indicators with uncertainty flags
+- [ ] **VIS-006** Distinguish visually observable actions from inferred outcomes
+- [ ] **VIS-007** Identify frame quality issues, freeze frames, and black frames
+- [ ] **VIS-008** Evaluate whether a source angle actually depicts claimed action
+- [ ] **VIS-009** Connect action timestamps to corresponding original source frames
+- [ ] **VIS-010** Show evidence thumbnails and original timestamps for AI conclusions
+- [ ] **VIS-011** Allow user corrections to event labels and confidence
+- [ ] **VIS-012** Respect custom minimum visual evidence requirements
+- [ ] **VIS-013** Use detailed analysis around high-interest event windows
+- [ ] **VIS-014** Avoid treating a single sampled image as proof of a complete event
+- [ ] **VIS-015** Expose model limitations and decoder failures
+- [ ] **VIS-016** Separate verified observations from AI hypotheses
+- [ ] **VIS-017** Allow manual selection of visual analysis ranges
+- [ ] **VIS-018** Reinspect contested source events at increased temporal sampling
+
+### 7. Multi-camera and multi-POV synchronization
+
+- [ ] **MC-001** Import and organize two or more independent camera/POV files
+- [ ] **MC-002** Align sources using common dialogue and audio fingerprints
+- [ ] **MC-003** Align sources using timecode or reliable metadata where available
+- [ ] **MC-004** Align sources using game clocks, event logs, or visual event anchors where available
+- [ ] **MC-005** Support user-created synchronization markers
+- [ ] **MC-006** Show and correct sync offset and drift over long recordings
+- [ ] **MC-007** Handle variable-frame-rate recordings and differing sample clocks
+- [ ] **MC-008** Preserve master event time and individual source time mapping
+- [ ] **MC-009** Display which source intervals overlap in original event time
+- [ ] **MC-010** Limit expensive cross-POV comparison to verified overlap ranges
+- [ ] **MC-011** Provide independent single-source analysis outside shared overlaps
+- [ ] **MC-012** Identify events that genuinely appear in multiple recordings
+- [ ] **MC-013** Flag uncertain or conflicting cross-source event matches
+- [ ] **MC-014** Compare synchronized source monitors frame by frame
+- [ ] **MC-015** Choose master dialogue/music/effects audio with manual overrides
+- [ ] **MC-016** Avoid doubled dialogue, phase cancellation, and echo during POV switches
+- [ ] **MC-017** Switch only when an angle adds relevant story or visual evidence
+- [ ] **MC-018** Prioritize visible action over artificial alternating-camera patterns
+- [ ] **MC-019** Maintain chronology and spatial continuity across edits
+- [ ] **MC-020** Show setup, confrontation, action, reaction, and resolution for each event
+- [ ] **MC-021** Keep gunfights/action sequences intact when relevant to the story
+- [ ] **MC-022** Allow synchronized PiP, split screen, and reaction replay
+- [ ] **MC-023** Offer smart angle-switch suggestions without forced automated cuts
+- [ ] **MC-024** Allow manual source angle replacement without losing synchronization
+- [ ] **MC-025** Detect unrelated camera shots and reject misleading switches
+- [ ] **MC-026** Track source provenance for every selected camera interval
+- [ ] **MC-027** Require user review when a meaningful event or outcome is uncertain
+
+### 8. AI Director: planning and execution
+
+- [ ] **DIR-001** Accept detailed natural-language creative briefs
+- [ ] **DIR-002** Support comedy, gaming, action, documentary, interview, tutorial, podcast, trailer, and custom modes
+- [ ] **DIR-003** Expose target audience, purpose, tone, and editing style controls
+- [ ] **DIR-004** Set adaptive duration targets, hard limits, and story-completeness preference
+- [ ] **DIR-005** Set automatic, target, and maximum number of desired outputs
+- [ ] **DIR-006** Allow source, speaker, topic, and time-range exclusions
+- [ ] **DIR-007** Allow locked clips and user-protected timeline sections
+- [ ] **DIR-008** Identify story candidates from actual indexed evidence
+- [ ] **DIR-009** Identify hook, setup, development, key moment, reaction, and payoff
+- [ ] **DIR-010** Assemble complete coherent stories across distant source intervals
+- [ ] **DIR-011** Preserve chronology unless explicitly approved to alter it
+- [ ] **DIR-012** Avoid unrelated, fabricated, or repetitively recycled clips
+- [ ] **DIR-013** Prefer quality over artificially meeting an output count
+- [ ] **DIR-014** Show candidate board with quality notes and original-source links
+- [ ] **DIR-015** Explain why each candidate is proposed or rejected
+- [ ] **DIR-016** Support alternate hooks and multiple draft versions
+- [ ] **DIR-017** Generate an edit plan with source-referenced clip ranges
+- [ ] **DIR-018** Execute real timeline insert, split, trim, move, and replace operations
+- [ ] **DIR-019** Add editable B-roll, captions, titles, and effects
+- [ ] **DIR-020** Add audio and music only when selected or permitted
+- [ ] **DIR-021** Preview proposed changes before irreversible actions
+- [ ] **DIR-022** Review source-to-timeline evidence after executing edits
+- [ ] **DIR-023** Prevent duplicate or unchanged AI output being presented as a new result
+- [ ] **DIR-024** Avoid hardcoded sample stories, fixed timestamps, or placeholder videos
+- [ ] **DIR-025** Allow a user to approve, reject, or revise each candidate
+- [ ] **DIR-026** Retain manual overrides when AI Director runs again
+- [ ] **DIR-027** Stop bounded revisions when further improvements are unproven
+- [ ] **DIR-028** Save AI instructions, settings, and edit-rationale history
+- [ ] **DIR-029** Support local, optional cloud, and hybrid analysis paths
+
+### 9. AI quality control and source fidelity
+
+- [ ] **QA-001** Separate measurable technical validation from subjective quality opinions
+- [ ] **QA-002** Show explanations and evidence for each quality score
+- [ ] **QA-003** Evaluate story clarity, setup, payoff, and completeness
+- [ ] **QA-004** Detect missing context and misleading reordering
+- [ ] **QA-005** Check visual relevance to spoken dialogue and claimed actions
+- [ ] **QA-006** Check duplicate, recycled, and unrelated scene choices
+- [ ] **QA-007** Check visible action and reaction timing
+- [ ] **QA-008** Check abrupt audio cuts, dropped words, and bad crossfades
+- [ ] **QA-009** Check silence, missing dialogue, clipping, and excessive peaks
+- [ ] **QA-010** Detect black frames, frozen frames, and missing video
+- [ ] **QA-011** Check subtitle accuracy, timing, readability, and safe areas
+- [ ] **QA-012** Check cropped-off faces, subjects, gameplay HUD, and important text
+- [ ] **QA-013** Check repeated or excessive transitions and visual effects
+- [ ] **QA-014** Inspect rendered samples including opening and closing segments
+- [ ] **QA-015** Link every identified issue to the exact timeline interval
+- [ ] **QA-016** Allow accepting or dismissing individual proposed fixes
+- [ ] **QA-017** Produce side-by-side before/after comparisons
+- [ ] **QA-018** Never fabricate a score or claim guaranteed engagement
+- [ ] **QA-019** Record verification results and unresolved issues with export
+- [ ] **QA-020** Block misleading success states if verification did not actually run
+
+### 10. Professional timeline and editing controls
+
+- [ ] **EDIT-001** Support unlimited practical video/audio/title tracks within resource limits
+- [ ] **EDIT-002** Show frame-accurate source/program timecodes
+- [ ] **EDIT-003** Insert, overwrite, lift, extract, and reorder clips
+- [ ] **EDIT-004** Split clips at playhead or selected positions
+- [ ] **EDIT-005** Trim left/right edges with precise handles
+- [ ] **EDIT-006** Ripple edit and automatic gap closure
+- [ ] **EDIT-007** Roll edit at adjacent clip boundaries
+- [ ] **EDIT-008** Slip edit while preserving timeline placement
+- [ ] **EDIT-009** Slide edit while preserving surrounding total duration
+- [ ] **EDIT-010** Move, duplicate, copy/paste, group, and ungroup clips
+- [ ] **EDIT-011** Link and unlink video with associated audio
+- [ ] **EDIT-012** Lock, hide, mute, solo, rename, and reorder tracks
+- [ ] **EDIT-013** Snapping to frames, clip edges, markers, words, and music beats
+- [ ] **EDIT-014** Editable markers, chapter points, and annotations
+- [ ] **EDIT-015** Adjustable zoom, track height, filmstrips, and waveform density
+- [ ] **EDIT-016** Keyboard shuttle playback and frame-step editing
+- [ ] **EDIT-017** Source in/out markers and source patching
+- [ ] **EDIT-018** Variable-speed playback, reverse, freeze frames, and speed ramps
+- [ ] **EDIT-019** Trim dead air without truncating meaningful reactions
+- [ ] **EDIT-020** Nested sequences and compound clips
+- [ ] **EDIT-021** Adjustment layers and reusable effect stacks
+- [ ] **EDIT-022** Real-time or optimized proxy playback where supported
+- [ ] **EDIT-023** Manual and automatic camera selection on synchronized tracks
+- [ ] **EDIT-024** Multi-select, clipboard actions, and robust undo/redo
+- [ ] **EDIT-025** Editable keyframes with Bézier/easing graph curves
+- [ ] **EDIT-026** Preview render caching for expensive effects
+- [ ] **EDIT-027** Non-destructive AI adjustments exposed as regular editable controls
+
+### 11. Transitions, visual effects, and compositing
+
+- [ ] **FX-001** Clean cuts and standard audio/video crossfades
+- [ ] **FX-002** Fade, dissolve, wipe, push, slide, zoom, spin, and whip-pan transitions
+- [ ] **FX-003** Transition duration, alignment, direction, easing, and intensity controls
+- [ ] **FX-004** Apply transitions without unexpectedly shortening source context
+- [ ] **FX-005** Position, scale, rotation, anchor, crop, skew, and perspective
+- [ ] **FX-006** Stabilization, horizon correction, and motion blur
+- [ ] **FX-007** Speed interpolation and optical-flow slow motion where supported
+- [ ] **FX-008** Keyframed pan, zoom, and subject-following camera motion
+- [ ] **FX-009** Brightness, exposure, contrast, highlights, shadows, temperature, and tint
+- [ ] **FX-010** Saturation, vibrance, curves, hue controls, and color wheels
+- [ ] **FX-011** Import and apply LUTs with correct color-space handling
+- [ ] **FX-012** Match grading between cameras and source segments
+- [ ] **FX-013** Support SDR and validated HDR workflows where engines permit
+- [ ] **FX-014** Sharpen, denoise, deflicker, blur, glow, grain, and vignette
+- [ ] **FX-015** Stylized VHS, glitch, chromatic aberration, and light leak effects
+- [ ] **FX-016** Opacity, blend modes, masks, and feathering
+- [ ] **FX-017** Chroma key and green-screen compositing
+- [ ] **FX-018** AI background segmentation and optional replacement
+- [ ] **FX-019** Object/face tracking for effect attachment
+- [ ] **FX-020** Picture-in-picture and multi-panel split-screen layouts
+- [ ] **FX-021** Tracked text overlays and motion graphics
+- [ ] **FX-022** Editable effect presets, strength, and parameter keyframes
+- [ ] **FX-023** Optional advanced node-based compositor
+- [ ] **FX-024** Warn when an effect cannot be rendered in the selected backend
+
+### 12. Audio editing, mixing and restoration
+
+- [ ] **AUD-001** Waveform-based audio clip editing and fades
+- [ ] **AUD-002** Independent dialogue, music, effects, ambience, and narration tracks
+- [ ] **AUD-003** Audio meters and peak-hold monitoring
+- [ ] **AUD-004** Volume and stereo pan automation with keyframes
+- [ ] **AUD-005** Audio buses, submixes, and configurable channel routing
+- [ ] **AUD-006** Noise reduction and voice isolation
+- [ ] **AUD-007** De-echo and reverb reduction where supported
+- [ ] **AUD-008** Equalizer with manual bands and presets
+- [ ] **AUD-009** Compressor, limiter, gate, expander, and de-esser
+- [ ] **AUD-010** Spectral repair of selected audio defects where supported
+- [ ] **AUD-011** Loudness measurement and LUFS normalization
+- [ ] **AUD-012** True-peak limiting and clipping warnings
+- [ ] **AUD-013** Music auto-ducking with adjustable threshold, attack, and release
+- [ ] **AUD-014** Manual overrides for ducking and music levels
+- [ ] **AUD-015** Crossfades and room-tone preservation across dialogue cuts
+- [ ] **AUD-016** Synchronize external audio to video with offset/drift correction
+- [ ] **AUD-017** Handle multiple source audio tracks without losing the intended channel
+- [ ] **AUD-018** Avoid duplicated or conflicting audio during multicam switches
+- [ ] **AUD-019** Detect silence, clipping, truncated words, and unexpected dropouts
+- [ ] **AUD-020** Source separation into vocals/music/effects where supported
+- [ ] **AUD-021** Music beat, phrase, and section markers for edit suggestions
+- [ ] **AUD-022** Profanity masking and clean-audio alternative export
+- [ ] **AUD-023** Mono, stereo, and multichannel output where supported
+- [ ] **AUD-024** Preserve original source audio for reversible editing
+
+### 13. Narration, dubbing, and voice generation
+
+- [ ] **VO-001** Record microphone narration into editable timeline tracks
+- [ ] **VO-002** Playback and monitor a recorded narration take
+- [ ] **VO-003** Generate TTS voiceover only through a real working engine
+- [ ] **VO-004** Choose voice, language, pitch, rate, pauses, and emphasis
+- [ ] **VO-005** Preview voice before committing generated audio to the timeline
+- [ ] **VO-006** Replace or regenerate individual narration sentences
+- [ ] **VO-007** Preserve completed voice segments if later generation fails
+- [ ] **VO-008** Generate scripts based on source content with factual review
+- [ ] **VO-009** Align narration timing to scenes and captions
+- [ ] **VO-010** Use narration to bridge authentic context, not invent events
+- [ ] **VO-011** Supported translation and dubbing workflows
+- [ ] **VO-012** Clearly distinguish synthetic speech from genuine source dialogue
+- [ ] **VO-013** Require authorization before personal voice cloning
+- [ ] **VO-014** Show model load, progress, and generation errors
+- [ ] **VO-015** Automatic music ducking during narration
+- [ ] **VO-016** Support optional low-latency chunk preview where engine permits
+
+### 14. Captions, subtitles and text-based graphics
+
+- [ ] **CAP-001** Editable dedicated caption tracks and caption regions
+- [ ] **CAP-002** Auto-generate subtitle segments from verified transcript timing
+- [ ] **CAP-003** Word, phrase, sentence, karaoke, and highlighted-word modes
+- [ ] **CAP-004** Manual caption timing, splitting, merging, and retiming
+- [ ] **CAP-005** Multiple languages and separate caption variants
+- [ ] **CAP-006** Per-speaker caption styles and colors
+- [ ] **CAP-007** Custom fonts, sizes, colors, outlines, shadows, backgrounds, and gradients
+- [ ] **CAP-008** Animate captions with editable timing and keyframes
+- [ ] **CAP-009** Set character, line, and reading-speed limits
+- [ ] **CAP-010** Auto-adjust captions away from faces, HUD, and important objects
+- [ ] **CAP-011** Preview platform safe areas and text contrast
+- [ ] **CAP-012** Caption proofreading, punctuation, and speaker labels
+- [ ] **CAP-013** Burn captions into final video
+- [ ] **CAP-014** Export SRT and VTT, with supported embedded text tracks
+- [ ] **CAP-015** Custom titles, lower thirds, chapter cards, and credits
+- [ ] **CAP-016** Shapes, arrows, callouts, focus rings, and diagrams
+- [ ] **CAP-017** Logo, watermark, and reusable branding overlay
+- [ ] **CAP-018** Animated intros, outros, countdowns, and progress bars
+- [ ] **CAP-019** Motion-track graphics to people or objects
+- [ ] **CAP-020** Optional word-level censor sound and subtitle treatment
+- [ ] **CAP-021** Graphic element templates that remain editable
+
+### 15. Automatic reframing and aspect-ratio adaptation
+
+- [ ] **CROP-001** Set project and delivery aspect ratios independently
+- [ ] **CROP-002** Support 16:9, 9:16, 1:1, 4:5, ultrawide, and custom sizes
+- [ ] **CROP-003** Detect relevant subjects and points of interest for reframing
+- [ ] **CROP-004** Track moving subjects across the entire selected shot
+- [ ] **CROP-005** Switch crop priorities when action changes
+- [ ] **CROP-006** Keep visible faces, captions, gameplay elements, and important text
+- [ ] **CROP-007** Allow user-defined safe margins and target positions
+- [ ] **CROP-008** Use split screen when two important subjects cannot share one crop
+- [ ] **CROP-009** Keyframe and ease crop motion between positions
+- [ ] **CROP-010** Preview source-to-output crop side by side
+- [ ] **CROP-011** Provide manual focus point and tracking correction controls
+- [ ] **CROP-012** Generate independent reframing variants per output target
+- [ ] **CROP-013** Flag unsatisfactory or untrackable automatic crops
+
+### 16. Short-form discovery and Content Factory
+
+- [ ] **SHORT-001** Identify comedy, action, learning, insights, interview, podcast, and gaming highlights
+- [ ] **SHORT-002** Require setup and payoff when generating story-based clips
+- [ ] **SHORT-003** Allow natural clip length when the complete story requires it
+- [ ] **SHORT-004** Search distant source segments when meaningfully connected
+- [ ] **SHORT-005** Preserve contextual reactions and relevant action footage
+- [ ] **SHORT-006** Generate several candidates only when distinct valid stories exist
+- [ ] **SHORT-007** Detect duplicate stories across proposed outputs
+- [ ] **SHORT-008** Minimize needless reuse of identical source ranges
+- [ ] **SHORT-009** Rank candidates with evidence and transparent rationale
+- [ ] **SHORT-010** Allow manual selection, deletion, and revision of candidates
+- [ ] **SHORT-011** Produce editable individual timelines per candidate
+- [ ] **SHORT-012** Create long-form compilations of approved stories
+- [ ] **SHORT-013** Generate horizontal, vertical, square, and feed variants
+- [ ] **SHORT-014** Generate teaser and trailer versions from the same project
+- [ ] **SHORT-015** Apply optional brand profiles consistently across variants
+- [ ] **SHORT-016** Batch produce captions and language variants
+- [ ] **SHORT-017** Create draft titles, descriptions, chapters, hashtags, and thumbnails
+- [ ] **SHORT-018** Offer thumbnail selection and template-based design
+- [ ] **SHORT-019** Maintain an output inventory showing rendered/not-rendered state
+- [ ] **SHORT-020** Flag outputs that use unlicensed or restricted media
+- [ ] **SHORT-021** Optional publication/scheduling integration with explicit authorization
+
+### 17. Generative media and responsible AI
+
+- [ ] **GEN-001** Optional generated B-roll and illustrative visual assets
+- [ ] **GEN-002** Optional AI-assisted images and thumbnails
+- [ ] **GEN-003** Optional generated backgrounds and scene cards
+- [ ] **GEN-004** Optional AI sound effects and music subject to licensing
+- [ ] **GEN-005** Optional shot extension, inpainting, and object removal
+- [ ] **GEN-006** Optional animated diagrams and visualization assets
+- [ ] **GEN-007** Optional AI video/style transformations with realistic capability disclosure
+- [ ] **GEN-008** Label generated content separately from original footage
+- [ ] **GEN-009** Keep source media intact and reversible
+- [ ] **GEN-010** Never substitute synthetic scenes for real-world evidence without disclosure
+- [ ] **GEN-011** Keep generative costs, limits, and provenance visible
+- [ ] **GEN-012** Require approval before generated material enters evidence-sensitive edits
+
+### 18. Export, encoding, and delivery
+
+- [ ] **EXP-001** Browser-compatible preview export for short jobs
+- [ ] **EXP-002** Production-quality deterministic rendering through supported native backend
+- [ ] **EXP-003** Encode MP4/H.264/AAC where supported
+- [ ] **EXP-004** Encode H.265, AV1, VP9, or professional intermediates where available
+- [ ] **EXP-005** Export WebM and supported image/animation formats
+- [ ] **EXP-006** Export audio-only WAV, MP3, FLAC, or supported alternatives
+- [ ] **EXP-007** Export still frames and image sequences
+- [ ] **EXP-008** Offer 480p, 720p, 1080p, 1440p, 4K, and custom resolution
+- [ ] **EXP-009** Offer common and source-matched frame rates including fractional FPS
+- [ ] **EXP-010** Set CBR/VBR/quality-based bitrate and supported codec options
+- [ ] **EXP-011** Select SDR/HDR color profile and supported bit depth
+- [ ] **EXP-012** Choose hardware or software encoder, with real capability testing
+- [ ] **EXP-013** Control audio codec, channel layout, bitrate, and sample rate
+- [ ] **EXP-014** Burn captions, export sidecar captions, or embed supported caption tracks
+- [ ] **EXP-015** Export full timeline, in/out range, or selected clips
+- [ ] **EXP-016** Export batch variants by platform, aspect, language, and quality
+- [ ] **EXP-017** Preview expected output settings, size estimates, and unsupported features
+- [ ] **EXP-018** Provide destination naming templates and project metadata
+- [ ] **EXP-019** Show frame-based progress, actual errors, and render logs
+- [ ] **EXP-020** Allow queueing, cancellation, and resume where backend supports it
+- [ ] **EXP-021** Verify output exists, decodes, and has correct duration and streams
+- [ ] **EXP-022** Inspect final rendered audio sync, captions, black frames, and clipping
+- [ ] **EXP-023** Never report export success based solely on progress reaching 100%
+- [ ] **EXP-024** Preserve completed output files if a later batch item fails
+- [ ] **EXP-025** Download output with reliable filename and format extension
+- [ ] **EXP-026** Package project and linked source metadata for portable archiving
+
+### 19. Reliability, performance and resumability
+
+- [ ] **REL-001** Use bounded streaming reads for multi-hour recordings
+- [ ] **REL-002** Avoid decoding complete long-form media into JS heap at once
+- [ ] **REL-003** Chunked transcription, waveform, visual, and export jobs
+- [ ] **REL-004** Save granular checkpoints after completed processing chunks
+- [ ] **REL-005** Resume safely after browser reload or server restart when persistent backend exists
+- [ ] **REL-006** Distinguish resumed processing from continuously running background work
+- [ ] **REL-007** Keep completed intermediate results after a later-stage error
+- [ ] **REL-008** Retry only failed intervals with bounded exponential backoff
+- [ ] **REL-009** Validate each checkpoint and its source/media identity before reuse
+- [ ] **REL-010** Provide clear queued, running, paused, complete, warning, failed states
+- [ ] **REL-011** Show actual current processing file, time range, model, and throughput
+- [ ] **REL-012** Offer ETA only when grounded in observed performance
+- [ ] **REL-013** Limit memory, worker count, model concurrency, and cache usage
+- [ ] **REL-014** Detect GPU device loss and recover with supported fallback or clear failure
+- [ ] **REL-015** Handle model initialization and unsupported backend errors explicitly
+- [ ] **REL-016** Never silently replace requested AI behavior with unrelated output
+- [ ] **REL-017** Detect storage quota and pause before potentially losing work
+- [ ] **REL-018** Cache model downloads and verified analysis across sessions when storage permits
+- [ ] **REL-019** User-controlled cache cleanup without deleting important projects
+- [ ] **REL-020** Support offline UI and eligible locally cached functionality
+- [ ] **REL-021** Offer logs, diagnostics export, and environment capability report
+- [ ] **REL-022** Verify saved projects reopen with correct edits and source references
+- [ ] **REL-023** Never fabricate task completion when a worker exits unexpectedly
+- [ ] **REL-024** Keep working manual editor usable while AI services fail
+- [ ] **REL-025** Prevent run-away batch work and unbounded retries
+
+### 20. Model, compute and cloud provider settings
+
+- [ ] **MODEL-001** Select local-only, hybrid, or authorized cloud processing per project
+- [ ] **MODEL-002** Separate models by ASR, diarization, vision, embeddings, Director, audio, and generation
+- [ ] **MODEL-003** Install/select compatible on-device models when available
+- [ ] **MODEL-004** Select CPU, WebGPU, WASM, or remote execution when supported
+- [ ] **MODEL-005** Expose actual model names, versions, download sizes, and compatibility
+- [ ] **MODEL-006** Verify model loads and produces expected output on a test clip
+- [ ] **MODEL-007** Offer downloadable or cached local models where practical
+- [ ] **MODEL-008** Select processing quality, visual sample rate, chunk sizes, and concurrency
+- [ ] **MODEL-009** Configure timeouts, context, inference limits, and retry policy
+- [ ] **MODEL-010** Allow bring-your-own-provider API keys with secure handling guidance
+- [ ] **MODEL-011** Never embed application-owner secret keys in public front-end code
+- [ ] **MODEL-012** Require permission before sending media or transcripts to external providers
+- [ ] **MODEL-013** Show exact provider/service used for each processing stage
+- [ ] **MODEL-014** Estimate external inference costs before starting heavy jobs
+- [ ] **MODEL-015** Show per-job model usage, tokens where applicable, and cost estimates
+- [ ] **MODEL-016** Set per-job and monthly external spending caps
+- [ ] **MODEL-017** Reuse completed model output to avoid paying for duplicate analysis
+- [ ] **MODEL-018** Allow model/provider fallback only when disclosed and approved
+- [ ] **MODEL-019** Persist nonsecret model preferences across projects
+- [ ] **MODEL-020** Provide local model diagnostic and performance benchmarking page
+
+### 21. Privacy, licensing and provenance
+
+- [ ] **SEC-001** Make cloud media upload opt-in and clearly labeled
+- [ ] **SEC-002** Show which files, frames, audio chunks, or transcripts leave the device
+- [ ] **SEC-003** Require explicit permission for voice or likeness cloning
+- [ ] **SEC-004** Allow provider credentials to be removed
+- [ ] **SEC-005** Preserve original file/source attribution and timestamp provenance
+- [ ] **SEC-006** Indicate when clips, narration, captions, or images are AI-generated
+- [ ] **SEC-007** Warn about misleading real-world event reconstructions
+- [ ] **SEC-008** Record rights/licensing information for third-party music and assets
+- [ ] **SEC-009** Avoid bundling unlicensed music or copyrighted media
+- [ ] **SEC-010** Support local project deletion and cache/data cleanup
+- [ ] **SEC-011** Provide optional accountless local workflows
+- [ ] **SEC-012** Validate imported files and disallow unsafe path traversal in bundles
+- [ ] **SEC-013** Avoid exposing API tokens in logs or exported project files
+- [ ] **SEC-014** Explain browser storage limitations and data-loss risks
+- [ ] **SEC-015** Require explicit authorization for publishing or externally sharing projects
+- [ ] **SEC-016** Support per-project disclosure and authenticity metadata
+
+### 22. Test coverage, validation and quality gates
+
+- [ ] **TEST-001** Test basic import/playback/trim/export without any AI service
+- [ ] **TEST-002** Test two-hour and three-hour video sources without unbounded memory growth
+- [ ] **TEST-003** Test simultaneous large sources and independent audio tracks
+- [ ] **TEST-004** Test variable-frame-rate time mapping and A/V synchronization
+- [ ] **TEST-005** Test transcription includes recording start and end
+- [ ] **TEST-006** Test gaps, low-volume segments, and overlapping speaker recognition
+- [ ] **TEST-007** Test source SRT relinking preserves correct timestamps
+- [ ] **TEST-008** Test true multi-POV overlap alignment and drift correction
+- [ ] **TEST-009** Test event matching rejects unrelated camera footage
+- [ ] **TEST-010** Test story assembly contains the actual action and relevant reaction
+- [ ] **TEST-011** Test candidate count cannot force filler or duplicate stories
+- [ ] **TEST-012** Test selected creative brief materially changes the edited result
+- [ ] **TEST-013** Test manual cuts survive later AI Director operations
+- [ ] **TEST-014** Test effects, subtitles, and audio export match preview
+- [ ] **TEST-015** Test browser refresh recovers saved timeline and progress
+- [ ] **TEST-016** Test GPU/model/provider failure preserves existing work
+- [ ] **TEST-017** Test media source moved/relinked and resumed without corruption
+- [ ] **TEST-018** Test cloud API failure reports error and does not fake success
+- [ ] **TEST-019** Test empty/no-match analysis yields truthful no-results state
+- [ ] **TEST-020** Test export validity after cancellation, retries, and batch partial failure
+- [ ] **TEST-021** Test final output audio/video is playable and duration is accurate
+- [ ] **TEST-022** Test keyboard accessibility and smaller screen layout
+- [ ] **TEST-023** Test different output ratios keep faces, HUD, and text in frame
+- [ ] **TEST-024** Test no checked acceptance item can be added without owner's explicit approval
+- [ ] **TEST-025** Test regression cases for all previously reported broken features
+
+### 23. Longer-term pro additions
+
+- [ ] **FUT-001** Optional desktop Windows/macOS/Linux companion
+- [ ] **FUT-002** Optional persistent GPU worker service for heavy video analysis
+- [ ] **FUT-003** Real-time screen, microphone, and webcam capture
+- [ ] **FUT-004** OBS or supported live capture integration
+- [ ] **FUT-005** Multichannel/surround audio mixing and monitoring
+- [ ] **FUT-006** Professional HDR finishing and color-managed mastering
+- [ ] **FUT-007** Advanced rotoscoping and tracking tools
+- [ ] **FUT-008** Collaborative real-time editing and reviewer permissions
+- [ ] **FUT-009** Cloud library and cross-device synchronization when authorized
+- [ ] **FUT-010** Native effects/transitions/AI-model plugin extension API
+- [ ] **FUT-011** User-manageable template and asset marketplace or library
+- [ ] **FUT-012** Professional motion tracking and 3D compositing tools
+- [ ] **FUT-013** Immersive/360 video editing where supported
+- [ ] **FUT-014** Automated but explicitly authorized publishing and scheduling
+- [ ] **FUT-015** Advanced project analytics based on actual export/feedback data
+
+### Open problems / re-review log
+
+Report any feature as broken using its stable ID. A report goes here **and the item stays or becomes unchecked**. Do not remove an entry merely because code was changed; close the report only after the owner explicitly accepts the repaired feature.
+
+| Feature ID | Owner-reported problem | Reported date | Engineering notes / attempted fix | Owner re-approved? |
+| --- | --- | --- | --- | --- |
+| _None recorded against this new checklist yet_ | _Add reported problems here_ | — | — | No |
+
+### Acceptance change record
+
+Every transition from `[ ]` to `[x]` must identify a specific, explicit owner-approval message. Record date, feature IDs, what was approved, and the approval reference/quote. Never invent approvals.
+
+| Date | Feature ID(s) | Owner's explicit acceptance | Notes |
+| --- | --- | --- | --- |
+| _No owner approvals recorded at checklist creation_ | — | — | All 494 items start unchecked |
+
+---
+
 ## Visually reviewed multi-POV fights (v0.9.0)
 
 1. Import/relink both original videos and their original-timestamp SRTs. **Match POVs by shared spoken phrases**, then verify the alignment at the start and end of the shared recording.
