@@ -299,7 +299,7 @@ export class Renderer{
   const initialTick=this.onTick,previousTime=this.time,oldWidth=this.canvas.width,oldHeight=this.canvas.height,oldMuted=this.previewMuted;
   let capture=null;
   try{
-   onStatus('Preparing real H.264/AAC MP4 export…');
+   onStatus('Preparing real H.264 MP4 export (AAC audio where available)…');
    await this.initAudio();
    await this.createAudioPlayers();
    this.previewMuted=false;
@@ -322,7 +322,7 @@ export class Renderer{
    let endRender;
    const done=new Promise(resolve=>endRender=resolve);
    this.finishedRender=endRender;
-   onStatus('Recording MP4 in real time (H.264 video + AAC audio)…');
+   onStatus('Recording MP4 in real time (H.264 video + '+capture.audioCodec.toUpperCase()+' audio)…');
    await this.play();
    if(!this.playing)throw Error('Source playback could not start. No MP4 was produced.');
    const result=await done;
@@ -331,11 +331,11 @@ export class Renderer{
    if(capture.error)throw Error('MP4 encoder failed: '+capture.error.message);
    onStatus('Finalizing and validating the MP4 file…');
    this.pause();
-   const blob=await capture.finish();capture=null;
+   const audioCodecLabel=capture.audioCodec.toUpperCase();const blob=await capture.finish();capture=null;
    if(blob.size<64)throw Error('MP4 file is unexpectedly empty.');
    download(blob,`${safeName(this.project.name)}-${this.settings.aspect.replace(':','x')}.mp4`,'video/mp4');
    onProgress(1);
-   onStatus(`Exported MP4 (H.264/AAC · ${(blob.size/1048576).toFixed(1)} MB)`);
+   onStatus(`Exported MP4 (H.264/${audioCodecLabel} · ${(blob.size/1048576).toFixed(1)} MB)`);
    return blob;
   }catch(error){
    onStatus('MP4 export failed: '+error.message);
