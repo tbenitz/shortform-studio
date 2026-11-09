@@ -874,8 +874,17 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
    toast('Humor search failed: '+e.message,true);
   }finally{humorBusy=false;humorAbort=null;if(tab==='humor')renderInspector()}
  };
- on('humorFindLocal',()=>runFunnySearch('clips'));
- on('humorFindStory',()=>runFunnySearch('story'));
+ // Switching the two main modes must never accidentally repeat paid AI calls.
+ // A user consciously invokes Rescan from Advanced options for new source data.
+ const chooseHumorMode=mode=>{
+  if(humorBusy)return;
+  humorView=mode;
+  if((p.humorMoments||[]).length){renderInspector();return}
+  runFunnySearch(mode);
+ };
+ on('humorFindLocal',()=>chooseHumorMode('clips'));
+ on('humorFindStory',()=>chooseHumorMode('story'));
+ on('humorRescan',()=>runFunnySearch(humorView));
  on('humorFindAI',()=>runFunnySearch(humorView,{forceAI:true}));
  on('humorCancel',()=>{humorAbort?.abort();toast('AI humor scan cancellation requested')});
  on('humorMore',()=>{humorShown+=70;renderInspector()});
