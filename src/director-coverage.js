@@ -128,7 +128,9 @@ export function historyEntries(candidates=[]){
 }
 /** Generates a full-length pool in linear-ish time; no per-seed scan of all utterances. */
 export function discoverFullRecording(utterances,assets=[],settings={},onProgress=()=>{}){
- const min=clamp(settings.clipMin??15,5,600),max=Math.max(min+1,clamp(settings.clipMax??60,min+1,600));
+ const min=Number(settings.clipMin)>0?clamp(settings.clipMin,1,21600):0;
+  const max=Number(settings.clipMax)>0?Math.max(min+1,clamp(settings.clipMax,min+1,21600)):Infinity;
+  const autoDuration=!Number.isFinite(max);
  const mode=settings.mode||'all',regex=patterns[mode]||patterns.all;
  const grouped=new Map();for(const u of utterances||[]){if(!u.assetId||!(u.end>u.start))continue;if(!grouped.has(u.assetId))grouped.set(u.assetId,[]);grouped.get(u.assetId).push(u)}
  const raw=[];
@@ -146,9 +148,9 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
    const seed=list[i];if(seed.end-seed.start<.6)continue;
    let j=i,end=seed.start,words=0,length=0;
    const sequential=[];
-   while(j<list.length&&j<i+24){
+   while(j<list.length&&j<i+(autoDuration?800:24)){
     const u=list[j],gap=j>i?u.start-end:0;
-    if(gap>32)break;
+    if(gap>(autoDuration?5.5:32))break;
     const uLength=Math.max(.01,u.end-u.start);
     if(length+uLength>max+.2)break;
     const previous=sequential.at(-1);
@@ -158,7 +160,7 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
      previous.end=u.end;length+=increment;
     }else{sequential.push(makeSegment(assetId,u.start,u.end));length+=uLength}
     end=u.end;words+=(u.text||'').split(/\s+/).length;j++;
-    if(length>=Math.max(min,Math.min(max,min+10)))break;
+    if(!autoDuration&&length>=Math.max(min,Math.min(max,min+10)))break;
    }
    if(length<min*.83||length>max+.2||words<4)continue;
    const clip=sequential;
