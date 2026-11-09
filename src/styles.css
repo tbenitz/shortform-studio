@@ -73,3 +73,14 @@
 .preview-fullscreen-exit:not([hidden]){display:block}
 #humorPreviewVideo:fullscreen{width:100vw;height:100vh;object-fit:contain;background:black}
 @media(max-width:700px){.humor-preview-dialog{padding:9px}.humor-list{max-height:400px}.humor-list .row{flex-wrap:wrap}}
+
+/* Humor is an outcome, not a configuration form. Primary mode choice stays visible. */
+.humor-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.humor-choices button{padding:15px 9px;border-radius:11px;text-align:left;font-size:14px;font-weight:700;line-height:1.25;min-height:86px}
+.humor-choices button small{display:block;font-size:11px;font-weight:400;line-height:1.35;margin-top:7px;color:inherit;opacity:.8}
+.humor-advanced{margin:9px 0;padding:9px;border:1px solid #304159;border-radius:8px;background:#101b2c}
+.humor-advanced>summary{font-size:11px;cursor:pointer;color:#9fb4cf}
+.story-card{border-left:3px solid #80c4a5!important}
+.story-card details .metric{align-items:center}
+.story-card .humor-dialogue{font-size:12px;margin:4px 0 10px}
+@media(max-width:590px){.humor-choices{grid-template-columns:1fr}.humor-choices button{min-height:60px;padding:12px}}
