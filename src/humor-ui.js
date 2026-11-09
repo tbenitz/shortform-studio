@@ -3,7 +3,7 @@ import {DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
 import {findConnectedFunnyStories} from './humor-stories.js';
 
 /** One intent, two actions: user should not configure an AI pipeline. */
-export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=50,maxCalls=48,displayLimit=100,instructions=null,mode='clips',aiConfigured=false}={}){
+export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,maxCalls=48,displayLimit=100,instructions=null,mode='clips',aiConfigured=false}={}){
  const sources=(p.assets||[]).filter(a=>a.type==='video'||a.type==='audio'),lookup=new Map(sources.map(a=>[a.id,a]));
  const all=(p.humorMoments||[]).filter(m=>scope==='all'||m.assetId===scope).slice().sort((a,b)=>a.start-b.start||a.assetId.localeCompare(b.assetId));
  const order=Array.isArray(p.compilationOrder)?p.compilationOrder:[],byId=new Map((p.humorMoments||[]).map(m=>[m.id,m]));
