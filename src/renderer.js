@@ -33,7 +33,7 @@ export class Renderer{
    this.syncAudio();
    return;
   }
-  this.audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  this.audioCtx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:48000});
   this.mediaDestination=this.audioCtx.createMediaStreamDestination();
   this.video.muted=false;this.video.volume=1;
   const source=this.audioCtx.createMediaElementSource(this.video);
