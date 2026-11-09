@@ -56,6 +56,10 @@ jobs:
         run: npm run smoke:faces
       - name: Verify audio reader decodes bounded WebM windows in Chromium
         run: npm run smoke:audio
+      - name: Generate a short motion-and-audio source for MP4 export verification
+        run: ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'testsrc2=size=320x180:rate=24:duration=3.5' -f lavfi -i 'sine=frequency=523:sample_rate=48000:duration=3.5' -map 0:v -map 1:a -c:v libvpx -deadline realtime -cpu-used 8 -b:v 350k -c:a libopus -b:a 80k -t 3.5 _site/mp4-test.webm
+      - name: Verify favorites, fresh restore, and actual H.264/AAC MP4 output in Chromium
+        run: npm run smoke:mp4
       - name: Verify three-hour AI Director discovery and hour filters in Chromium
         run: npm run smoke:director
       - name: Generate long-seek playback test video
