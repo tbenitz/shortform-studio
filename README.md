@@ -463,6 +463,30 @@
 
 **Known issue / cause:** The original GitHub Pages branch build was not shipping `vendor/mediabunny/mediabunny.mjs`, while the packaging-only custom deployment could fail during unrelated playback tests. The build now checks the pinned compiled encoder into the repository for branch hosting, the renderer has pinned backup sources, and the service worker no longer fails installation just because a nonessential asset is missing. Your actual Chromebook export still needs manual review before R20, R45 or R46 can be approved.
 
+### New implementation review R47–R52 (natural-length clips and drawn video crop)
+
+**For owner approval only: all six remain unchecked.** The code removes the default 75-second maximum in the Director and old saved settings, permits context-driven longer funny conversations and connected stories, and adds a real pointer-driven crop rectangle. These changes need your confirmation on real footage; do not mark working based only on coding or CI.
+
+- [ ] **R47** No implicit 75-second limit for new or old Director projects
+  - **Hands-on owner test:** Open a saved project that previously showed the default 20–75-second range. Check Director: duration limits should say zero/automatic, and a real continuous source conversation longer than 75 seconds must be eligible without a maximum-duration error. Setting an explicit optional limit must still remain possible.
+
+- [ ] **R48** Local funny clips follow actual conversational context, not a 50-second window
+  - **Hands-on owner test:** Import a timed SRT covering a funny 90–120-second continuous exchange. Click Find Funny Clips and inspect the proposed real source in/out timestamps. Make sure setup, reactions and payoff are not mechanically cut off at 50 or 75 seconds. Unrelated dry talk should still be excluded.
+
+- [ ] **R49** Related funny storylines can include more than six cuts across a long recording
+  - **Hands-on owner test:** Import a recording with more than six separate, nonoverlapping funny exchanges about the same actual topic, separated by many minutes. Click Make a Funny Story; confirm the proposed edits can include all matching source moments without 75-second, six-cut or nine-minute defaults silently truncating them. Unrelated clips should not be forced in.
+
+- [ ] **R50** Drag a rectangle directly around a person in the main preview
+  - **Hands-on owner test:** With a real decoded source frame and one selected video segment, click Editor → Draw box around person or the main video transport Draw Crop button. Drag from one corner to the opposite corner around the desired person. A visible selection outline should follow the pointer; release to center and zoom that clip around the chosen area. Press Esc to cancel without applying.
+
+- [ ] **R51** Manually drawn framing persists per clip and across reloads
+  - **Hands-on owner test:** Draw a crop around one visible speaker, check focus X/Y and Zoom in Editor, then select another segment to confirm its framing was not overwritten. Save, refresh, click Load Last Project, and verify the original clip's manual crop rectangle and focus/zoom return.
+
+- [ ] **R52** Manually drawn crop appears in the actual exported MP4
+  - **Hands-on owner test:** Draw around a person, build a compilation if wanted, export genuine MP4, play the downloaded file and check it actually has the same focus/zoom as the program preview. Check both portrait and wide aspect ratios; the original file must remain untouched. Do not approve if media is black, audio missing, or framing differs.
+
+**Design distinction:** A drawn box adjusts the saved clip's camera focus/zoom (cropping by reframing). It is **not** a freehand silhouette cutout, background removal, or verified visual speaker identification. If you specifically need one of those effects, it requires a separate implementation and test.
+
 ### Full future-update tracking queue (NEXT-001–NEXT-040)
 
 The **complete original 494-feature master checklist remains below**, including the plain-English description and test for EVERY item. This extra queue organizes 40 specific next improvements by priority. None are represented as implemented or accepted. This makes the development goals explicit without losing any of the master checklist.
