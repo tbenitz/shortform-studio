@@ -27,7 +27,7 @@ function groundedSharedAiTopic(a,b){
 }
 function validSourceMoment(m){return m&&typeof m.id==='string'&&typeof m.assetId==='string'&&Number.isFinite(m.start)&&Number.isFinite(m.end)&&m.end>m.start&&typeof m.dialogue==='string'}
 /** At least two distinct cuts, shared topical evidence, chronology, same original source. */
-export function findConnectedFunnyStories(moments,{maxSourceGap=240,maxStorySpan=540,maxClips=6,minTopicWords=2}={}){
+export function findConnectedFunnyStories(moments,{maxSourceGap=Infinity,maxStorySpan=Infinity,maxClips=Infinity,minTopicWords=2}={}){
  const candidates=(moments||[]).filter(validSourceMoment).slice().sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start),stories=[],seen=new Set();
  for(let i=0;i<candidates.length;i++){
   const seed=candidates[i],group=[seed],common=new Set(storyTopicWords(seed.dialogue));let groundedAiTopic=null;
