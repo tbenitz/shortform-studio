@@ -456,7 +456,7 @@ async function runDirector(exhaustive=false){
 }
 
 function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const key=e.dataset.setting;let val=e.type==='checkbox'?e.checked:e.type==='number'||e.type==='range'?Number(e.value):e.value;if(key==='clipMin'||key==='clipMax'){val=clamp(val,5,600)}if(key==='clipCount')val=clamp(val,0,MAX_DISCOVERY_CLIPS);if(key==='gameplayMinScore')val=clamp(val,25,90);if(key==='semanticSamples')val=clamp(val,40,450);if(key==='maxAICalls')val=clamp(val,1,96);if(key==='captionSize')val=clamp(val,12,120);if(key==='captionWords')val=clamp(val,1,12);if(key==='captionX'||key==='captionPosition')val=clamp(val,5,95);if(key==='captionOutlineWidth')val=clamp(val,0,12);if(key==='captionMaxLines')val=clamp(val,1,3);p.settings[key]=val;if(key==='aspect')$('aspectSelect').value=val;engine.setSize();update()});
- c.querySelectorAll('[data-edit]').forEach(e=>e.onchange=()=>{const key=e.dataset.edit,obj=p.segments.find(s=>s.id===p.selectedSegment)||p.audio.find(a=>a.id===p.selectedAudio);if(!obj)return;commit();const k=key==='audioStart'?'start':key==='audioDuration'?'duration':key==='audioVolume'?'volume':key==='audioRole'?'role':key;let v=e.type==='number'?Number(e.value):e.value;if(k==='speed')v=clamp(v,.25,3);if(k==='start')v=clamp(v,0,obj.end?obj.end-.1:duration(p));if(k==='end')v=clamp(v,(obj.start||0)+.1,asset(obj.assetId)?.duration||Number.MAX_SAFE_INTEGER);if(k==='volume')v=clamp(v,0,2);if(['focusX','focusY','focusEndX','focusEndY'].includes(k))v=clamp(v,0,1);if(k==='zoom'||k==='zoomEnd')v=clamp(v,.5,5);obj[k]=v;update()});
+ c.querySelectorAll('[data-edit]').forEach(e=>e.onchange=()=>{const key=e.dataset.edit,obj=p.segments.find(s=>s.id===p.selectedSegment)||p.audio.find(a=>a.id===p.selectedAudio);if(!obj)return;commit();const k=key==='audioStart'?'start':key==='audioDuration'?'duration':key==='audioVolume'?'volume':key==='audioRole'?'role':key;let v=e.type==='number'?Number(e.value):e.value;if(k==='speed')v=clamp(v,.25,3);if(k==='start')v=clamp(v,0,obj.end?obj.end-.1:duration(p));if(k==='end')v=clamp(v,(obj.start||0)+.1,asset(obj.assetId)?.duration||Number.MAX_SAFE_INTEGER);if(k==='volume')v=clamp(v,0,2);if(['focusX','focusY','focusEndX','focusEndY'].includes(k))v=clamp(v,0,1);if(k==='zoom'||k==='zoomEnd')v=clamp(v,.5,5);if(k==='cropFaceIndex')v=clamp(Number(v),-1,3);if(k==='faceStrength')v=clamp(Number(v),0,100);obj[k]=v;update()});
  const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
  on('markIn',()=>{const m=$('sourcePreview');if(m&&Number.isFinite(m.currentTime)){$('sourceIn').value=m.currentTime.toFixed(2);toast(`In set to ${fmt(m.currentTime)}`)}});
  on('markOut',()=>{const m=$('sourcePreview');if(m&&Number.isFinite(m.currentTime)){$('sourceOut').value=m.currentTime.toFixed(2);toast(`Out set to ${fmt(m.currentTime)}`)}});
@@ -658,6 +658,46 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  c.querySelectorAll('[data-candidate-review]').forEach(e=>e.onclick=()=>{const candidate=p.candidates.find(x=>x.id===e.dataset.candidateReview);if(!candidate)return;const r=inspectStory(candidate.segments,p.words,p.assets);const summary=[`Editorial review: ${r.score}/100 (heuristic, not predictive)`,...r.strengths,...r.issues.map(i=>`${i.level}: ${i.message}`)].join('\n');alert(summary)});
  c.querySelectorAll('[data-candidate-variant]').forEach(e=>e.onclick=()=>{const candidate=p.candidates.find(x=>x.id===e.dataset.candidateVariant);if(!candidate||candidate.segments.length<2)return toast('Need at least two moments for an alternate opening',true);commit();const variant={...candidate,id:uid(),favorite:false,title:`Alternate opening: ${candidate.title}`,segments:alternateOpener(candidate.segments,1).map(s=>({...s,id:uid()})),reason:`Alternate opener based on the same original footage. Chronology and story context need review.`,createdAt:Date.now()};p.candidates.unshift(variant);update();toast('Alternative edit created. Verify it preserves the meaning of source events.')});
  c.querySelectorAll('[data-candidate-use],[data-candidate-play]').forEach(e=>e.onclick=async()=>{const id=e.dataset.candidateUse||e.dataset.candidatePlay,candidate=p.candidates.find(x=>x.id===id);if(!candidate)return;commit();p.segments=candidate.segments.map(s=>({...s,id:uid(),favorite:!!s.favorite||!!candidate.favorite}));p.selectedSegment=p.segments[0]?.id||null;engine.pause();await engine.seek(0);update();const missing=[...new Set(candidate.segments.map(s=>s.assetId))].filter(id=>!asset(id)?.url);if(missing.length)toast('This clip has captions, but the original video file is not linked. Click Relink original video in the preview and select the SAME recording.',true);if(e.dataset.candidatePlay){await engine.play()}else chooseTab('editor');toast(`Opened proposal: ${candidate.title}`)});
+
+ // Per-clip crop: the user can pick the visible speaker manually or explicitly
+ // map diarized speaker labels to horizontally ordered real face detections.
+ c.querySelectorAll('[data-speaker-face]').forEach(e=>e.onchange=()=>{
+  const clip=p.segments.find(s=>s.id===p.selectedSegment);if(!clip)return;
+  const speaker=decodeURIComponent(e.dataset.speakerFace),index=Number(e.value);
+  commit('Mapped transcript speaker to visible face');
+  clip.speakerFaceMap||={};
+  if(index<0||!Number.isInteger(index))delete clip.speakerFaceMap[speaker];else clip.speakerFaceMap[speaker]=index;
+  update();toast('Saved speaker mapping. Verify it follows the actual speaking face in preview.');
+ });
+ c.querySelectorAll('[data-crop-preset]').forEach(b=>b.onclick=()=>{
+  const clip=p.segments.find(s=>s.id===p.selectedSegment);if(!clip)return;
+  commit('Quick crop speaker focus');
+  const pos={left:.22,center:.5,right:.78}[b.dataset.cropPreset]??.5;
+  clip.cropMode='manual';clip.focusX=clip.focusEndX=pos;
+  clip.focusY=clip.focusEndY=.5;
+  if(b.dataset.cropPreset!=='center')clip.zoom=clip.zoomEnd=Math.max(1.5,Number(clip.zoom)||1);
+  update();toast('Manual crop focus moved '+b.dataset.cropPreset+'. Check the main preview.');
+ });
+ on('cropPickSpeaker',()=>{
+  const clip=p.segments.find(s=>s.id===p.selectedSegment);
+  if(!clip)return toast('Select a timeline clip first.',true);
+  cropPickActive=true;$('previewCanvas').style.cursor='crosshair';
+  toast('Click the visible person you want to center in the large preview canvas.');
+ });
+ on('scanSelectedClipFaces',async()=>{
+  if(faceBusy)return;
+  const clip=p.segments.find(s=>s.id===p.selectedSegment),a=clip&&asset(clip.assetId);
+  if(!a?.file||a.type!=='video')return toast('Reconnect the source video first.',true);
+  faceBusy=true;faceController=new AbortController();renderInspector();
+  try{
+   const frames=await scanFaces(a.file,{step:2,maxSamples:360,signal:faceController.signal,onProgress:(ratio,msg)=>setStatus('Face scan '+Math.round(ratio*100)+'%: '+msg)});
+   commit('Faces found for cropped clip');
+   p.faceTracks||={};p.faceTracks[a.id]=frames;
+   const selected=p.segments.find(s=>s.id===clip.id);if(selected)selected.cropMode='auto';
+   update();toast('Scanned '+frames.length+' real source frames. Face-follow is on for this clip; verify its framing.');
+  }catch(e){toast('Face scan: '+e.message,true)}
+  finally{faceBusy=false;faceController=null;if(tab==='editor')renderInspector()}
+ });
  on('toggleSegmentFavorite',()=>{const clip=p.segments.find(s=>s.id===p.selectedSegment);if(!clip)return;commit('Favorite edited clip');clip.favorite=!clip.favorite;update();toast(clip.favorite?'Clip added to favorites':'Clip removed from favorites')});on('removeSeg',removeSelected);on('splitSelected',splitSelected);on('cleanDeadAir',()=>{const segments=removeDeadAir(p,p.selectedSegment,1.2,.16);if(!segments)return toast('No long gaps found, or this clip needs transcript timestamps',true);commit();const i=p.segments.findIndex(s=>s.id===p.selectedSegment);p.segments.splice(i,1,...segments);p.selectedSegment=segments[0].id;update();toast(`Removed long gaps; created ${segments.length} shorter cuts`)});on('duplicateSeg',()=>{const i=p.segments.findIndex(s=>s.id===p.selectedSegment);if(i<0)return;commit();const seg={...p.segments[i],id:uid()};p.segments.splice(i+1,0,seg);p.selectedSegment=seg.id;update()});
  on('overlayAudio',()=>{const a=asset(p.selectedAsset);if(a?.type!=='audio')return toast('Select an audio-only asset in the left library',true);commit();const newA={id:uid(),assetId:a.id,start:engine.time,sourceStart:0,duration:Math.min(a.duration||30,Math.max(1,duration(p)-engine.time)),volume:p.settings.audioVolume,role:'voice'};p.audio.push(newA);p.selectedAudio=newA.id;p.selectedSegment=null;update()});on('removeAudio',()=>{commit();p.audio=p.audio.filter(x=>x.id!==p.selectedAudio);p.selectedAudio=null;update()});
  on('recordVoice',recordVoice);
