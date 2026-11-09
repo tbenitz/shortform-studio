@@ -34,7 +34,8 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
   '<label class="field">Custom humor instructions<textarea id="humorInstructions" rows="3">'+esc(instructions===null?(p.humorInstructions||DEFAULT_HUMOR_INSTRUCTIONS):instructions)+'</textarea></label>'+
   '<label class="field">Local matching strictness<input id="humorMinScore" type="number" min="0" max="100" value="'+Number(minScore)+'"></label>'+
   '<label class="field">Maximum paid AI batches<input id="humorMaxCalls" type="number" min="1" max="150" value="'+Number(maxCalls)+'"></label>'+
-  '<button id="humorFindAI" class="small full" '+(busy?'disabled':'')+'>Force a full AI review (uses the same source transcript)</button></details>';
+  '<button id="humorRescan" class="small full" '+(busy?'disabled':'')+'>Rescan transcript (new footage / updated SRT)</button>'+
+  '<button id="humorFindAI" class="small full" '+(busy?'disabled':'')+'>Force AI review</button></details>';
  const top='<div class="info"><b>Funny Clips & Stories</b><br>Find real jokes, funny conversations and reactions in your video subtitles. Preview the original footage, then choose individual moments or make a connected story about the same subject.</div>'+
   '<div class="separator"></div><h3>What do you want to make?</h3>'+
   '<div class="humor-choices"><button id="humorFindLocal" class="'+(mode==='clips'?'primary':'')+'" '+(busy?'disabled':'')+'>☺ Find Funny Clips<small>Separate jokes and funny conversations</small></button>'+
