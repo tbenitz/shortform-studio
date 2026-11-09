@@ -11,6 +11,8 @@
 **Choose the right section:**
 - [Original 14 review items (R01–R14)](#implementation-batch--available-for-your-review-2026-11-08) — new controls from the latest code batch.
 - [Newest feature review (R15–R25)](#new-implementation-review-r15r25-favorites-mp4-and-recoverable-projects) — favorites, MP4 output, fresh startup and media reconnection.
+- [Humor, compilation and cropping review (R26–R40)](#new-implementation-review-r26r40-humor-compilations-and-cropping) — what to click and how to approve.
+- [All 40 prioritized future updates](#full-future-update-tracking-queue-next-001next-040) — planned items, plus every existing master requirement.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
 - [Plain-English video editing and AI glossary](#plain-english-glossary--video-and-ai-terms) — explains the unfamiliar words.
 - [All 494 desired product features](#feature-acceptance-index) — each has its own test instructions, **but many are planned, not available**.
@@ -371,6 +373,125 @@
   - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R25` as broken or incomplete.
 
 **How to send your decisions:** `R15 and R17 work—approve both. R20 fails with an encoder error. R22 is not tested.` Only your explicit approval will update the relevant checkbox. Reporting a regression causes a previously accepted item to return to unchecked with a re-review note.
+
+### New implementation review R26–R40 (humor, compilations, and cropping)
+
+**OWNER REVIEW: 0/15 approved.** Source-text suggestions are not proof that the footage is funny. You must review original video/audio. Detected faces are not automatically matched to speaker identity.
+
+- [ ] **R26** Find humor in real SRT dialogue
+  - **Exactly how to test:** Import a source recording and its timed SRT. In Funny Clips & Compilations click Find possible jokes (local). All results must link to real text and original timestamps, with unrelated dry technical talk omitted.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R27** Optional AI recognition of clever jokes and banter
+  - **Exactly how to test:** Enter a real provider key under AI Director, return to Funny Clips, set the prompt and maximum API requests, confirm transcript transfer, and verify AI suggestions select real transcript turns and report incomplete coverage when not all windows are read.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R28** Download ONLY raw dialogue text
+  - **Exactly how to test:** Download ALL and SELECTED dialogue TXT files. Open them and verify they contain only spoken dialogue and any existing speaker labels, without scores, timestamps, made-up jokes or explanations.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R29** Preview the exact original source interval
+  - **Exactly how to test:** Click Preview original clip. Check that the original recording opens at the proposed timestamp, plays with its sound, and stops at the clip ending, without altering the editor timeline.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R30** Choose which funny moments are included
+  - **Exactly how to test:** Add two funny candidates to a compilation, leave one out, then remove one. Confirm that only the explicitly chosen moments appear in the selected list.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R31** Manually reorder compilation moments
+  - **Exactly how to test:** Select at least three different source moments and press the up/down controls. Verify the chosen order, not score or source order, is used when building.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R32** Build a source-grounded editable compilation
+  - **Exactly how to test:** Build from two chosen moments, either replacing or appending to the timeline. Check original source IDs, exact in/out times and clip order. Use Undo to return to the previous edit.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R33** Fullscreen preview of the edited video
+  - **Exactly how to test:** With a video on the timeline, click Fullscreen in the main transport, verify the preview expands while preserving its aspect ratio, then exit using Escape or Exit fullscreen.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R34** Fullscreen original-source review
+  - **Exactly how to test:** Preview a humor candidate, click Fullscreen source, and return without altering the timeline. Confirm it is actual original footage.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R35** Manual left/center/right speaker crop
+  - **Exactly how to test:** Select a clip, open Editor, set Manual crop and use Focus left/center/right, source X/Y positions and Zoom. Confirm the chosen clip changes while other clips keep their own framing.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R36** Pick the speaker by clicking the program preview
+  - **Exactly how to test:** Select a clip with a decoded frame, click Pick face on preview, then click the visible person. Verify the clip focus and zoom update without changing the source file.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R37** Scan multiple detected faces from source footage
+  - **Exactly how to test:** Use Scan original recording for faces on a video where two people appear. Verify real detected face boxes/positions are saved and can be chosen individually.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R38** Auto-follow one detected face on a clip
+  - **Exactly how to test:** After a face scan, choose Auto follow detected face and leftmost/second/largest in Editor. Play through real motion and verify the crop follows the selected face position in preview and output.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R39** Map actual transcript speaker labels to face positions
+  - **Exactly how to test:** Import a diarized SRT, scan source faces, choose Follow transcript speaker, then manually assign Speaker 1/2 to corresponding visible faces. Confirm speaker changes use the mappings, rather than an unverified automatic identity guess.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+- [ ] **R40** Persist humor selections and crop configurations
+  - **Exactly how to test:** Choose moments, reorder and build a compilation, apply face/manual crop, Save, refresh, click Load Last Project. Verify selected moments, saved order, crop mode and focus settings return.
+  - **Approval:** Only tell me to check this specific item after the entire described behavior works. If it fails, it stays unchecked.
+
+### Full future-update tracking queue (NEXT-001–NEXT-040)
+
+The **complete original 494-feature master checklist remains below**, including the plain-English description and test for EVERY item. This extra queue organizes 40 specific next improvements by priority. None are represented as implemented or accepted. This makes the development goals explicit without losing any of the master checklist.
+
+#### P0 — Fix next / make reliable
+
+- [ ] **NEXT-001** Real audiovisual verification of dialogue jokes — Review each joke against the actual original video/audio, not a transcript claim
+- [ ] **NEXT-002** True active-speaker-to-face identification — Use visual speech/sound evidence to identify who is talking rather than assuming based on diarization
+- [ ] **NEXT-003** Persistent face identity tracks — Follow one person despite crossing faces, occlusion or scene transitions
+- [ ] **NEXT-004** Manual keyframed crop corrections — Fix crop positions through long clips using frame-specific focus and smooth interpolation
+- [ ] **NEXT-005** Two-person split-screen and reactions — Preserve multiple visible speakers and reaction faces when one-person crop hides context
+- [ ] **NEXT-006** Correct long-SRT timing drift — Calibrate source subtitles at beginning and end without moving original words
+- [ ] **NEXT-007** Resumable multi-hour AI humor scanning — Checkpoint each finished transcript window, resume, and show actual cost and coverage
+- [ ] **NEXT-008** Understand implied/ironic jokes without keywords — Identify sarcasm and clever banter from context while rejecting unrelated talk
+- [ ] **NEXT-009** Detect laughter and audible reactions — Analyze actual audio laughter, reactions, interruptions and overlapping voices
+- [ ] **NEXT-010** Improve joke start/end trim points — Include setup, punchline and reaction without cutting off speech
+- [ ] **NEXT-011** Create genuinely funny multi-cut stories — Assemble meaningful chronological source moments instead of arbitrary short pieces
+- [ ] **NEXT-012** Eliminate duplicate joke candidates — Recognize near-duplicate dialogue/context windows across scans and sources
+- [ ] **NEXT-013** User feedback for jokes — Persist owner rejections, favorites and approvals and apply them transparently
+- [ ] **NEXT-014** Evidence and quality warnings on every clip — Show actual source ranges, model uncertainty, missing evidence and preview links
+- [ ] **NEXT-015** Broad H.264/AAC MP4 compatibility — Offer a verified encoder path on devices where AAC is missing from browser WebCodecs
+- [ ] **NEXT-016** Stream long MP4 renders instead of storing all in RAM — Allow multi-hour compilation outputs with real file progress and recovery
+- [ ] **NEXT-017** Automatic recovery checkpoints for failed edits — Restore project state after crash and distinguish last autosave from manual versions
+- [ ] **NEXT-018** Robust Chromebook large-file persistence — Manage file permissions, OPFS/IndexedDB quotas, relinking and safe cache eviction
+
+#### P1 — Expand the editing suite
+
+- [ ] **NEXT-019** Crossfade audio between compilation clips — Prevent clipped words, pops and jumps at source transitions
+- [ ] **NEXT-020** Dynamic background music ducking — Lower soundtrack only around speech, laughter and punchlines
+- [ ] **NEXT-021** Precise overlapping multi-POV synchronization — Align long recordings by multiple real-world audio/video events and drift
+- [ ] **NEXT-022** Actually verified multi-POV gaming story edits — Validate true action/reactions in source video, not fabricated gameplay
+- [ ] **NEXT-023** Fully editable caption tracks — Per-word timing, font, highlighting and independent captions/export
+- [ ] **NEXT-024** Side-by-side fullscreen source comparison — Synchronize and compare original camera views at the same event
+- [ ] **NEXT-025** Separate vertical/wide/square crop versions — Keep distinct safe crop keyframes for 9:16, 16:9 and 1:1
+- [ ] **NEXT-026** Source-verified thumbnail frames — Make preview images from actual source frames, with explicit generated-media labels
+- [ ] **NEXT-027** Proxy playback for long uploads — Preview three-hour source footage smoothly without full-memory decoding
+- [ ] **NEXT-028** Waveforms and speech markers over footage — Expose scene boundaries, reactions and source speech clearly on timeline
+- [ ] **NEXT-029** Configurable shortcuts and advanced timeline navigation — Support frame accurate editing without disrupting text inputs
+- [ ] **NEXT-030** Accurate two/three-speaker diarization — Avoid false 40-speaker labels, allow manual correction and source sync
+- [ ] **NEXT-031** Reviewable speaker-to-face associations — Inspect mismatches, source evidence and fallback when assigned faces disappear
+- [ ] **NEXT-032** Actual rendered-video quality inspection — Check output codecs, audio timing, black frames, captions and crop safety
+
+#### P2 — Professional longer-term work
+
+- [ ] **NEXT-033** Batch render approved compilation variants — Create different aspect/caption versions with genuine progress and no hidden auto-publishing
+- [ ] **NEXT-034** Source-supported social metadata — Generate grounded captions, titles, thumbnails and hashtags
+- [ ] **NEXT-035** Shared collaborative review with owner-only acceptance — Allow authorized reviewer comments without AI or collaborators approving roadmap checkboxes
+- [ ] **NEXT-036** Optional native FFmpeg desktop companion — Render long/high-res videos with real H.264/AAC when browser processing is insufficient
+- [ ] **NEXT-037** Professional plugin/model interface — Load only real compatible AI models and media plugins, with clear failures
+- [ ] **NEXT-038** Offline contextual humor model — Offer an efficient validated local LLM for humor on modest Chromebook RAM
+- [ ] **NEXT-039** Multilingual transcript and dubbing features — Keep language, timing, permission and meaning intact
+- [ ] **NEXT-040** Advanced compositing, masking and grading — Add professional multi-track effects with verified native-quality output
+
+**Approval policy:** No assistant may check off ANY R, NEXT, or master ID without your explicit approval. Previously approved features get unchecked again if you report breakage.
 
 ### Plain-English glossary — video and AI terms
 
