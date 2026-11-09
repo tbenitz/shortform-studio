@@ -48,9 +48,9 @@ export function findLocalHumor(words,assets,{minScore=50,maxResults=200}={}){
   }
   unique.push(m);
  }
- return unique.slice(0,maxResults);
+ return unique.sort((a,b)=>a.start-b.start||a.assetId.localeCompare(b.assetId)).slice(0,maxResults);
 }
-export function rawDialogueOnly(moments){return (moments||[]).slice().sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start).map(m=>String(m.dialogue||'').trim()).filter(Boolean).join('\n\n')}
+export function rawDialogueOnly(moments){return (moments||[]).slice().sort((a,b)=>a.start-b.start||a.assetId.localeCompare(b.assetId)).map(m=>String(m.dialogue||'').trim()).filter(Boolean).join('\n\n')}
 export function makeCompilationSegments(moments,assets,{cropMode='manual',zoom=1}={}){
  const lookup=new Map((assets||[]).map(a=>[a.id,a]));const output=[];
  for(const m of moments||[]){
