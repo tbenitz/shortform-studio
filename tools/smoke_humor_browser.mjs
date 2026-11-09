@@ -37,8 +37,14 @@ try{
  const chunks=[];for await(const chunk of stream)chunks.push(chunk);
  const dialogue=Buffer.concat(chunks).toString('utf8');
  if(!/No way|hilarious/i.test(dialogue)||/Local wording|score \d+|source-\d+\.\d+/i.test(dialogue))throw Error('Raw export contains invented captions or meta commentary: '+dialogue);
+ const beforeBuild=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  return {moments:p.humorMoments?.map(m=>({start:m.start,end:m.end,dialogue:m.dialogue?.slice(0,90)})),chosen:p.compilationOrder};
+ });
+ console.log('Selected SRT source ranges before build: '+JSON.stringify(beforeBuild));
  await page.locator('#humorBuild').click();
  await page.waitForFunction(()=>document.querySelector('[data-tab="editor"].active')&&document.querySelectorAll('#videoTrack [data-seg]').length>=1,null,{timeout:6000});
+ await page.waitForFunction(()=>document.querySelector('#toastArea')?.textContent?.includes('Compilation built from'),null,{timeout:8000});
  await page.waitForFunction(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
   return p?.segments?.length===1&&p?.segments?.[0]?.end-p?.segments?.[0]?.start<11&&p?.compilationOrder?.length===1;
