@@ -62,9 +62,13 @@ try{
  await page.locator('[data-setting="outputHeight"]').dispatchEvent('change');
  await page.locator('[data-setting="fps"]').fill('24');
  await page.locator('[data-setting="fps"]').dispatchEvent('change');
- const downloader=page.waitForEvent('download',{timeout:90000});
+ const downloader=page.waitForEvent('download',{timeout:50000}).then(download=>({download})).catch(e=>({error:e.message}));
+ const exportError=page.waitForFunction(()=>document.querySelector('#toastArea')?.textContent?.includes('Export failed')||document.querySelector('#renderStatus')?.textContent?.includes('MP4 export failed'),null,{timeout:50000}).then(async()=>({failure:(await page.locator('#toastArea').innerText())+' | '+(await page.locator('#renderStatus').innerText())})).catch(()=>({}));
  await page.locator('#doExport').click();
- const download=await downloader;
+ const result=await Promise.race([downloader,exportError]);
+ if(result.failure)throw Error('Actual browser MP4 export error: '+result.failure);
+ if(!result.download)throw Error('No MP4 download: '+JSON.stringify(result)+' | '+await page.locator('#renderStatus').innerText());
+ const download=result.download;
  if(!download.suggestedFilename().endsWith('.mp4'))throw Error('Export did not produce .mp4: '+download.suggestedFilename());
  const output=path.join(tmpdir(),'studio-browser-mp4-smoke.mp4');
  await download.saveAs(output);
