@@ -41,9 +41,9 @@ jobs:
       - name: Make a 12-second recording to test source-linked funny dialogue
         run: |
           ffmpeg -hide_banner -loglevel error -y \
-            -f lavfi -i 'testsrc2=size=320x180:rate=12:duration=12' \
-            -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=12' \
+            -f lavfi -i 'testsrc2=size=320x180:rate=12:duration=50' \
+            -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=50' \
             -map 0:v -map 1:a -c:v libvpx -deadline realtime -cpu-used 8 \
-            -b:v 300k -c:a libopus -b:a 48k -t 12 _site/humor-test.webm
+            -b:v 300k -c:a libopus -b:a 48k -t 50 _site/humor-test.webm
       - name: Verify SRT humor review, compilation building, fullscreen and crop in Chrome
         run: npm run smoke:humor
