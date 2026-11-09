@@ -27,13 +27,14 @@ import {previewSpeech,stopSpeech,availableVoices,synthesizeSpeech,suggestBridges
 import {relabelSpeaker,speakerSummary,diarizeWithProvider,applySpeakerSegments} from './speakers.js';
 import {entireSourceCut,selectedSourceCut,shouldAutoInsertMedia,sourceSecondsValue,possibleMissingSourceRelink} from './media-workflow.js';
 import {projectAudit,cutSheetCSV,chaptersText,createSnapshot,sourceMatch,cleanMarkers,productionToolsHTML,toolSearchResultsHTML} from './production-tools.js';
-import {findLocalHumor,classifyHumorWithAI,rawDialogueOnly,makeCompilationSegments,DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
+import {findLocalHumor,classifyHumorWithAI,transcriptTurns,rawDialogueOnly,makeCompilationSegments,DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
+import {findConnectedFunnyStories,storyMoments} from './humor-stories.js';
 import {humorStudioHTML} from './humor-ui.js';
 import {saveSnapshot,loadSnapshot,deleteSnapshot,listSnapshots} from './storage.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
 let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',directorOutputPreference='auto',povReferenceChoice=null,povTargetChoice=null,povSyncStatus='',povStoryPacing='balanced',directorBusy=false,directorAbort=null,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
 let snapshotRecords=[],toolsSearch='',sessionActive=false,lastSavedInfo=null,sourceFavoritesOnly=false,directorFavoritesOnly=false,savedHandles=new Map(),restoreBusy=false;
-let humorScope='all',humorMinScore=50,humorMaxCalls=16,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null;let cropPickActive=false;
+let humorScope='all',humorMinScore=50,humorMaxCalls=48,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null,humorView='clips';let cropPickActive=false;
 const asset=id=>assets.get(id)||p.assets.find(a=>a.id===id);
 const media=id=>assets.get(id)?.file;
 const engine=new Renderer(p,asset,toast);
@@ -182,7 +183,7 @@ ${c.cropMode==='speaker'?'<p class="tiny muted">Map transcript speaker labels to
  }
  if(tab==='export'){html=`<div class="info"><b>Real MP4 export: H.264 video, AAC audio where supported.</b> Exports produce genuine MP4 containers with the captioned canvas and Web Audio mix. If your browser cannot encode AAC (notably desktop Linux), the encoder uses Opus audio inside a genuine MP4 instead of silently downloading WebM. <b>Some older players do not support Opus-in-MP4.</b> The output status identifies the actual codec. ChromeOS may use AAC where available. Real-time browser rendering requires supported hardware encoders; for very long video use the native FFmpeg renderer.</div><div class="separator"></div>${field('Output aspect ratio','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','1:1 Square'],['4:5','4:5 Portrait']])}${field('Output height (pixels)','outputHeight',p.settings.outputHeight,'number')}${field('Frame rate','fps',p.settings.fps,'number')}${field('Video bitrate (bps)','quality',p.settings.quality,'number')}<div class="metric"><span>Runtime</span><b>${fmt(duration(p))}</b></div><div class="metric"><span>Cut count</span><b>${p.segments.length}</b></div><div class="metric"><span>Timed captions</span><b>${mapWords(p).length}</b></div><div class="separator"></div><h3>Preflight quality inspection</h3><div class="stack" style="margin:9px 0">${preflight(p).map(q=>`<div class="tiny ${q.severity==='error'?'warning':'muted'}"><b>${esc(q.severity.toUpperCase())} · ${esc(q.title)}</b><br>${esc(q.detail)}</div>`).join('')||'<p class="success tiny">No structural issues detected. Manual content review is still required.</p>'}</div><div class="separator"></div><button id="doExport" class="primary full" ${renderBusy||!p.segments.length?'disabled':''}>${renderBusy?'Rendering MP4…':'Render MP4 and download'}</button><button id="cancelExport" class="danger full" ${renderBusy?'':'disabled'} style="margin-top:8px">Cancel render</button><div class="progress" style="margin:11px 0"><i id="renderProgress"></i></div><p class="tiny muted" id="renderStatus">Review all cuts and source integrity before publishing.</p><div class="separator"></div><button id="saveSrt" class="full">Download subtitles (SRT)</button><button id="saveEdl" class="full">Download editable cut list (JSON)</button><button id="saveBundle" class="full">Download project (JSON)</button><div class="separator"></div><p class="tiny muted">For long videos and high-resolution production, download Project JSON and run <code>python3 tools/render_project.py project.json --media-dir /media --out output.mp4</code> from the repository with FFmpeg installed.</p><p class="warning tiny">Browser exports are not frame-accurate professional renders. For robust long-form/4K exports, a native FFmpeg renderer is required; the project cut list is ready for an external renderer.</p>`}
  if(tab==='settings'){html=`<div class="info">Settings apply to this project. The default design is local-first. Local face detection, optional hosted speaker diarization, voice preview and optional TTS are available. Truly offline generative voice and automatic identity matching across videos require additional models.</div><div class="separator"></div>`+settingSection('Video and reframing',field('Aspect','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','Square'],['4:5','4:5']])+field('Zoom / crop','zoom',p.settings.zoom,'range')+field('Brightness (%)','brightness',p.settings.brightness,'number')+field('Contrast (%)','contrast',p.settings.contrast,'number')+field('Saturation (%)','saturation',p.settings.saturation,'number')+field('Visual look','videoFilter',p.settings.videoFilter,'text',[['normal','Natural'],['grayscale','Black and white'],['sepia','Warm sepia'],['vintage','Vintage'],['soft','Soft focus']])+`<label class="checkrow"><input type="checkbox" data-setting="autoFaceFraming" ${p.settings.autoFaceFraming?'checked':''}>Smart face-aware crop (after scanning source faces)</label>`+field('Face tracking strength (0–100)','faceTrackingStrength',p.settings.faceTrackingStrength,'number')+field('Default transition','transition',p.settings.transition,'text',[['cut','Hard cut'],['fade','Fade-in'],['dissolve','Dissolve (still previous frame)'],['wipe','Wipe'],['slide','Slide'],['zoom','Zoom']]))+settingSection('Caption and branding',field('Caption style','captionStyle',p.settings.captionStyle,'text',[['dynamic','Dynamic'],['minimal','Minimal'],['boxed','Boxed']])+field('Caption font size','captionSize',p.settings.captionSize,'number')+field('Caption words per chunk','captionWords',p.settings.captionWords,'number')+field('Caption lines max','captionMaxLines',p.settings.captionMaxLines,'number')+field('Caption vertical placement (%)','captionPosition',p.settings.captionPosition,'number')+field('Caption horizontal placement (%)','captionX',p.settings.captionX??50,'number')+field('Caption font','captionFont',p.settings.captionFont||'system-ui','text',[['system-ui','Modern sans serif'],['Arial','Arial'],['Georgia','Georgia'],['Impact','Impact'],['Verdana','Verdana']])+field('Text color','captionColor',p.settings.captionColor,'color')+field('Active word highlight','captionAccent',p.settings.captionAccent,'color')+field('Outline color','captionOutlineColor',p.settings.captionOutlineColor||'#10151d','color')+field('Outline thickness (0–12)','captionOutlineWidth',p.settings.captionOutlineWidth??5,'number')+field('Background color','captionBackground',p.settings.captionBackground,'color')+`<label class="checkrow"><input type="checkbox" data-setting="captionUppercase" ${p.settings.captionUppercase?'checked':''}>Uppercase captions</label><label class="checkrow"><input type="checkbox" data-setting="captionOn" ${p.settings.captionOn?'checked':''}>Show captions</label>`)+settingSection('Audio',field('Video gain (0–2)','videoVolume',p.settings.videoVolume,'number')+field('Added audio gain (0–2)','audioVolume',p.settings.audioVolume,'number')+`<label class="checkrow"><input type="checkbox" data-setting="duckMusic" ${p.settings.duckMusic?'checked':''}>Lower background music when source dialogue plays</label>`)+settingSection('Transcription',field('ASR model','whisperModel',p.settings.whisperModel,'text',[['onnx-community/whisper-tiny.en','Whisper Tiny English (fastest)'],['onnx-community/whisper-base.en','Whisper Base English (larger)'],['onnx-community/whisper-small.en','Whisper Small English (resource intensive)']])+field('ASR processor','processing',p.settings.processing,'text',[['webgpu','WebGPU preferred / WASM fallback'],['wasm','WASM CPU']])+field('Chunk seconds (8–29)','transcriptionChunk',p.settings.transcriptionChunk,'number')+field('Timestamp compatibility','transcriptionTiming',p.settings.transcriptionTiming||'auto','text',[['auto','Recommended: segment timestamps; plain fallback'],['segment','Segment timestamps; plain fallback'],['plain','Plain transcription; estimated timings'],['word','Advanced: word alignment (attention model required)']]))+settingSection('Voice-over generation',field('HTTPS TTS endpoint','ttsEndpoint',p.settings.ttsEndpoint)+field('TTS model','ttsModel',p.settings.ttsModel)+field('TTS voice','ttsVoice',p.settings.ttsVoice)+field('Voice speed','ttsSpeed',p.settings.ttsSpeed,'number'))+settingSection('Speaker diarization',field('HTTPS diarization endpoint','diarizationEndpoint',p.settings.diarizationEndpoint))+settingSection('Storage and interface',`<label class="checkrow"><input type="checkbox" data-setting="autoInsertMedia" ${p.settings.autoInsertMedia!==false?'checked':''}>Automatically add the full video to the editor on import</label><label class="checkrow"><input type="checkbox" data-setting="autoSave" ${p.settings.autoSave?'checked':''}>Automatic project saves</label><label class="checkrow"><input type="checkbox" data-setting="rememberMedia" ${p.settings.rememberMedia?'checked':''}>Store imported media in browser IndexedDB (quota permitting)</label>`+`<button id="checkStorage">Check browser storage quota</button><button id="clearCachedMedia" class="danger" style="margin-top:8px">Remove cached media files</button><div id="storageInfo" class="tiny muted" style="margin-top:8px"></div>`)+`<p class="tiny muted">Keyboard: Space play/pause · arrows skip 5 seconds · Delete remove cut · Ctrl+Z undo · Ctrl+Shift+Z redo · Ctrl+S save.</p>`;}
- if(tab==='tools')html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time);if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown});const currentScroll=tab==='humor'?target.scrollTop:0;target.innerHTML=html;if(tab==='humor')target.scrollTop=currentScroll;wireInspector();}
+ if(tab==='tools')html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time);if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown,mode:humorView,aiConfigured:!!providerKey});const currentScroll=tab==='humor'?target.scrollTop:0;target.innerHTML=html;if(tab==='humor')target.scrollTop=currentScroll;wireInspector();}
 function editField(label,key,value,type='text',options){return `<label class="field">${esc(label)}${type==='select'?`<select data-edit="${key}">${options.map(o=>`<option value="${o[0]}" ${value===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`:`<input data-edit="${key}" type="${type}" value="${esc(value)}" step="any">`}</label>`}
 function chooseTab(name){tab=name;all('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));renderInspector();if(name==='tools')refreshSnapshots()}
 async function refreshSnapshots(){try{snapshotRecords=await listSnapshots(p.id);if(tab==='tools')renderInspector()}catch(e){toast('Could not load project snapshots: '+e.message,true)}}
@@ -822,46 +823,79 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  const humorMin=$('humorMinScore');if(humorMin)humorMin.onchange=()=>{humorMinScore=clamp(humorMin.value,0,100)};
  const humorCalls=$('humorMaxCalls');if(humorCalls)humorCalls.onchange=()=>{humorMaxCalls=clamp(humorCalls.value,1,150)};
  const humorPrompt=$('humorInstructions');if(humorPrompt)humorPrompt.onchange=()=>{commit('Humor instructions saved');p.humorInstructions=humorPrompt.value.trim().slice(0,2000);setStatus('Humor instructions saved')};
- on('humorFindLocal',async()=>{
-  const targets=humorFindSources();if(!targets.length)return toast('Import an original video or audio file and its timed SRT first.',true);
-  if(!p.words.some(w=>targets.some(a=>a.id===w.assetId)))return toast('No timed transcript for these sources. Import the source SRT in the Transcript tab first.',true);
+ // Two simple actions, with advanced search options hidden by default.
+ const runFunnySearch=async(mode,{forceAI=false}={})=>{
   if(humorBusy)return;
+  const targets=humorFindSources();
+  if(!targets.length)return toast('Import an original video or audio recording and its timed SRT first.',true);
+  const words=p.words.filter(w=>targets.some(a=>a.id===w.assetId));
+  if(!words.length)return toast('No timed transcript yet. Import the matching original SRT under Transcript first.',true);
+  humorView=mode;
   humorMinScore=clamp($('humorMinScore')?.value??humorMinScore,0,100);
-  humorBusy=true;updateHumorStatus('Scanning the existing SRT text locally…');
-  // Yield to the UI rather than freezing before the busy message renders.
+  humorMaxCalls=clamp($('humorMaxCalls')?.value??humorMaxCalls,1,150);
+  const instructions=$('humorInstructions')?.value.trim()||p.humorInstructions||DEFAULT_HUMOR_INSTRUCTIONS;
+  const useAI=!!providerKey&&/^https:\/\//i.test(p.settings.providerUrl||'');
+  if(forceAI&&!useAI)return toast('Connect a real HTTPS AI provider under AI Director first, or use either main button for local matching.',true);
+  const batches=targets.reduce((n,a)=>n+Math.ceil(transcriptTurns(words,a.id).length/70),0);
+  if(useAI){
+   const requests=Math.min(batches,humorMaxCalls);
+   const extra=batches>requests?' Only '+requests+'/'+batches+' windows will be reviewed: partial coverage.':'';
+   if(!confirm('Analyze real SRT dialogue with your configured AI provider? Up to '+requests+' requests may cost money. Transcript text will be sent to '+p.settings.providerUrl+'.'+extra))return;
+  }
+  commit('Funny search instructions');
+  p.humorInstructions=instructions.slice(0,2000);
+  humorBusy=true;humorAbort=new AbortController();
+  updateHumorStatus(useAI?'Reviewing actual funny conversations with AI…':'Scanning actual SRT dialogue locally (keyword candidates, not semantic AI)…');
+  renderInspector();
   await new Promise(resolve=>setTimeout(resolve,0));
   try{
-   const matches=findLocalHumor(p.words,targets,{minScore:humorMinScore,maxResults:800});
-   commit('Local humor suggestions');mergeHumor(matches);
-   updateHumorStatus('Found '+matches.length+' likely jokes / banter intervals from actual SRT wording. These are unverified suggestions; please preview.');
-   update();toast('Found '+matches.length+' transcript-grounded candidates for your review.');
-  }catch(e){toast('Humor Finder: '+e.message,true)}
-  finally{humorBusy=false;if(tab==='humor')renderInspector()}
- });
- on('humorFindAI',async()=>{
-  const targets=humorFindSources();if(!targets.length)return toast('Import video/SRT first.',true);
-  if(!p.words.some(w=>targets.some(a=>a.id===w.assetId)))return toast('Import a timed source transcript first.',true);
-  if(humorBusy)return;
-  if(!providerKey)return toast('Open AI Director, choose the Remote AI provider, and enter its API key first; then return to Humor Finder.',true);
-  humorMaxCalls=clamp($('humorMaxCalls')?.value??humorMaxCalls,1,150);
-  const instructions=$('humorInstructions')?.value.trim()||DEFAULT_HUMOR_INSTRUCTIONS;
-  if(!confirm('Send timed dialogue from '+targets.length+' source(s) to '+p.settings.providerUrl+'? This may make up to '+humorMaxCalls+' paid AI requests. The AI will see transcript text, not video frames. Continue?'))return;
-  commit('Humor analysis instructions');p.humorInstructions=instructions.slice(0,2000);
-  humorBusy=true;humorAbort=new AbortController();updateHumorStatus('Sending verified transcript windows to AI…');renderInspector();
-  try{
-   const result=await classifyHumorWithAI(p.words,targets,{
-    endpoint:p.settings.providerUrl,model:p.settings.providerModel,key:providerKey,instructions,
-    maxCalls:humorMaxCalls,signal:humorAbort.signal,onProgress:(ratio,label)=>updateHumorStatus(Math.round(ratio*100)+'% · '+label)
-   });
-   commit('AI humor suggestions');mergeHumor(result.moments);
-   p.humorScanInfo={processedBatches:result.processedBatches,totalBatches:result.totalBatches,complete:result.complete,completedAt:Date.now()};
-   updateHumorStatus('AI returned '+result.moments.length+' source-linked candidates · '+result.processedBatches+'/'+result.totalBatches+' windows'+(result.complete?' · COMPLETE':' · PARTIAL COVERAGE; increase max calls to review all'));
+   if(useAI){
+    const result=await classifyHumorWithAI(words,targets,{
+     endpoint:p.settings.providerUrl,model:p.settings.providerModel,key:providerKey,instructions,
+     maxCalls:humorMaxCalls,signal:humorAbort.signal,
+     onProgress:(ratio,label)=>updateHumorStatus(Math.round(ratio*100)+'% · '+label)
+    });
+    commit('AI funny dialogue suggestions');
+    mergeHumor(result.moments);
+    p.humorScanInfo={processedBatches:result.processedBatches,totalBatches:result.totalBatches,complete:result.complete,completedAt:Date.now()};
+    const stories=findConnectedFunnyStories(p.humorMoments||[]);
+    updateHumorStatus('AI reviewed '+result.processedBatches+'/'+result.totalBatches+' source windows · '+result.moments.length+' new funny moments · '+stories.length+' connected storylines.'+(result.complete?'':' Partial transcript coverage; increase advanced limit if desired.'));
+   }else{
+    const matches=findLocalHumor(words,targets,{minScore:humorMinScore,maxResults:800});
+    commit('Local funny dialogue suggestions');mergeHumor(matches);
+    const stories=findConnectedFunnyStories(p.humorMoments||[]);
+    updateHumorStatus('Local scan: '+matches.length+' possible funny moments · '+stories.length+' related storylines. These are unverified keyword matches; connect AI Director to recognize context.');
+   }
    update();
-  }catch(e){updateHumorStatus('AI scan did not finish: '+e.message);toast('AI humor scan: '+e.message,true)}
-  finally{humorBusy=false;humorAbort=null;if(tab==='humor')renderInspector()}
- });
+   if(mode==='story'&&!findConnectedFunnyStories(p.humorMoments||[]).length)
+    toast('No coherent multi-cut story found yet. Unrelated jokes were intentionally left separate.',true);
+  }catch(e){
+   updateHumorStatus('Funny dialogue search stopped: '+e.message);
+   toast('Humor search failed: '+e.message,true);
+  }finally{humorBusy=false;humorAbort=null;if(tab==='humor')renderInspector()}
+ };
+ on('humorFindLocal',()=>runFunnySearch('clips'));
+ on('humorFindStory',()=>runFunnySearch('story'));
+ on('humorFindAI',()=>runFunnySearch(humorView,{forceAI:true}));
  on('humorCancel',()=>{humorAbort?.abort();toast('AI humor scan cancellation requested')});
  on('humorMore',()=>{humorShown+=70;renderInspector()});
+ // Choosing a story selects only its actual, same-topic original clips.
+ const chooseConnectedStory=storyId=>{
+  const stories=findConnectedFunnyStories((p.humorMoments||[]).filter(m=>humorScope==='all'||m.assetId===humorScope));
+  const story=stories.find(s=>s.id===storyId);
+  if(!story)return false;
+  let moments;try{moments=storyMoments(story,p.humorMoments||[])}catch(e){toast(e.message,true);return false}
+  commit('Selected coherent funny storyline');
+  p.compilationOrder=moments.map(m=>m.id);update();
+  toast('Selected '+moments.length+' related original clips about '+story.topic+'. You can rearrange or remove them before export.');
+  return true;
+ };
+ c.querySelectorAll('[data-story-use]').forEach(b=>b.onclick=()=>chooseConnectedStory(b.dataset.storyUse));
+ c.querySelectorAll('[data-story-build]').forEach(b=>b.onclick=()=>{
+  if(!chooseConnectedStory(b.dataset.storyBuild))return;
+  // The selection's new Editor build handler is wired during update().
+  $('humorBuild')?.click();
+ });
  c.querySelectorAll('[data-humor-toggle]').forEach(b=>b.onclick=()=>{
   const id=b.dataset.humorToggle,m=p.humorMoments?.find(m=>m.id===id);
   if(!m)return;
