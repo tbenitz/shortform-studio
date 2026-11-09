@@ -31,8 +31,8 @@ export function findLocalHumor(words,assets,{minScore=50,maxResults=200}={}){
    const anchor=score([turns[i]]);
    if(!anchor.hits&&!(anchor.points>=55&&/[!?]/.test(turns[i].text)))continue;
    let l=i,r=i;
-   while(l>0&&i-l<3&&turns[l].start-turns[l-1].end<=4&&turns[i].end-turns[l-1].start<40)l--;
-   while(r+1<turns.length&&r-i<3&&turns[r+1].start-turns[r].end<=4&&turns[r+1].end-turns[l].start<50)r++;
+   while(l>0&&i-l<3&&turns[l].start-turns[l-1].end<=4&&turns[i].end-turns[l-1].start<40&&(score([turns[l-1]]).dry===0||score([turns[l-1]]).hits>0))l--;
+   while(r+1<turns.length&&r-i<3&&turns[r+1].start-turns[r].end<=4&&turns[r+1].end-turns[l].start<50&&(score([turns[r+1]]).dry===0||score([turns[r+1]]).hits>0))r++;
    const section=turns.slice(l,r+1),rating=score(section);
    if(rating.points<minScore||rating.dry>rating.hits+1)continue;
    const item=asMoment(asset,section,'Local wording/banter match; verify actual joke in source footage',rating.points);
