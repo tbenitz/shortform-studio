@@ -83,7 +83,10 @@ try{
  if(bytes.toString('ascii',4,8)!=='ftyp')throw Error('Output is not an ISO BMFF/MP4 container');
  const probe=JSON.parse(execFileSync('ffprobe',['-v','error','-show_entries','stream=codec_name,codec_type','-show_entries','format=duration','-of','json',output],{encoding:'utf8'}));
  const streams=(probe.streams||[]).map(s=>s.codec_name);
- if(!streams.includes('h264')||!streams.includes('aac'))throw Error('Export must contain real H.264 and AAC, got '+JSON.stringify(probe));
+ if(!streams.includes('h264')||!streams.some(c=>c==='aac'||c==='opus'))throw Error('Export must be a genuine H.264 MP4 with AAC or Opus sound, got '+JSON.stringify(probe));
+ const aacSupported=codecSupport.aac.some(c=>c.rate===48000&&c.supported);
+ if(aacSupported&&!streams.includes('aac'))throw Error('AAC available but MP4 output unexpectedly used a fallback codec: '+JSON.stringify(probe));
+ if(!aacSupported&&!streams.includes('opus'))throw Error('AAC unavailable but Opus-in-MP4 fallback did not encode sound: '+JSON.stringify(probe));
  if(!(Number(probe.format?.duration)>1))throw Error('Invalid MP4 duration: '+JSON.stringify(probe));
  console.log('PASS: Actual MP4 exported and verified via ffprobe '+JSON.stringify({bytes:bytes.length,streams,duration:probe.format.duration}));
  if(errors.length)throw Error('Browser JS errors: '+errors.join(' | '));
