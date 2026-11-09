@@ -870,8 +870,21 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
    if(mode==='story'&&!findConnectedFunnyStories(p.humorMoments||[]).length)
     toast('No coherent multi-cut story found yet. Unrelated jokes were intentionally left separate.',true);
   }catch(e){
-   updateHumorStatus('Funny dialogue search stopped: '+e.message);
-   toast('Humor search failed: '+e.message,true);
+   if(humorAbort?.signal.aborted){
+    updateHumorStatus('Humor analysis canceled. Previously found source moments are preserved.');
+   }else if(useAI){
+    // Never claim that a local keyword match came from the failed AI provider.
+    // The user still gets useful source-linked suggestions without another paid call.
+    const matches=findLocalHumor(words,targets,{minScore:humorMinScore,maxResults:800});
+    commit('Fallback local humor suggestions');
+    mergeHumor(matches);update();
+    const stories=findConnectedFunnyStories(p.humorMoments||[]);
+    updateHumorStatus('AI was unavailable: '+e.message+'. Fell back to LOCAL transcript keyword matching: '+matches.length+' possible jokes, '+stories.length+' connected stories. No AI result was fabricated.');
+    toast('AI provider failed; showing local source-grounded funny clips instead.',true);
+   }else{
+    updateHumorStatus('Local humor search failed: '+e.message);
+    toast('Humor search failed: '+e.message,true);
+   }
   }finally{humorBusy=false;humorAbort=null;if(tab==='humor')renderInspector()}
  };
  // Switching the two main modes must never accidentally repeat paid AI calls.
