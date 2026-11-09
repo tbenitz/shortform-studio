@@ -696,6 +696,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   if(b.dataset.cropPreset!=='center')clip.zoom=clip.zoomEnd=Math.max(1.5,Number(clip.zoom)||1);
   update();toast('Manual crop focus moved '+b.dataset.cropPreset+'. Check the main preview.');
  });
+ on('cropDrawSegment',()=>startManualCropDrawing());
  on('cropPickSpeaker',()=>{
   const clip=p.segments.find(s=>s.id===p.selectedSegment);
   if(!clip)return toast('Select a timeline clip first.',true);
@@ -1142,8 +1143,89 @@ async function reconnectMissingFiles(){
 }
 
 function openJSON(file){file.text().then(text=>{try{const newp=validateProject(JSON.parse(text));engine.pause();history=[];future=[];assets.forEach(a=>a.url&&URL.revokeObjectURL(a.url));assets.clear();p=newp;sessionActive=true;draw();showMissingMedia();toast('Project loaded. Import original media to relink by filename and file size.')}catch(e){toast(`Could not open project: ${e.message}`,true)}})}
+function stopManualCropDrawing(){
+ cropDrawActive=false;cropDrawPointer=null;
+ $('previewStage')?.classList.remove('is-drawing-crop');
+ $('cropSelectionBox').hidden=true;
+ $('cropDrawHint').hidden=true;
+ const b=$('drawCropButton');if(b){b.textContent='▣ Draw Crop';b.setAttribute('aria-pressed','false')}
+}
+async function startManualCropDrawing(){
+ if(cropDrawActive){stopManualCropDrawing();return}
+ const seg=p.segments.find(s=>s.id===p.selectedSegment)||segmentAt(p,engine.time)?.seg;
+ if(!seg)return toast('Add and select a video clip on the timeline before drawing a crop.',true);
+ if(!asset(seg.assetId)?.url)return toast('Relink the original video before drawing around a person.',true);
+ cropPickActive=false;
+ engine.pause();
+ const index=p.segments.findIndex(s=>s.id===seg.id);
+ if(segmentAt(p,engine.time)?.seg?.id!==seg.id){
+  const offset=p.segments.slice(0,index).reduce((n,c)=>n+(c.end-c.start)/(c.speed||1),0);
+  try{await engine.seek(offset+Math.min(.35,(seg.end-seg.start)/(seg.speed||1)/2))}catch(e){return toast('Could not seek to the selected clip: '+e.message,true)}
+ }
+ // Wait for the actual frame to decode rather than assuming a stale image is current.
+ if(p.selectedSegment!==seg.id){p.selectedSegment=seg.id;chooseTab('editor')}
+ cropDrawActive=true;cropDrawPointer=null;
+ $('previewStage').classList.add('is-drawing-crop');
+ $('cropSelectionBox').hidden=true;$('cropDrawHint').hidden=false;
+ const button=$('drawCropButton');button.textContent='✕ Cancel Crop';button.setAttribute('aria-pressed','true');
+ setStatus('Draw crop: drag around the person on the paused video; press Esc to cancel.');
+ toast('Drag a rectangle around the person on the main preview. Release to set that clip’s crop.');
+}
 function bindPreviewAndCropControls(){
  const stage=$('previewStage'),canvas=$('previewCanvas'),dialog=$('humorPreviewDialog'),source=$('humorPreviewVideo');
+ const overlay=$('cropSelectionBox');
+ $('drawCropButton').onclick=startManualCropDrawing;
+ const canvasPoint=e=>{
+  const box=canvas.getBoundingClientRect();
+  return {x:clamp((e.clientX-box.left)/Math.max(1,box.width),0,1)*canvas.width,
+   y:clamp((e.clientY-box.top)/Math.max(1,box.height),0,1)*canvas.height};
+ };
+ const showDrawBox=(a,b)=>{
+  const box=canvas.getBoundingClientRect(),stageRect=stage.getBoundingClientRect();
+  const x1=Math.min(a.x,b.x),y1=Math.min(a.y,b.y),x2=Math.max(a.x,b.x),y2=Math.max(a.y,b.y);
+  overlay.style.left=(box.left-stageRect.left+x1/canvas.width*box.width)+'px';
+  overlay.style.top=(box.top-stageRect.top+y1/canvas.height*box.height)+'px';
+  overlay.style.width=(x2-x1)/canvas.width*box.width+'px';
+  overlay.style.height=(y2-y1)/canvas.height*box.height+'px';
+  overlay.hidden=false;
+ };
+ canvas.addEventListener('pointerdown',e=>{
+  if(!cropDrawActive||e.button!==0)return;
+  e.preventDefault();
+  cropDrawPointer={pointerId:e.pointerId,start:canvasPoint(e)};
+  try{canvas.setPointerCapture(e.pointerId)}catch{}
+  showDrawBox(cropDrawPointer.start,cropDrawPointer.start);
+ });
+ canvas.addEventListener('pointermove',e=>{
+  if(!cropDrawActive||!cropDrawPointer||e.pointerId!==cropDrawPointer.pointerId)return;
+  e.preventDefault();showDrawBox(cropDrawPointer.start,canvasPoint(e));
+ });
+ canvas.addEventListener('pointerup',e=>{
+  if(!cropDrawActive||!cropDrawPointer||e.pointerId!==cropDrawPointer.pointerId)return;
+  e.preventDefault();
+  const from=cropDrawPointer.start,to=canvasPoint(e);cropDrawPointer=null;
+  try{canvas.releasePointerCapture(e.pointerId)}catch{}
+  const seg=p.segments.find(s=>s.id===p.selectedSegment);
+  const projection=engine.lastFrameProjection;
+  if(!seg||projection?.segmentId!==seg.id){
+   overlay.hidden=true;
+   return toast('The selected clip frame is not decoded yet. Let it appear in preview and draw again.',true);
+  }
+  try{
+   const framing=cropBoxToFraming({x1:from.x,y1:from.y,x2:to.x,y2:to.y},projection,{projectZoom:p.settings.zoom||1,maxZoom:5});
+   commit('Manual rectangle crop');
+   seg.cropMode='manual';seg.focusX=seg.focusEndX=framing.focusX;seg.focusY=seg.focusEndY=framing.focusY;
+   seg.zoom=seg.zoomEnd=framing.zoom;
+   seg.manualCropBox=framing.sourceBounds;
+   stopManualCropDrawing();
+   update();chooseTab('editor');
+   toast('Drew a crop around the person. Zoom and X/Y are saved on this clip and will be used in the MP4 export.');
+  }catch(error){overlay.hidden=true;toast('Crop not applied: '+error.message,true)}
+ });
+ canvas.addEventListener('pointercancel',()=>{cropDrawPointer=null;overlay.hidden=true});
+ document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&cropDrawActive){e.preventDefault();stopManualCropDrawing();setStatus('Crop drawing canceled')}
+ });
  const toggle=async(element)=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else if(element?.requestFullscreen)await element.requestFullscreen();else toast('Fullscreen is not available in this browser.',true)}
   catch(e){toast('Fullscreen failed: '+e.message,true)}
