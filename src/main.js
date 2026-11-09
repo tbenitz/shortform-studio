@@ -752,6 +752,119 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   commit('Reordered cut');const [item]=p.segments.splice(i,1);p.segments.splice(j,0,item);update();
  };
  on('moveClipEarlier',()=>moveSelected(-1));on('moveClipLater',()=>moveSelected(1));
+
+ // Humor Finder: selected clips are explicitly user-owned and persisted in the project.
+ const humorFindSources=()=>p.assets.filter(a=>a.type==='video'||a.type==='audio').filter(a=>humorScope==='all'||a.id===humorScope);
+ const updateHumorStatus=message=>{humorStatus=message;if($('humorStatus'))$('humorStatus').textContent=message};
+ const mergeHumor=items=>{
+  p.humorMoments||=[];p.compilationOrder||=[];
+  const merged=new Map(p.humorMoments.map(m=>[m.id,m]));
+  for(const m of items)merged.set(m.id,{...merged.get(m.id),...m});
+  p.humorMoments=[...merged.values()].sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start);
+ };
+ const humorScopeControl=$('humorScope');if(humorScopeControl)humorScopeControl.onchange=()=>{humorScope=humorScopeControl.value;humorShown=70;renderInspector()};
+ const humorMin=$('humorMinScore');if(humorMin)humorMin.onchange=()=>{humorMinScore=clamp(humorMin.value,0,100)};
+ const humorCalls=$('humorMaxCalls');if(humorCalls)humorCalls.onchange=()=>{humorMaxCalls=clamp(humorCalls.value,1,150)};
+ const humorPrompt=$('humorInstructions');if(humorPrompt)humorPrompt.onchange=()=>{commit('Humor instructions saved');p.humorInstructions=humorPrompt.value.trim().slice(0,2000);setStatus('Humor instructions saved')};
+ on('humorFindLocal',async()=>{
+  const targets=humorFindSources();if(!targets.length)return toast('Import an original video or audio file and its timed SRT first.',true);
+  if(!p.words.some(w=>targets.some(a=>a.id===w.assetId)))return toast('No timed transcript for these sources. Import the source SRT in the Transcript tab first.',true);
+  if(humorBusy)return;
+  humorMinScore=clamp($('humorMinScore')?.value??humorMinScore,0,100);
+  humorBusy=true;updateHumorStatus('Scanning the existing SRT text locally…');
+  // Yield to the UI rather than freezing before the busy message renders.
+  await new Promise(resolve=>setTimeout(resolve,0));
+  try{
+   const matches=findLocalHumor(p.words,targets,{minScore:humorMinScore,maxResults:800});
+   commit('Local humor suggestions');mergeHumor(matches);
+   updateHumorStatus('Found '+matches.length+' likely jokes / banter intervals from actual SRT wording. These are unverified suggestions; please preview.');
+   update();toast('Found '+matches.length+' transcript-grounded candidates for your review.');
+  }catch(e){toast('Humor Finder: '+e.message,true)}
+  finally{humorBusy=false;if(tab==='humor')renderInspector()}
+ });
+ on('humorFindAI',async()=>{
+  const targets=humorFindSources();if(!targets.length)return toast('Import video/SRT first.',true);
+  if(!p.words.some(w=>targets.some(a=>a.id===w.assetId)))return toast('Import a timed source transcript first.',true);
+  if(humorBusy)return;
+  if(!providerKey)return toast('Open AI Director, choose the Remote AI provider, and enter its API key first; then return to Humor Finder.',true);
+  humorMaxCalls=clamp($('humorMaxCalls')?.value??humorMaxCalls,1,150);
+  const instructions=$('humorInstructions')?.value.trim()||DEFAULT_HUMOR_INSTRUCTIONS;
+  if(!confirm('Send timed dialogue from '+targets.length+' source(s) to '+p.settings.providerUrl+'? This may make up to '+humorMaxCalls+' paid AI requests. The AI will see transcript text, not video frames. Continue?'))return;
+  commit('Humor analysis instructions');p.humorInstructions=instructions.slice(0,2000);
+  humorBusy=true;humorAbort=new AbortController();updateHumorStatus('Sending verified transcript windows to AI…');renderInspector();
+  try{
+   const result=await classifyHumorWithAI(p.words,targets,{
+    endpoint:p.settings.providerUrl,model:p.settings.providerModel,key:providerKey,instructions,
+    maxCalls:humorMaxCalls,signal:humorAbort.signal,onProgress:(ratio,label)=>updateHumorStatus(Math.round(ratio*100)+'% · '+label)
+   });
+   commit('AI humor suggestions');mergeHumor(result.moments);
+   p.humorScanInfo={processedBatches:result.processedBatches,totalBatches:result.totalBatches,complete:result.complete,completedAt:Date.now()};
+   updateHumorStatus('AI returned '+result.moments.length+' source-linked candidates · '+result.processedBatches+'/'+result.totalBatches+' windows'+(result.complete?' · COMPLETE':' · PARTIAL COVERAGE; increase max calls to review all'));
+   update();
+  }catch(e){updateHumorStatus('AI scan did not finish: '+e.message);toast('AI humor scan: '+e.message,true)}
+  finally{humorBusy=false;humorAbort=null;if(tab==='humor')renderInspector()}
+ });
+ on('humorCancel',()=>{humorAbort?.abort();toast('AI humor scan cancellation requested')});
+ on('humorMore',()=>{humorShown+=70;renderInspector()});
+ c.querySelectorAll('[data-humor-toggle]').forEach(b=>b.onclick=()=>{
+  const id=b.dataset.humorToggle,m=p.humorMoments?.find(m=>m.id===id);
+  if(!m)return;
+  commit('Compilation selections');
+  p.compilationOrder||=[];
+  const index=p.compilationOrder.indexOf(id);
+  if(index>=0)p.compilationOrder.splice(index,1);
+  else p.compilationOrder.push(id);
+  update();
+ });
+ for(const [kind,step] of [['up',-1],['down',1]]){
+  c.querySelectorAll('[data-compilation-'+kind+']').forEach(b=>b.onclick=()=>{
+   p.compilationOrder||=[];
+   const id=b.dataset['compilation'+(kind==='up'?'Up':'Down')],i=p.compilationOrder.indexOf(id),j=i+step;
+   if(i<0||j<0||j>=p.compilationOrder.length)return;
+   commit('Compilation clip order');
+   [p.compilationOrder[i],p.compilationOrder[j]]=[p.compilationOrder[j],p.compilationOrder[i]];
+   update();
+  });
+ }
+ const chosenHumor=()=>{const m=new Map((p.humorMoments||[]).map(v=>[v.id,v]));return (p.compilationOrder||[]).map(id=>m.get(id)).filter(Boolean)};
+ on('humorDownloadAll',()=>{
+  const text=rawDialogueOnly((p.humorMoments||[]).filter(m=>humorScope==='all'||m.assetId===humorScope));
+  if(!text)return toast('No extracted dialogue to save',true);
+  download(text+'\n',p.name+'-all-funny-dialogue.txt','text/plain;charset=utf-8');
+ });
+ on('humorDownloadSelected',()=>{
+  const text=rawDialogueOnly(chosenHumor());if(!text)return toast('Select at least one funny moment first',true);
+  download(text+'\n',p.name+'-selected-funny-dialogue.txt','text/plain;charset=utf-8');
+ });
+ on('humorBuild',async()=>{
+  const chosen=chosenHumor();if(!chosen.length)return toast('Choose some funny moments first.',true);
+  let clips;
+  try{clips=makeCompilationSegments(chosen,p.assets,{cropMode:'manual',zoom:1})}
+  catch(e){return toast('Cannot build compilation: '+e.message,true)}
+  const mode=$('compilationMode')?.value||'replace';
+  if(mode==='replace'&&p.segments.length&&!confirm('Replace the current edited timeline with these '+clips.length+' selected clips? You can Undo, or Save a named snapshot first.'))return;
+  commit('Built selected compilation');
+  engine.pause();
+  if(mode==='append')p.segments.push(...clips);else p.segments=clips;
+  p.selectedSegment=clips[0]?.id||null;p.selectedAudio=null;
+  await engine.seek(mode==='append'?Math.max(0,duration(p)-clips.reduce((n,s)=>n+(s.end-s.start)/(s.speed||1),0)):0);
+  update();chooseTab('editor');
+  const missing=[...new Set(clips.map(c=>c.assetId))].filter(id=>!asset(id)?.url);
+  toast('Compilation built from '+clips.length+' selected original clips, in your chosen order.'+(missing.length?' '+missing.length+' sources need relinking before export.':''));
+ });
+ c.querySelectorAll('[data-humor-preview]').forEach(b=>b.onclick=()=>{
+  const m=p.humorMoments?.find(v=>v.id===b.dataset.humorPreview),a=m&&asset(m.assetId);
+  if(!m||!a?.url)return toast('Original source needs reconnecting before preview.',true);
+  const dialog=$('humorPreviewDialog'),video=$('humorPreviewVideo');
+  video.pause();video.ontimeupdate=null;video.onloadedmetadata=null;
+  video.src=a.url;video.preload='auto';
+  $('humorPreviewTitle').textContent=a.name+' · '+fmt(m.start)+'–'+fmt(m.end);
+  $('humorPreviewTime').textContent='Source '+fmt(m.start)+'–'+fmt(m.end)+' · click ⛶ for fullscreen';
+  video.onloadedmetadata=()=>{video.currentTime=m.start;video.play().catch(()=>{})};
+  video.ontimeupdate=()=>{if(video.currentTime>=m.end){video.pause();video.currentTime=m.end}};
+  if(!dialog.open)dialog.showModal();
+  video.load();
+ });
  on('checkStorage',async()=>{const q=await quota();$('storageInfo').textContent=q?`Used: ${(q.usage/1073741824).toFixed(2)} GB, estimated quota: ${(q.quota/1073741824).toFixed(2)} GB`:'Quota information unavailable'});
  on('clearCachedMedia',async()=>{if(!confirm('Delete saved media files from browser storage? Project edits will remain, but you must relink source files.'))return;const {clearMedia}=await import('./storage.js');await clearMedia();toast('Cached files removed; source files remain available until reload')});}
 function removeSelected(){const i=p.segments.findIndex(s=>s.id===p.selectedSegment);if(i<0)return;commit();p.segments.splice(i,1);p.selectedSegment=p.segments[Math.min(i,p.segments.length-1)]?.id||null;update()}
