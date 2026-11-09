@@ -31,6 +31,8 @@ try{
   await saveProject(project);
  },fileSize);
  await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.getElementById('loadLastProject')?.disabled===false,null,{timeout:10000});
+ await page.locator('#loadLastProject').click();
  await page.waitForSelector('#previewMediaStatus:not([hidden])',{timeout:15000});
  const missing=await page.locator('#previewMediaMessage').innerText();
  if(!missing.includes('Original video not linked')||!(await page.locator('#relinkFromPreview').isVisible()))
@@ -141,6 +143,8 @@ try{
  if(!name.includes('renamed-playback-test.webm'))throw Error('Converted source was not attached to existing asset');
  // Refresh after re-link: source SRT and subtitle shift persist without re-transcription.
  await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.getElementById('loadLastProject')?.disabled===false,null,{timeout:10000});
+ await page.locator('#loadLastProject').click();
  const restored=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
   return {offset:p.subtitleOffsets?.long,words:p.words.map(w=>[w.text,w.start]),assets:p.assets.map(a=>a.id)};
