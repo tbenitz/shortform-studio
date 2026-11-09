@@ -1,0 +1,40 @@
+name: MP4 and saved-project browser regression
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mp4-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned media encoder and browser test
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Package browser media encoder
+        run: npm run vendor:audio
+      - name: Build test-only static site
+        run: |
+          mkdir -p _site
+          cp index.html icon.svg manifest.webmanifest sw.js _site/
+          cp -R src vendor _site/
+      - name: Install Chromium and FFmpeg
+        run: |
+          npx playwright install --with-deps chromium
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          fi
+      - name: Create real playable source video with audio
+        run: |
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i 'testsrc2=size=320x180:rate=24:duration=3.5' \
+            -f lavfi -i 'sine=frequency=523:sample_rate=48000:duration=3.5' \
+            -map 0:v -map 1:a -c:v libvpx -deadline realtime -cpu-used 8 \
+            -b:v 350k -c:a libopus -b:a 80k -t 3.5 _site/mp4-test.webm
+      - name: Verify MP4 H.264/AAC, favorites, and fresh project reloading
+        run: npm run smoke:mp4
