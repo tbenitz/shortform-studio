@@ -9,7 +9,8 @@
 **Live application:** [Open ShortForm Studio](https://tbenitz.github.io/shortform-studio/) · [See recent GitHub test results](https://github.com/tbenitz/shortform-studio/actions)
 
 **Choose the right section:**
-- [Start with the 14 new review items (R01–R14)](#implementation-batch--available-for-your-review-2026-11-08) — new controls from the latest code batch.
+- [Original 14 review items (R01–R14)](#implementation-batch--available-for-your-review-2026-11-08) — new controls from the latest code batch.
+- [Newest feature review (R15–R25)](#new-implementation-review-r15r25-favorites-mp4-and-recoverable-projects) — favorites, MP4 output, fresh startup and media reconnection.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
 - [Plain-English video editing and AI glossary](#plain-english-glossary--video-and-ai-terms) — explains the unfamiliar words.
 - [All 494 desired product features](#feature-acceptance-index) — each has its own test instructions, **but many are planned, not available**.
@@ -316,6 +317,60 @@
 | A rendered file is incorrect despite the preview looking right | Report as an export issue. A metadata audit cannot prove a render is correct. |
 | A GitHub workflow is still running | Do not approve the test result yet; check the completed run. |
 | A control works once but fails repeatedly | Report the regression and keep or return the checkbox to unchecked. |
+
+### New implementation review R15–R25 (favorites, MP4, and recoverable projects)
+
+**These are new features added to the code for your testing, NOT owner-approved completions.** No feature is checked off automatically. R15–R25 are narrower review tasks, separate from the broad 494-item master backlog.
+
+**The intended flow:** The website opens a **new empty editing project on every refresh**, while the **most recently saved project** remains stored. Use **Load Last Project** to restore it. Files up to 256 MB can be locally cached if the browser allows. For large recordings, **Import & Remember** uses Chrome's file-handle permissions; this is a saved reference to the original file rather than a duplicate upload. Chrome or the operating system can still require you to grant access again. If you imported an uncached large file via ordinary Import, it cannot be reconnected automatically without a new selection.
+
+**MP4 requirement:** Render must produce an actual ISO MP4 with **H.264 video and AAC audio**, using local browser encoding. WebM is **not** an automatic export fallback. For unsupported H.264/AAC browsers, very long videos, or memory-intensive renders, the app should report the limitation and the existing native FFmpeg renderer remains an alternative. A `.mp4` filename alone is *not* proof of an MP4 file.
+
+- [ ] **R15** Favorite source recordings and show a source favorites filter
+  - **What it means / exactly how to test:** Import two videos, click ☆ next to one source in Media, then click ☆ Favorites in the Source Library header. Only the starred source should remain visible; click again to show all sources.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R15` as broken or incomplete.
+
+- [ ] **R16** Favorite AI Director candidate clips and show starred candidates from all searches
+  - **What it means / exactly how to test:** Generate or load two different Director proposals. Click ☆ Favorite on one. Check Show ★ favorites from all searches. The starred proposal should appear, including when it came from another search batch.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R16` as broken or incomplete.
+
+- [ ] **R17** Favorite an edited timeline clip
+  - **What it means / exactly how to test:** Click a video clip in the Timeline, open Editor, click ☆ Add clip to favorites, and verify the clip changes to the ★ marker. Click again to remove. It must not change source timing.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R17` as broken or incomplete.
+
+- [ ] **R18** Persist all three favorites when saving and loading the project
+  - **What it means / exactly how to test:** Star a source, a Director proposal and a timeline clip; click Save, reload the page, click Load Last Project. All previously starred items should remain starred, and the favorites filters should find them.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R18` as broken or incomplete.
+
+- [ ] **R19** Protect favorites when clearing Director drafts
+  - **What it means / exactly how to test:** Star a Director candidate and leave a second proposal unstarred. Click Clear unstarred. Only unstarred proposals should disappear; the favorite must remain. Try Reset duplicate history and confirm the favorite stays.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R19` as broken or incomplete.
+
+- [ ] **R20** Export a real H.264/AAC MP4 instead of WebM
+  - **What it means / exactly how to test:** Import a short video with audio, choose Export, set a moderate resolution such as 720p, and click Render MP4 and download. The downloaded file must end in .mp4, play independently, show picture and sound, and contain H.264 video and AAC audio. If the browser cannot encode MP4, it must report an error—not silently export WebM.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R20` as broken or incomplete.
+
+- [ ] **R21** Open a fresh empty project on refresh; load last project by button
+  - **What it means / exactly how to test:** Save a project with at least one clip. Refresh the page and confirm the current editor starts empty rather than silently loading the old footage. Click Load Last Project and verify the saved clips and settings return.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R21` as broken or incomplete.
+
+- [ ] **R22** Automatically reconnect cached original media on Load Last Project
+  - **What it means / exactly how to test:** Import a short video under the browser's media cache limit (256 MB), Save, refresh, and click Load Last Project. The original file should say Ready and play without asking you to upload it again.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R22` as broken or incomplete.
+
+- [ ] **R23** Remember large original file access from an explicit browser picker
+  - **What it means / exactly how to test:** On a supported Chrome/Chromebook browser, click Import & Remember and pick a video. Save, refresh and click Load Last Project. If Chrome retained permission, the original source should reconnect without copying it into browser storage. If Chrome requires permission again, use Reconnect Files. Do not treat denied/revoked file access as an automatic success.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R23` as broken or incomplete.
+
+- [ ] **R24** Reconnect missing file permissions without silently replacing footage
+  - **What it means / exactly how to test:** After loading a saved project with an unavailable video, click Reconnect Files. Grant access to the correct saved file if Chrome asks, or use Import/Relink to select the original. The app must preserve source IDs, timecodes and cuts, and must not substitute an unrelated file.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R24` as broken or incomplete.
+
+- [ ] **R25** Run end-to-end browser test for MP4 export and restore
+  - **What it means / exactly how to test:** Open GitHub Actions → latest Deploy ShortForm Studio run. Check its browser smoke step that imports actual video, tests favorites/restore, downloads MP4 and runs ffprobe. Inspect the logs for real h264 and aac streams. A passing script is engineering evidence but cannot substitute for your own acceptance.
+  - **Pass rule:** The complete described behavior works, including refresh/persistence where applicable. If not, leave unchecked and report `R25` as broken or incomplete.
+
+**How to send your decisions:** `R15 and R17 work—approve both. R20 fails with an encoder error. R22 is not tested.` Only your explicit approval will update the relevant checkbox. Reporting a regression causes a previously accepted item to return to unchecked with a re-review note.
 
 ### Plain-English glossary — video and AI terms
 
