@@ -9,13 +9,33 @@ export const isMp4Buffer=buffer=>{
  return bytes.byteLength>32&&String.fromCharCode(...bytes.subarray(4,8))==='ftyp'
   &&String.fromCharCode(...bytes.subarray(8,12)).match(/^[A-Za-z0-9 ]{4}$/)!==null;
 };
+export const MP4_SDK_SOURCES=[
+ '../vendor/mediabunny/mediabunny.mjs',
+ 'https://cdn.jsdelivr.net/npm/mediabunny@1.65.0/dist/bundles/mediabunny.mjs',
+ 'https://unpkg.com/mediabunny@1.65.0/dist/bundles/mediabunny.mjs'
+];
+let loadedMp4Sdk=null;
+/** Resolve same-origin first; recover from a GitHub Pages branch build missing
+ * vendor/mediabunny. Alternate sources are pinned, never unversioned. */
+export async function loadMp4Sdk(importer=url=>import(/* @vite-ignore */ url)){
+ if(loadedMp4Sdk)return loadedMp4Sdk;
+ const failures=[];
+ for(const url of MP4_SDK_SOURCES){
+  try{
+   const sdk=await importer(url);
+   if(sdk?.Output&&sdk?.Mp4OutputFormat&&sdk?.BufferTarget&&sdk?.MediaStreamVideoTrackSource&&sdk?.MediaStreamAudioTrackSource){
+    loadedMp4Sdk=sdk;return sdk;
+   }
+   failures.push(url+': incompatible library');
+  }catch(e){failures.push(url+': '+String(e?.message||e).slice(0,180))}
+ }
+ throw Error('MP4 encoder unavailable: packaged file and both pinned backup downloads failed. Check your internet access or browser extensions, then reload. '+failures.join(' | '));
+}
 export async function openMp4Capture(canvas,audioTrack,{fps=30,videoBitrate=6000000,audioBitrate=160000}={}){
  if(!canvas?.captureStream)throw Error('Canvas video capture is not supported by this browser.');
  if(!audioTrack)throw Error('No audio mix track is available for MP4 export.');
  if(!globalThis.VideoEncoder||!globalThis.AudioEncoder)throw Error('This browser does not expose the WebCodecs video/audio encoders needed for MP4. No WebM was exported.');
- let sdk;
- try{sdk=await import('../vendor/mediabunny/mediabunny.mjs')}
- catch(e){throw Error('The MP4 encoder library did not load: '+e.message+'. Reload the page online to update its cache.')}
+ const sdk=await loadMp4Sdk();
  const {Output,Mp4OutputFormat,BufferTarget,MediaStreamVideoTrackSource,MediaStreamAudioTrackSource,Quality}=sdk;
  if(!Output||!MediaStreamVideoTrackSource||!MediaStreamAudioTrackSource)throw Error('Bundled MP4 encoder is incompatible.');
  const width=canvas.width-(canvas.width%2),height=canvas.height-(canvas.height%2);
