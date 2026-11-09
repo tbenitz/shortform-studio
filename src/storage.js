@@ -6,6 +6,14 @@ export const loadProject=()=>trans('projects','readonly',s=>s.get('current'));
 export const saveMedia=(id,file)=>trans('media','readwrite',s=>s.put(file,id));
 export const loadMedia=id=>trans('media','readonly',s=>s.get(id));
 export const deleteMedia=id=>trans('media','readwrite',s=>s.delete(id));
+/** FileSystemFileHandle is structured-cloneable in Chromium IndexedDB.
+ * This stores permission-linked references, not bytes or fake paths.
+ * File access can still require a fresh user permission after reopening.
+ */
+export const saveMediaHandle=(id,handle)=>trans('media','readwrite',s=>s.put(handle,'handle:'+id));
+export const loadMediaHandle=id=>trans('media','readonly',s=>s.get('handle:'+id));
+export const deleteMediaHandle=id=>trans('media','readwrite',s=>s.delete('handle:'+id));
+
 export async function clearMedia(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction('media','readwrite');tx.objectStore('media').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 export async function quota(){if(!navigator.storage?.estimate)return null;return navigator.storage.estimate()}
 
