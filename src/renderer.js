@@ -1,5 +1,5 @@
 import {duration,segmentAt,mapWords,clamp,fmt,download} from './model.js';
-import {focusAt} from './faces.js';
+import {focusAt,focusAtFace} from './faces.js';
 import {activeWordIndex,drawCaptions} from './captions.js';
 import {sourcePlaybackIssue,decodedVideoReady,sourceTimeToProjectTime,segmentTimeLength} from './playback-state.js';
 import {alignedVideoProjectTime} from './subtitle-sync.js';
@@ -199,9 +199,19 @@ export class Renderer{
     if(mw&&mh){
       const progress=clamp(curr.local/Math.max(.05,seg.end-seg.start),0,1),keyedZoom=(seg.zoom||1)*(1-progress)+(seg.zoomEnd??seg.zoom??1)*progress;
       const zoom=clamp(keyedZoom*this.settings.zoom,.5,5),scale=Math.max(w/mw,h/mh)*zoom,dw=mw*scale,dh=mh*scale;
-      const sourceTime=seg.start+curr.local, detected=this.settings.autoFaceFraming?focusAt(p.faceTracks?.[seg.assetId]||[],sourceTime,seg.focusX??.5):null;
-      const f=clamp((this.settings.faceTrackingStrength||80)/100,0,1);
+      const sourceTime=seg.start+curr.local,faceSamples=p.faceTracks?.[seg.assetId]||[];
+      const cropMode=seg.cropMode|| (this.settings.autoFaceFraming?'auto':'manual');
       const baseX=(seg.focusX??.5)*(1-progress)+(seg.focusEndX??seg.focusX??.5)*progress,baseY=(seg.focusY??.5)*(1-progress)+(seg.focusEndY??seg.focusY??.5)*progress;
+      let detected=null;
+      if(cropMode==='auto')detected=Number.isInteger(seg.cropFaceIndex)&&seg.cropFaceIndex>=0?focusAtFace(faceSamples,sourceTime,seg.cropFaceIndex):faceSamples.length?focusAt(faceSamples,sourceTime,baseX):null;
+      if(cropMode==='speaker'){
+        // Transcript diarization does not identify video faces. The owner explicitly
+        // maps speaker labels to a left-to-right detected face index per clip.
+        const spoken=p.words?.find(w=>w.assetId===seg.assetId&&w.start<=sourceTime&&w.end>=sourceTime-.1);
+        const faceIndex=spoken?.speaker!==undefined?Number(seg.speakerFaceMap?.[spoken.speaker]):NaN;
+        if(Number.isInteger(faceIndex)&&faceIndex>=0)detected=focusAtFace(faceSamples,sourceTime,faceIndex);
+      }
+      const f=detected?clamp((seg.faceStrength??this.settings.faceTrackingStrength??80)/100,0,1):0;
       const x=clamp(baseX*(1-f)+(detected?.x??baseX)*f,0,1),y=clamp(baseY*(1-f)+(detected?.y??baseY)*f,0,1);
       const dx=clamp(w/2-x*dw,w-dw,0),dy=clamp(h/2-y*dh,h-dh,0);
       const look={grayscale:'grayscale(100%)',sepia:'sepia(80%)',vintage:'sepia(50%) contrast(115%)',soft:'blur(1.4px)'}[this.settings.videoFilter]||'';ctx.filter=`brightness(${this.settings.brightness}%) contrast(${this.settings.contrast}%) saturate(${this.settings.saturation}%) ${look}`;
