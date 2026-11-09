@@ -3,7 +3,7 @@ import {DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
 
 export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=50,maxCalls=16,displayLimit=100,instructions=null}={}){
  const assets=(p.assets||[]).filter(a=>a.type==='video'||a.type==='audio');
- const moments=(p.humorMoments||[]).filter(m=>scope==='all'||m.assetId===scope).slice().sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start);
+ const moments=(p.humorMoments||[]).filter(m=>scope==='all'||m.assetId===scope).slice().sort((a,b)=>a.start-b.start||a.assetId.localeCompare(b.assetId));
  const shown=moments.slice(0,displayLimit);
  const order=Array.isArray(p.compilationOrder)?p.compilationOrder:[];
  const byId=new Map((p.humorMoments||[]).map(m=>[m.id,m]));
