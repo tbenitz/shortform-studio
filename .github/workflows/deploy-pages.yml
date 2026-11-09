@@ -39,7 +39,7 @@ jobs:
           cp index.html icon.svg manifest.webmanifest sw.js _site/
           cp -R src vendor _site/
       - name: Install Chromium for end-to-end face detection test
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium chrome
       - name: Install FFmpeg for browser video smoke test
         run: |
           if command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1; then
