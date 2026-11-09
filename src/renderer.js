@@ -3,6 +3,7 @@ import {focusAt} from './faces.js';
 import {activeWordIndex,drawCaptions} from './captions.js';
 import {sourcePlaybackIssue,decodedVideoReady,sourceTimeToProjectTime,segmentTimeLength} from './playback-state.js';
 import {alignedVideoProjectTime} from './subtitle-sync.js';
+import {openMp4Capture} from './mp4-export.js';
 const el=id=>document.getElementById(id);
 export class Renderer{
  constructor(project,getAsset,notify){this.project=project;this.asset=getAsset;this.notify=notify;this.video=el('engineVideo');this.canvas=el('previewCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});this.time=0;this.playing=false;this.lastFrame=0;this.rendering=false;this.cancelRequested=false;this.loadedAsset=null;this.loadedUrl=null;this.lastMediaWarning='';this.mediaPendingSince=0;this.loadedImage=null;this.image=null;this.raf=null;this.audioCtx=null;this.mediaDestination=null;this.videoGain=null;this.videoAnalyser=null;this.lastAudioUiAt=0;this.lastAudioLevel=0;this.audioPlayers=new Map();this.previewMuted=false;this.onTick=()=>{};this.lastWordIndex=-1;this.captionCache={words:null,segments:null,list:[]};this.previousFrame=null;this.lastSegmentId=null;this.frameCache=null;this.video.addEventListener('loadedmetadata',()=>{this.syncVideo();this.draw()});
@@ -261,7 +262,7 @@ export class Renderer{
    if(this.rendering)this.finishedRender?.();return;
   }
   const seg=curr.seg,source=this.asset(seg.assetId),issue=sourcePlaybackIssue(source,seg);
-  if(issue){this.syncVideo();this.pause();this.notify(issue.message,true);return}
+  if(issue){this.syncVideo();this.pause();this.notify(issue.message,true);if(this.rendering)this.finishedRender?.(new Error(issue.message));return}
   if(source?.type==='video'){
    // The previous implementation advanced wall-clock time even while Chrome was
    // still seeking distant frames. Keep the edit clock on the actual decoded video.
@@ -275,6 +276,7 @@ export class Renderer{
     }
    }else{
     this.draw();this.onTick(this.time);this.updateAudioUi();
+    if(this.rendering&&this.lastMediaWarning.startsWith('error|')){const error=new Error(this.lastMediaWarning.split('|')[1]||'Video decoder could not produce frames');this.pause();this.finishedRender?.(error);return;}
     this.raf=requestAnimationFrame(this.loop);
     return;
    }
@@ -286,8 +288,66 @@ export class Renderer{
   this.syncVideo();this.syncAudio();this.draw();this.onTick(this.time);this.updateAudioUi();
   this.raf=requestAnimationFrame(this.loop);
  };
- cancelRender(){if(this.rendering){this.cancelRequested=true;this.finishedRender?.()}}
- async record({onProgress=()=>{},onStatus=()=>{}}={}){if(this.rendering)throw Error('Render already in progress');if(!duration(this.project))throw Error('Timeline is empty');if(this.project.segments.some(s=>!this.asset(s.assetId)?.url))throw Error('At least one source is unavailable. Relink missing files before rendering.');if(!window.MediaRecorder||!this.canvas.captureStream)throw Error('This browser does not support Canvas MediaRecorder export');this.pause();this.rendering=true;this.cancelRequested=false;const initialOnTick=this.onTick;const previousTime=this.time,oldWidth=this.canvas.width,oldHeight=this.canvas.height,oldMuted=this.previewMuted;let recorder,stream;try{await this.initAudio();await this.createAudioPlayers();this.previewMuted=false;this.setSize(this.settings.outputHeight);await this.seek(0);await new Promise(r=>setTimeout(r,300));onStatus('Preparing real-time local render');const opts=[`video/mp4;codecs=avc1.42E01E,mp4a.40.2`,`video/webm;codecs=vp9,opus`,`video/webm;codecs=vp8,opus`,`video/webm`];const type=opts.find(t=>MediaRecorder.isTypeSupported(t));if(!type)throw Error('No supported video recording format');const picture=this.canvas.captureStream(clamp(this.settings.fps,15,60)),tracks=[...picture.getVideoTracks(),...this.mediaDestination.stream.getAudioTracks()];stream=new MediaStream(tracks);recorder=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:clamp(this.settings.quality,1000000,25000000),audioBitsPerSecond:160000});const blobs=[];const done=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)blobs.push(e.data)};recorder.onerror=e=>reject(e.error||Error('Recording failed'));recorder.onstop=()=>resolve(new Blob(blobs,{type:recorder.mimeType}))});const originalTick=this.onTick;this.onTick=(t)=>{originalTick(t);onProgress(t/Math.max(.1,duration(this.project)))};let complete;const completed=new Promise(r=>{complete=r});this.finishedRender=complete;recorder.start(1000);await this.play();await completed;this.onTick=originalTick;if(this.cancelRequested)throw Error('Render canceled by user');if(recorder.state!=='inactive')recorder.stop();const blob=await done;const extension=type.includes('mp4')?'mp4':'webm';download(blob,`${safeName(this.project.name)}-${this.settings.aspect.replace(':','x')}.${extension}`,blob.type);onProgress(1);onStatus(`Exported ${extension.toUpperCase()} (${(blob.size/1048576).toFixed(1)} MB)`);return blob}finally{this.onTick=initialOnTick;this.rendering=false;this.finishedRender=null;this.pause();if(recorder?.state==='recording')recorder.stop();stream?.getTracks().filter(t=>t.kind==='video').forEach(t=>t.stop());this.previewMuted=oldMuted;this.canvas.width=oldWidth;this.canvas.height=oldHeight;await this.seek(previousTime)}}
+ cancelRender(){
+  if(this.rendering){this.cancelRequested=true;this.finishedRender?.(new Error('Render cancelled by user'))}
+ }
+ async record({onProgress=()=>{},onStatus=()=>{}}={}){
+  if(this.rendering)throw Error('Render already in progress');
+  if(!duration(this.project))throw Error('Timeline is empty');
+  if(this.project.segments.some(s=>!this.asset(s.assetId)?.url))throw Error('A source is unavailable. Load the last project and reconnect the missing files before export.');
+  this.pause();this.rendering=true;this.cancelRequested=false;
+  const initialTick=this.onTick,previousTime=this.time,oldWidth=this.canvas.width,oldHeight=this.canvas.height,oldMuted=this.previewMuted;
+  let capture=null;
+  try{
+   onStatus('Preparing real H.264/AAC MP4 export…');
+   await this.initAudio();
+   await this.createAudioPlayers();
+   this.previewMuted=false;
+   const selectedHeight=Math.max(144,Math.min(2160,Number(this.settings.outputHeight)||1080));
+   // Even H.264 dimensions are required; preserve chosen aspect within one pixel.
+   const aspect=this.settings.aspect.split(':').map(Number),rawWidth=Math.round(selectedHeight*aspect[0]/aspect[1]);
+   const width=rawWidth%2?rawWidth+1:rawWidth,height=selectedHeight%2?selectedHeight+1:selectedHeight;
+   if(width*height>3840*2160)throw Error('Browser MP4 export above 4K is not supported. Use the native FFmpeg renderer.');
+   this.canvas.width=width;this.canvas.height=height;this.canvas.style.aspectRatio=`${aspect[0]}/${aspect[1]}`;
+   await this.seek(0);
+   // Let Chrome decode the first original frame before capture.
+   await new Promise(resolve=>setTimeout(resolve,250));
+   const audioTrack=this.mediaDestination?.stream?.getAudioTracks()[0];
+   capture=await openMp4Capture(this.canvas,audioTrack,{
+    fps:clamp(this.settings.fps,15,60),videoBitrate:this.settings.quality,audioBitrate:160000
+   });
+   if(this.cancelRequested)throw Error('Render cancelled before start');
+   const renderSeconds=Math.max(.1,duration(this.project));
+   this.onTick=t=>{initialTick(t);onProgress(Math.max(0,Math.min(.99,t/renderSeconds)))};
+   let endRender;
+   const done=new Promise(resolve=>endRender=resolve);
+   this.finishedRender=endRender;
+   onStatus('Recording MP4 in real time (H.264 video + AAC audio)…');
+   await this.play();
+   if(!this.playing)throw Error('Source playback could not start. No MP4 was produced.');
+   const result=await done;
+   if(result instanceof Error)throw result;
+   if(this.cancelRequested)throw Error('Render cancelled by user');
+   if(capture.error)throw Error('MP4 encoder failed: '+capture.error.message);
+   onStatus('Finalizing and validating the MP4 file…');
+   this.pause();
+   const blob=await capture.finish();capture=null;
+   if(blob.size<64)throw Error('MP4 file is unexpectedly empty.');
+   download(blob,`${safeName(this.project.name)}-${this.settings.aspect.replace(':','x')}.mp4`,'video/mp4');
+   onProgress(1);
+   onStatus(`Exported MP4 (H.264/AAC · ${(blob.size/1048576).toFixed(1)} MB)`);
+   return blob;
+  }catch(error){
+   onStatus('MP4 export failed: '+error.message);
+   throw error;
+  }finally{
+   this.onTick=initialTick;this.rendering=false;this.finishedRender=null;
+   this.pause();if(capture)await capture.cancel();
+   this.previewMuted=oldMuted;
+   this.canvas.width=oldWidth;this.canvas.height=oldHeight;
+   await this.seek(previousTime);
+  }
+ }
 }
 function safeName(s){return String(s).trim().replace(/[^\w\-.]+/g,'-').slice(0,72)||'shortform'}
 function wrapCaption(text,width,maxLines=2){const toks=text.split(/\s+/),lines=[''];for(const tok of toks){if((lines.at(-1)+' '+tok).trim().length>width&&lines.length<maxLines)lines.push(tok);else lines[lines.length-1]+=(lines.at(-1)?' ':'')+tok}return lines}
