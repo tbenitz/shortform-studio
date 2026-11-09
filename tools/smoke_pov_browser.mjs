@@ -44,6 +44,8 @@ try{
   await saveProject(p);
  },{a:{size:a.size,date:Math.floor(a.mtimeMs)},b:{size:b.size,date:Math.floor(b.mtimeMs)}});
  await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.getElementById('loadLastProject')?.disabled===false,null,{timeout:10000});
+ await page.locator('#loadLastProject').click();
  await page.locator('#fileUpload').setInputFiles([A,B]);
  await page.locator('[data-tab="director"]').click();
  if((await page.locator('#directorOutputMode').inputValue())!=='stories')
