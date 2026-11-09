@@ -14,7 +14,7 @@ try{
  await page.locator('#fileUpload').setInputFiles('_site/humor-test.webm');
  await page.waitForFunction(()=>document.querySelectorAll('#videoTrack [data-seg]').length===1,null,{timeout:12000});
  await page.locator('button[data-tab="transcript"]').click();
- const srt='1\n00:00:00,400 --> 00:00:02,800\nNo way you just crashed our helicopter into a tree!\n\n2\n00:00:03,200 --> 00:00:06,000\nDude are you kidding me that was hilarious!\n\n3\n00:00:08,000 --> 00:00:10,500\nThe installation documentation covers configuration parameters.\n';
+ const srt='1\n00:00:00,400 --> 00:00:02,800\nNo way you just crashed our helicopter into a tree!\n\n2\n00:00:03,200 --> 00:00:06,000\nDude are you kidding me that was hilarious!\n\n3\n00:00:08,000 --> 00:00:10,500\nThe installation documentation covers configuration parameters.\n\n4\n00:00:21,000 --> 00:00:24,000\nThe helicopter crashed into another tree! The pilot is a clown!\n';
  await page.locator('#srtUpload').setInputFiles({name:'source-jokes.srt',mimeType:'text/plain',buffer:Buffer.from(srt)});
  await page.waitForFunction(async()=>{
   const data=await (await import('./src/storage.js')).loadProject();return data?.words?.length>=15;
@@ -76,6 +76,21 @@ try{
   return {clips:data.segments?.length,chosen:data.compilationOrder?.length,moments:data.humorMoments?.length,mode:data.segments?.[0]?.cropMode};
  });
  if(stored.chosen!==1||stored.moments<1||stored.mode!=='manual')throw Error('Saved humor selection or crop mode missing: '+JSON.stringify(stored));
+ // A storyline needs real separate source cuts that share the same topic.
+ await page.locator('#humorFindStory').click();
+ await page.waitForFunction(()=>document.querySelectorAll('[data-story-build]').length>=1,null,{timeout:12000});
+ await page.locator('[data-story-build]').first().click();
+ await page.waitForFunction(()=>document.querySelector('[data-tab="editor"].active')&&document.querySelectorAll('#videoTrack [data-seg]').length>=2,null,{timeout:12000});
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async()=>{
+  const data=await (await import('./src/storage.js')).loadProject();
+  return data?.segments?.length>=2&&new Set(data.segments.map(s=>s.assetId)).size===1&&data.segments.every((s,i)=>i===0||s.start>=data.segments[i-1].end);
+ },null,{timeout:12000});
+ const sourceStory=await page.evaluate(async()=>{
+  const data=await (await import('./src/storage.js')).loadProject();
+  return data.segments.map(s=>({assetId:s.assetId,start:s.start,end:s.end}));
+ });
+ console.log('PASS: coherent two-or-more-cut funny story from actual separate same-topic original source windows '+JSON.stringify(sourceStory));
  if(errors.length)throw Error('Unhandled browser errors: '+errors.join(' | '));
  console.log('PASS: local SRT humor candidates, raw TXT, source modal, chosen compilation, crop, fullscreen and persistence '+JSON.stringify(stored));
 }finally{await browser?.close();server.kill('SIGTERM')}
