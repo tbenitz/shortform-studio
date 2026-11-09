@@ -34,6 +34,8 @@ try{
   await saveProject(project);
  },size);
  await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.getElementById('loadLastProject')?.disabled===false,null,{timeout:10000});
+ await page.locator('#loadLastProject').click();
  await page.locator('#fileUpload').setInputFiles(path);
  await page.locator('[data-tab="director"]').click();
  await page.locator('#scanGameplayBtn').click();
