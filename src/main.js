@@ -730,7 +730,7 @@ async function doExport(){if(renderBusy)return;renderBusy=true;renderInspector()
 async function probe(file,url,type){if(type==='image'){return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve({duration:15,width:img.naturalWidth,height:img.naturalHeight});img.onerror=()=>resolve({duration:15});img.src=url})}return new Promise(resolve=>{const m=document.createElement(type==='audio'?'audio':'video');m.preload='metadata';let settled=false;const done=()=>{if(settled)return;settled=true;resolve({duration:Number.isFinite(m.duration)?m.duration:0,width:m.videoWidth||0,height:m.videoHeight||0});m.removeAttribute('src');m.load()};m.onloadedmetadata=done;m.onerror=done;setTimeout(done,9000);m.src=url})}
 /** Replace an original source in place, preserving stable asset IDs and all edits/transcripts.
  * Converted/renamed files are allowed but timestamp alignment must be checked. */
-async function relinkSourceFile(assetId,file){
+async function relinkSourceFile(assetId,file,handle=null){
  const original=p.assets.find(x=>x.id===assetId);
  if(!original)throw Error('The selected video is missing from this project');
  if(original.type!=='video')throw Error('Choose a video source to relink');
@@ -755,28 +755,43 @@ async function relinkSourceFile(assetId,file){
  p.selectedAsset=original.id;
  update();
  if(prev?.url&&prev.url!==url)URL.revokeObjectURL(prev.url);
- if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(original.id,file).catch(e=>toast('Could not cache relinked source: '+e.message,true));
+ if(handle)saveMediaHandle(original.id,handle).then(()=>savedHandles.set(original.id,handle)).catch(e=>toast('Could not remember source permission: '+e.message,true));
+  if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(original.id,file).catch(e=>toast('Could not cache relinked source: '+e.message,true));
  else deleteMedia(original.id).catch(()=>{});
  toast('Video linked to the original source. Subtitle timestamps have NOT been changed. Verify caption alignment in Transcript → Subtitle synchronization.');
  return true;
 }
 
-async function addFile(file){const existing=p.assets.find(a=>a.name===file.name&&a.size===file.size);if(existing){const prev=assets.get(existing.id);if(prev?.url)URL.revokeObjectURL(prev.url);const url=URL.createObjectURL(file);Object.assign(existing,{url});assets.set(existing.id,{...existing,file,url});p.selectedAsset=existing.id;if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(existing.id,file).catch(()=>{});return existing}
-const type=file.type.startsWith('video')||/\.(mkv|mp4|mov|avi|webm)$/i.test(file.name)?'video':file.type.startsWith('image')?'image':'audio',id=uid(),url=URL.createObjectURL(file),info=await probe(file,url,type),data={id,name:file.name,type,mime:file.type||'',size:file.size,lastModified:file.lastModified,duration:info.duration|| (type==='image'?15:0),width:info.width||0,height:info.height||0,url};p.assets.push(data);assets.set(id,{...data,file});p.selectedAsset=id;if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(id,file).catch(e=>toast(`Media cache not saved: ${e.message}`,true));else if(p.settings.rememberMedia&&file.size>256*1024*1024)toast('Large source linked for this session. After reopening, use Relink original video in the preview; your transcripts and edits stay saved.');return data}
+async function addFile(file,handle=null){const existing=p.assets.find(a=>a.name===file.name&&a.size===file.size);if(existing){const prev=assets.get(existing.id);if(prev?.url)URL.revokeObjectURL(prev.url);const url=URL.createObjectURL(file);Object.assign(existing,{url});assets.set(existing.id,{...existing,file,url});p.selectedAsset=existing.id;if(handle)saveMediaHandle(existing.id,handle).then(()=>savedHandles.set(existing.id,handle)).catch(e=>toast('Could not remember file access: '+e.message,true));if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(existing.id,file).catch(()=>{});return existing}
+const type=file.type.startsWith('video')||/\.(mkv|mp4|mov|avi|webm)$/i.test(file.name)?'video':file.type.startsWith('image')?'image':'audio',id=uid(),url=URL.createObjectURL(file),info=await probe(file,url,type),data={id,name:file.name,type,mime:file.type||'',size:file.size,lastModified:file.lastModified,duration:info.duration|| (type==='image'?15:0),width:info.width||0,height:info.height||0,url};p.assets.push(data);assets.set(id,{...data,file});p.selectedAsset=id;if(handle)saveMediaHandle(id,handle).then(()=>savedHandles.set(id,handle)).catch(e=>toast('Could not remember source permission: '+e.message,true));if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(id,file).catch(e=>toast(`Media cache not saved: ${e.message}`,true));else if(p.settings.rememberMedia&&file.size>256*1024*1024&&!handle)toast('Large file is linked for now. For auto-reconnection next time, use Import & Remember or choose the file again.');return data}
+async function importRememberedFiles(){
+ if(typeof window.showOpenFilePicker!=='function')return toast('Chrome file handles are unavailable. Use Import; files under 256 MB can be cached. Large files must be relinked manually.',true);
+ try{
+  // Called directly from a user click so Chrome can grant persistent read access.
+  const handles=await window.showOpenFilePicker({multiple:true});
+  const files=[],fileHandles=new Map();
+  for(const handle of handles){
+   if(handle.kind!=='file')continue;
+   const file=await handle.getFile();
+   files.push(file);fileHandles.set(file,handle);
+  }
+  if(files.length)await importFiles(files,fileHandles);
+ }catch(e){if(e.name!=='AbortError')toast('Import & Remember: '+e.message,true)}
+}
 function syncSourceRange(){const a=asset(p.selectedAsset);$('sourceIn').value='0';$('sourceOut').value=sourceSecondsValue(a);}
-async function importFiles(files){
+async function importFiles(files,handles=new Map()){
  const array=[...files].filter(x=>x.type.startsWith('video/')||x.type.startsWith('audio/')||x.type.startsWith('image/')||/\.(mkv|mov|mp4|webm|wav|mp3|m4a)$/i.test(x.name));
  if(!array.length)return toast('No supported media files selected',true);
  commit();let imported=0,inserted=0,relinked=0;
  for(const file of array){try{
   const missing=possibleMissingSourceRelink(p.assets,file,p.segments,p.words);
   if(missing&&confirm('A saved project has an unlinked original recording: '+missing.name+'.\n\nWould you like to RELINK that original with '+file.name+' instead of adding a new video? Relinking keeps your existing SRT subtitles, cuts, and AI Director clips.\n\nChoose Cancel if this is a separate new recording.')){
-   const success=await relinkSourceFile(missing.id,file);
+   const success=await relinkSourceFile(missing.id,file,handles.get(file)||null);
    if(success){imported++;relinked++;continue}
    continue;
   }
   const previous=p.assets.some(x=>x.name===file.name&&x.size===file.size);
-  const a=await addFile(file);imported++;if(previous)relinked++;
+  const a=await addFile(file,handles.get(file)||null);imported++;if(previous)relinked++;
   if(shouldAutoInsertMedia(a,p.segments.some(s=>s.assetId===a.id),p.settings)){
    const cut=entireSourceCut(a);p.segments.push(cut);p.selectedSegment=cut.id;inserted++;
   }else if(a.type==='video'&&!a.duration)toast('Could not determine '+a.name+' duration. Try converting to MP4/H.264.',true);
