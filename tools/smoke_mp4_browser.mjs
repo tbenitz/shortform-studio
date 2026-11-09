@@ -9,7 +9,7 @@ await stat(testFile);
 const server=spawn('python3',['-m','http.server','8797','--directory','_site'],{stdio:'ignore'});
 let browser;
 try{
- browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+ browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage({acceptDownloads:true}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  for(let i=0;i<30;i++){
@@ -57,6 +57,13 @@ try{
  if(!(await page.locator('#assetsList').innerText()).includes('Ready'))throw Error('Cached source was not reconnected automatically');
  console.log('PASS: Fresh startup, explicit load last, source reattachment and two types of persistent favorites');
  // A real-browser video exporter must produce video/mp4 bytes with actual H.264/AAC streams.
+ const codecSupport=await page.evaluate(async()=>{
+   const variants=[44100,48000].map(rate=>({codec:'mp4a.40.2',sampleRate:rate,numberOfChannels:2,bitrate:160000}));
+   return {browser:navigator.userAgent,
+    aac:typeof AudioEncoder==='undefined'?[]:await Promise.all(variants.map(async config=>{try{return {rate:config.sampleRate,supported:(await AudioEncoder.isConfigSupported(config)).supported}}catch(e){return {rate:config.sampleRate,error:e.message}}})),
+    recorder:typeof MediaRecorder!=='undefined'&&MediaRecorder.isTypeSupported('video/mp4;codecs="avc1.42E01E,mp4a.40.2"')};
+  });
+ console.log('MP4 encoder support: '+JSON.stringify(codecSupport));
  await page.locator('button[data-tab="export"]').click();
  await page.locator('[data-setting="outputHeight"]').fill('240');
  await page.locator('[data-setting="outputHeight"]').dispatchEvent('change');
