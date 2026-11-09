@@ -8,3 +8,12 @@ export const loadMedia=id=>trans('media','readonly',s=>s.get(id));
 export const deleteMedia=id=>trans('media','readwrite',s=>s.delete(id));
 export async function clearMedia(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction('media','readwrite');tx.objectStore('media').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 export async function quota(){if(!navigator.storage?.estimate)return null;return navigator.storage.estimate()}
+
+/** Named project metadata snapshots; original media stays in the existing media store. */
+export const saveSnapshot=snapshot=>trans('projects','readwrite',store=>store.put(snapshot,'snapshot:'+snapshot.id));
+export const loadSnapshot=id=>trans('projects','readonly',store=>store.get('snapshot:'+id));
+export const deleteSnapshot=id=>trans('projects','readwrite',store=>store.delete('snapshot:'+id));
+export async function listSnapshots(projectId){
+ const rows=await trans('projects','readonly',store=>store.getAll());
+ return rows.filter(s=>s&&s.project&&s.projectId===projectId&&s.id).sort((a,b)=>b.createdAt-a.createdAt);
+}
