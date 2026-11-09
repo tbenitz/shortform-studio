@@ -2,7 +2,35 @@
 
 **Local-first, browser-based video editor** with transcript editing, local Whisper transcription, AI Director clip proposals, nonlinear story assembly, captions, multitrack audio, mic narration recording, and real-time export. Built as a static HTML/CSS/JS progressive web application. No account, build step, or database server required.
 
-> **Project status: functional alpha.** This is a real editor foundation with working workflows, not a promise that every professional production feature has been implemented. Please read the [Feature status](#feature-status) and [Limitations](#limitations) sections before using it for important content.
+> **Project status: functional alpha.** This is a real editor foundation with working workflows, not a promise that every professional production feature has been implemented. Please read the [Feature status](#feature-status-and-expectations) and [Limitations](#practical-limitations-and-constraints) sections before using it for important content.
+
+## Read this first — what can I actually test?
+
+**Live application:** [Open ShortForm Studio](https://tbenitz.github.io/shortform-studio/) · [See recent GitHub test results](https://github.com/tbenitz/shortform-studio/actions)
+
+**Choose the right section:**
+- [Start with the 14 new review items (R01–R14)](#implementation-batch--available-for-your-review-2026-11-08) — new controls from the latest code batch.
+- [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
+- [Plain-English video editing and AI glossary](#plain-english-glossary--video-and-ai-terms) — explains the unfamiliar words.
+- [All 494 desired product features](#feature-acceptance-index) — each has its own test instructions, **but many are planned, not available**.
+- [Open problems / re-review log](#open-problems--re-review-log) — features you reported broken.
+- [Your approvals](#acceptance-change-record) — a record of exactly what you personally approved.
+
+### Where features currently appear in the app
+
+| Existing interface area | What to look for in the current code | Important distinction |
+| --- | --- | --- |
+| **Media** | Import videos/audio/images, choose original source ranges, relink files, inspect source video, run face/scene scans | A visible import control does not mean every video codec works. |
+| **Transcript** | Import SRT/VTT, local Whisper, caption timing, speaker labels and gap retry | Real ASR correctness and word timing still need testing on your footage. |
+| **AI Director** | Story briefs, candidate discovery, multi-POV matching and optional remote model processing | Story coherence, GPU/vision availability and source accuracy are **not guaranteed**. |
+| **Editor** | Choose clips, split, trim, reorder, set pan/zoom, titles and narration | This is **not** a complete professional multitrack NLE. |
+| **Export** | Browser render, captions and cut-list/project JSON; optional separate FFmpeg renderer | Preview/export parity and codec support still need real-file verification. |
+| **Production Tools** | New R01–R14 tools: metadata dashboard, snapshots, markers, transcript search, reports and clip controls | This is a production utility panel, **not** a video vision analyzer or final-render QA engine. |
+| **Settings** | Aspect, captions, audio, transcription, AI and browser storage preferences | A setting should be tested end to end before you approve a corresponding master requirement. |
+
+**Likely not present as full standalone tools yet:** Quick Create as a distinct workspace, Content Factory as a full batch-production workspace, desktop companion, professional multi-track node compositor, advanced collaborative editing, generative video/B-roll suite, and universal codec converter. Do **not** search the current site for these as if they were already completed.
+
+**Important distinction:** “Control present in the app” means you can try it; it is **not** an owner acceptance, a guarantee of correct output, or proof that all parts of a 494-item master requirement are finished.
 
 ## Master feature checklist — OWNER APPROVAL REQUIRED
 
