@@ -31,6 +31,8 @@ jobs:
             -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=18' \
             -map 0:v -map 1:a -c:v libvpx -deadline realtime -cpu-used 8 \
             -b:v 180k -c:a libopus -b:a 48k -t 18 qa-wave-test.webm
+      - name: Test original SRT-first subtitles, clip ranking and all eight guided workspaces
+        run: node tools/smoke_srt_first_browser.mjs
       - name: Test real clip extension, source context, undo and easy finder in Chromium
         run: node tools/smoke_clip_context_browser.mjs
       - name: Test source health, frame decode and Ctrl+K in actual Chromium
