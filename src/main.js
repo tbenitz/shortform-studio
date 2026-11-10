@@ -1305,7 +1305,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
     updateHumorStatus('Local scan: '+matches.length+' possible funny moments · '+stories.length+' related storylines. These are unverified keyword matches; connect AI Director to recognize context.');
    }
    update();
-   if(mode==='story'&&!findConnectedFunnyStories(p.humorMoments||[]).length)
+   if((mode==='story'||mode==='compilation')&&!findConnectedFunnyStories(p.humorMoments||[]).length)
     toast('No coherent multi-cut story found yet. Unrelated jokes were intentionally left separate.',true);
   }catch(e){
    if(humorAbort?.signal.aborted){
@@ -1335,6 +1335,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  };
  on('humorFindLocal',()=>chooseHumorMode('clips'));
  on('humorFindStory',()=>chooseHumorMode('story'));
+ on('humorFindCompilation',()=>chooseHumorMode('compilation'));
  on('humorRescan',()=>runFunnySearch(humorView));
  on('humorFindAI',()=>runFunnySearch(humorView,{forceAI:true}));
  on('humorCancel',()=>{humorAbort?.abort();toast('AI humor scan cancellation requested')});
@@ -1443,6 +1444,20 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   const restored=restoreHumorRejection(p,b.dataset.humorRestore);
   if(!restored){toast('That rejection was not found.',true);return}
   update();toast('Restored the original source-linked suggestion.');
+ });
+ // Extend the actual original footage, and update the stored selection used by compilations.
+ c.querySelectorAll('[data-humor-expand]').forEach(button=>button.onclick=()=>{
+  const m=p.humorMoments?.find(x=>x.id===button.dataset.humorExpand);
+  if(!m)return;
+  try{
+   const next=extendSourceRange(m,p.assets,{side:'both',seconds:5});
+   const turns=transcriptTurns(p.words,m.assetId).filter(t=>t.end>=next.start&&t.start<=next.end);
+   const dialogue=turns.map(t=>(t.speaker&&t.speaker!=='Speaker 1'?t.speaker+': ':'')+t.text).join('\n');
+   commit('Add five seconds of original joke context');
+   m.start=next.start;m.end=next.end;if(dialogue)m.dialogue=dialogue;
+   m.reason=String(m.reason||'')+' · Context extended by the editor using real original footage.';
+   update();toast('Extended the real source before and after the joke; preview the complete exchange.');
+  }catch(error){toast('Extend funny moment: '+error.message,true)}
  });
  c.querySelectorAll('[data-humor-toggle]').forEach(b=>b.onclick=()=>{
   const id=b.dataset.humorToggle,m=p.humorMoments?.find(m=>m.id===id);
