@@ -1,6 +1,21 @@
 const DB='shortform-studio-v1',VERSION=1;let openPromise;
 function openDB(){if(!('indexedDB'in window))return Promise.reject(Error('IndexedDB unavailable'));if(!openPromise)openPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(DB,VERSION);req.onupgradeneeded=()=>{const db=req.result;for(const n of ['projects','media'])if(!db.objectStoreNames.contains(n))db.createObjectStore(n)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return openPromise}
-async function trans(store,mode,cb){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,mode),s=tx.objectStore(store),req=cb(s);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.onerror=()=>reject(tx.error)})}
+/** Resolve only after the IndexedDB transaction is committed. The prior
+ * request-success-only wrapper could announce "Saved" before a later quota or
+ * transaction abort rolled the write back, losing user work. */
+async function trans(store,mode,cb){
+ const db=await openDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(store,mode);let value,req;
+  tx.oncomplete=()=>resolve(value);
+  tx.onerror=()=>reject(tx.error||Error('Browser storage transaction failed.'));
+  tx.onabort=()=>reject(tx.error||Error('Browser storage write was canceled before commit.'));
+  try{req=cb(tx.objectStore(store))}
+  catch(error){try{tx.abort()}catch{}reject(error);return}
+  req.onsuccess=()=>{value=req.result};
+  req.onerror=()=>reject(req.error||Error('Browser storage request failed.'));
+ });
+}
 export const saveProject=p=>trans('projects','readwrite',s=>s.put(p,'current'));
 export const loadProject=()=>trans('projects','readonly',s=>s.get('current'));
 export const saveMedia=(id,file)=>trans('media','readwrite',s=>s.put(file,id));
