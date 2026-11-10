@@ -92,3 +92,15 @@
 .preview-stage.is-drawing-crop #previewCanvas{cursor:crosshair!important;touch-action:none;user-select:none}
 #drawCropButton[aria-pressed="true"]{background:#245f58;border-color:#79f8d6;color:#fff}
 @media(max-width:640px){.crop-draw-hint{font-size:11px;padding:7px}}
+
+/* Source-truth review remains optional, with legible source evidence and no
+   pretend AI quality badges. Dense precision controls stay in collapsible panels. */
+.story-workbench{margin:10px 0;padding:11px;border:1px solid #3b5061;border-radius:10px;background:#101b2c}
+.story-workbench>summary{cursor:pointer;font-weight:650;color:#c9e7e0;padding:4px 2px}
+.story-evidence-card{margin:9px 0;padding:12px;border:1px solid #33495d;border-radius:8px;background:#0e1725}
+.story-evidence-card .humor-dialogue{max-height:210px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.story-evidence-card p.tiny{line-height:1.5}
+#precisionEditor .row{margin:8px 0}
+#precisionEditor .field{min-width:0}
+#precisionEditor summary{cursor:pointer;font-weight:600}
+@media(max-width:600px){.story-evidence-card{padding:10px}.story-workbench{padding:8px}#precisionEditor .row.wrap button{flex:1 1 135px}}
