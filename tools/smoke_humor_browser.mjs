@@ -27,6 +27,18 @@ try{
  await page.waitForFunction(()=>document.querySelector('#humorPreviewDialog')?.open===true,null,{timeout:4000});
  await page.waitForFunction(()=>document.querySelector('#humorPreviewVideo')?.readyState>=2,null,{timeout:12000});
  await page.locator('#humorPreviewClose').click();
+ await page.locator('[data-humor-reject]').first().click();
+ await page.waitForFunction(()=>document.querySelectorAll('[data-humor-restore]').length===1,null,{timeout:7000});
+ const rejects=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  return p?.humorRejected?.length||0;
+ });
+ // Do not rely on autosave timing to decide whether the live UI rejection worked.
+ const showRejected=page.locator('summary').filter({hasText:'Rejected funny moments'});
+ await showRejected.click();
+ await page.locator('[data-humor-restore]').first().click();
+ await page.waitForFunction(()=>document.querySelectorAll('[data-humor-reject]').length>=2,null,{timeout:7000});
+ console.log('PASS: manual Not Funny rejection, reversible recovery UI and source-linked original candidates retained');
  await page.locator('[data-humor-toggle]').first().click();
  await page.waitForFunction(()=>document.querySelectorAll('[data-compilation-up]').length>=1,null,{timeout:5000});
  const dialogueDownload=page.waitForEvent('download',{timeout:10000});
@@ -122,5 +134,12 @@ try{
  });
  console.log('PASS: coherent two-or-more-cut funny story from actual separate same-topic original source windows '+JSON.stringify(sourceStory));
  if(errors.length)throw Error('Unhandled browser errors: '+errors.join(' | '));
+ const savedProject=await page.evaluate(async()=>{
+  const store=await import('./src/storage.js');const p=await store.loadProject();
+  const points=await store.listSnapshots(p.id);
+  return {auto:points.filter(x=>x.automatic).length,manual:points.filter(x=>!x.automatic).length};
+ });
+ if(savedProject.auto<1)throw Error('No real automatic recovery checkpoint was stored after saved project edits');
+ console.log('PASS: automatic IndexedDB project recovery checkpoints exist after save '+JSON.stringify(savedProject));
  console.log('PASS: local SRT humor candidates, raw TXT, source modal, chosen compilation, crop, fullscreen and persistence '+JSON.stringify(stored));
 }finally{await browser?.close();server.kill('SIGTERM')}
