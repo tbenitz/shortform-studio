@@ -3,7 +3,7 @@ import {inspectConnectedStory} from './story-proof.js';
 const shorten=(value,max=360)=>String(value||'').slice(0,max);
 /** Visible only after the editor has selected actual source intervals.
  * Every button in this panel has a corresponding working handler. */
-export function sourceStoryWorkbenchHTML(project,moments,{search='',sort='source',speaker='all',onlyPlayable=false}={}){
+export function sourceStoryWorkbenchHTML(project,moments,{search='',sort='source',speaker='all',onlyPlayable=false}={}, {open=false}={}){
  const allAssets=project.assets||[];
  const m=(moments||[]).filter(x=>x&&x.assetId);
  const audit=inspectConnectedStory(m,project.words,allAssets);
@@ -25,7 +25,7 @@ export function sourceStoryWorkbenchHTML(project,moments,{search='',sort='source
    c.issues.map(issue=>'<p class="tiny"><b>'+esc(issue.kind.toUpperCase())+' — '+esc(issue.code)+'</b> '+esc(issue.why)+'</p>').join('')+'</article>';
  }).join('');
  const selectedCount=m.length;
- return '<details class="story-workbench" id="storyWorkbench"><summary>Review, refine and export selected story ('+selectedCount+' clips)</summary>'+
+ return '<details class="story-workbench" id="storyWorkbench" '+(open?'open':'')+'><summary>Review, refine and export selected story ('+selectedCount+' clips)</summary>'+
   '<p class="tiny muted">Real source-backed editorial audit. This checks timed transcript text and edit geometry, NOT actual visual action, tone of voice or whether a joke is funny.</p>'+
   '<p class="tiny"><b>'+esc(riskSummary)+'</b></p>'+
   '<div class="row wrap">'+
