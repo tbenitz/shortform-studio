@@ -146,24 +146,28 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
   }
   for(let i=0;i<list.length;i++){
    const seed=list[i];if(seed.end-seed.start<.6)continue;
-   let j=i,end=seed.start,words=0,length=0;
-   const sequential=[];
-   while(j<list.length&&j<i+(autoDuration?800:24)){
-    const u=list[j],gap=j>i?u.start-end:0;
-    if(gap>(autoDuration?4.5:32))break; // Natural length follows connected speech; five-second silence ends an event, without a 75-second hard maximum.
-    const uLength=Math.max(.01,u.end-u.start);
-    if(length+uLength>max+.2)break;
-    const previous=sequential.at(-1);
-    if(previous&&gap<1.8){
-     const increment=u.end-previous.end;
-     if(length+increment>max+.2)break;
-     previous.end=u.end;length+=increment;
-    }else{sequential.push(makeSegment(assetId,u.start,u.end));length+=uLength}
-    end=u.end;words+=(u.text||'').split(/\s+/).length;j++;
-    if(!autoDuration&&length>=Math.max(min,Math.min(max,min+10)))break;
+   // Preserve conversational setup before the anchor rather than clipping to the punchline.
+   let from=i;
+   for(let back=0;back<3&&from>0;back++){
+    const prior=list[from-1],curr=list[from];
+    if(curr.start-prior.end>4.5||seed.end-prior.start>max||seed.start-prior.start>55)break;
+    from--;
    }
-   if(length<min*.83||length>max+.2||words<4)continue;
-   const clip=sequential;
+   const sourceDuration=Number(assets.find(a=>a.id===assetId)?.duration)||Infinity;
+   const sceneStart=Math.max(0,list[from].start-.8);
+   let j=from,end=sceneStart,words=0;
+   while(j<list.length&&j<from+(autoDuration?800:120)){
+    const u=list[j],gap=j>from?u.start-list[j-1].end:0;
+    if(gap>(autoDuration?4.5:Math.min(4.5,max)))break;
+    if(u.end-sceneStart>max+.001)break;
+    end=Math.min(sourceDuration,u.end);words+=(u.text||'').split(/\s+/).length;j++;
+   }
+   const clipEnd=Math.min(sourceDuration,end+Math.min(1.4,Math.max(0,max-(end-sceneStart))));
+   const length=clipEnd-sceneStart;
+   if(length<min*.83||length>max+.2||words<4||j<=from)continue;
+   // One continuous conversation = one actual video cut, including natural pauses.
+   // Never manufacture cuts between turns that share the same source event.
+   const clip=[makeSegment(assetId,sceneStart,clipEnd)];
    const isRelevant=mode==='all'||regex.test(seed.text)||regex.test(list[Math.max(i,j-1)]?.text||'');
    const score=scoreMoment(seed,mode,regex,length);
    if(mode==='all'||isRelevant||settings.discoveryAll||score>=(settings.minScore??0)){
@@ -181,16 +185,26 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
     .map(([idx,count])=>({idx,count,dist:Math.abs(list[idx].start-seed.start)}))
     .sort((a,b)=>b.count-a.count||Math.abs(a.dist-(40+(i%17)*80))-Math.abs(b.dist-(40+(i%17)*80)));
    if(!matches.length)continue;
-   const callback=list[matches[0].idx];
-   const hookEnd=Math.min(end,seed.start+Math.max(6,max*.55));
-   const available=max-(hookEnd-seed.start);
+   const callbackIndex=matches[0].idx,callback=list[callbackIndex];
+   let callbackFrom=callbackIndex;
+   if(callbackFrom>0&&list[callbackFrom].start-list[callbackFrom-1].end<=3.5)callbackFrom--;
+   let callbackTo=callbackIndex;
+   for(let n=0;n<3&&callbackTo+1<list.length;n++){
+    if(list[callbackTo+1].start-list[callbackTo].end>4.5)break;
+    callbackTo++;
+   }
+   const hookStart=clip[0].start,hookEnd=clip[0].end;
+   const available=max-(hookEnd-hookStart);
    if(available<4)continue;
-   const callbackEnd=Math.min(callback.end,callback.start+available);
-   const total=(hookEnd-seed.start)+(callbackEnd-callback.start);
+   const callbackStart=Math.max(0,list[callbackFrom].start-.8);
+   const callbackEnd=Math.min(sourceDuration,list[callbackTo].end+1.2,callbackStart+available);
+   if(callbackEnd-callbackStart<1)continue;
+   const total=(hookEnd-hookStart)+(callbackEnd-callbackStart);
    if(total<min*.8)continue;
-   const segments=[makeSegment(assetId,seed.start,hookEnd),makeSegment(assetId,callback.start,callbackEnd)];
-   if(mode==='story'||mode==='educational'||mode==='debate'||(settings.creativity??50)<30)segments.sort((a,b)=>a.start-b.start);
-   raw.push({id:'callback-'+assetId+'-'+seed.start.toFixed(3)+'-'+callback.start.toFixed(3),title:'Callback: '+(seed.text||'').split(/\s+/).slice(0,8).join(' ').slice(0,80),mode,score:scoreMoment(seed,mode,regex,total,true),source:'full-source-callback',anchorAssetId:assetId,anchorTime:seed.start,segments,duration:total,reason:'Two non-adjacent original moments share at least two topical keywords; '+fmt(seed.start)+' ↔ '+fmt(callback.start)+'. Verify continuity before posting.'});
+   if(callbackStart<hookEnd&&callbackEnd>hookStart)continue; // not a separate beat
+   const segments=[makeSegment(assetId,hookStart,hookEnd),makeSegment(assetId,callbackStart,callbackEnd)]
+    .sort((a,b)=>a.start-b.start); // do not imply events occurred in reverse order
+   raw.push({id:'callback-'+assetId+'-'+seed.start.toFixed(3)+'-'+callback.start.toFixed(3),title:'Callback: '+(seed.text||'').split(/\s+/).slice(0,8).join(' ').slice(0,80),mode,score:scoreMoment(seed,mode,regex,total,true),source:'full-source-callback',anchorAssetId:assetId,anchorTime:seed.start,segments,duration:total,reason:'Two non-adjacent actual source exchanges share multiple topic words; continuity is not verified by the local matcher. '+fmt(seed.start)+' ↔ '+fmt(callback.start)+'. Verify continuity before posting.'});
   }
   onProgress((gi+1)/Math.max(1,groups.length),'Indexed '+(gi+1)+'/'+groups.length+' source transcripts, '+raw.length+' potential clips');
  }
