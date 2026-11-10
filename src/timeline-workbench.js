@@ -44,10 +44,16 @@ function splitAt(segments,time){
  }
  return segments.length;
 }
+function shiftTimelineAnchors(project,at,delta){
+ if(!Number.isFinite(delta)||!delta)return;
+ for(const overlay of project.audio||[])if(Number(overlay.start)>=at-.0001)overlay.start=Math.max(0,round(overlay.start+delta));
+ for(const marker of project.markers||[])if(Number(marker.time)>=at-.0001)marker.time=Math.max(0,round(marker.time+delta));
+}
 export function insertAtPlayhead(project,clip,at){
  if(!clip||!Number.isFinite(clip.start)||!Number.isFinite(clip.end)||clip.end<=clip.start)throw Error('Insert a real source clip with valid in/out points.');
  const idx=splitAt(project.segments,at),incoming={...clip,id:uid()};
- project.segments.splice(idx,0,incoming);project.selectedSegment=incoming.id;return incoming;
+ project.segments.splice(idx,0,incoming);project.selectedSegment=incoming.id;
+ shiftTimelineAnchors(project,Math.max(0,Number(at)||0),length(incoming));return incoming;
 }
 export function overwriteAtPlayhead(project,clip,at){
  if(!clip||!Number.isFinite(clip.start)||!Number.isFinite(clip.end)||clip.end<=clip.start)throw Error('Overwrite requires a real source clip.');
@@ -58,8 +64,10 @@ export function overwriteAtPlayhead(project,clip,at){
 }
 export function rippleDelete(project,id){
  const idx=project.segments.findIndex(s=>s.id===id);if(idx<0)throw Error('Selected timeline clip was not found.');
+ const oldStart=clipStartTime(project.segments,id);
  const [old]=project.segments.splice(idx,1);
  project.selectedSegment=project.segments[Math.min(idx,project.segments.length-1)]?.id||null;
+ shiftTimelineAnchors(project,oldStart+length(old),-length(old));
  return {deleted:old,seconds:round(length(old))};
 }
 export function slipSelected(project,id,seconds,assets=[]){
