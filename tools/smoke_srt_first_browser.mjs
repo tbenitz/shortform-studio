@@ -1,7 +1,7 @@
 /** Chromium: import a real source+SRT, navigate all tabs, rank/choose actual original clips. */
 import {chromium} from 'playwright';
 import {spawn} from 'node:child_process';
-import {stat} from 'node:fs/promises';
+import {stat,readFile} from 'node:fs/promises';
 await stat('qa-wave-test.webm');
 const server=spawn('python3',['-m','http.server','8854'],{stdio:'ignore'});
 let browser;
@@ -12,7 +12,7 @@ try{
  page.on('dialog',d=>d.accept());
  for(let i=0;i<35;i++){try{await page.goto('http://127.0.0.1:8854/',{waitUntil:'domcontentloaded',timeout:3500});break}catch(e){if(i===34)throw e;await new Promise(r=>setTimeout(r,200))}}
  await page.locator('#fileUpload').setInputFiles([
-  'qa-wave-test.webm',
+  {name:'qa-wave-test.webm',mimeType:'video/webm',buffer:await readFile('qa-wave-test.webm')},
   {name:'qa-wave-test.en.srt',mimeType:'text/plain',buffer:Buffer.from('1\n00:00:01,000 --> 00:00:02,800\nOur real source captions\n')}
  ]);
  await page.waitForFunction(()=>document.querySelectorAll('#assetsList [data-asset]').length===1,null,{timeout:13000});
