@@ -115,3 +115,43 @@
 .humor-choices button small{font-size:10px}
 @media(max-width:1250px){.humor-choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:590px){.humor-choices{grid-template-columns:1fr}}
+
+
+/* v2 guided workflow: consistent usable actions across all tabs, without removing editor controls. */
+.simple-ui .workspace{grid-template-columns:minmax(190px,16%) minmax(400px,1fr) minmax(326px,28%);gap:11px}
+.simple-ui .inspector-content{padding:16px}
+.inspector-content .field>input,.inspector-content .field>select,.inspector-content .field>textarea{min-height:38px;font-size:13px}
+.inspector-content .field>textarea{min-height:70px}
+.inspector-content>h3,.inspector-content .setting-section summary{font-size:13px}
+.studio-guide{border:1px solid #345d67;border-radius:11px;margin:0 0 15px;padding:12px;background:linear-gradient(155deg,#173742,#112338);display:grid;gap:10px}
+.guide-stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.guide-stage{font-size:10px;min-width:0;min-height:42px;white-space:normal;padding:6px 2px;line-height:1.2;border-color:#335466;color:#c7dae1}
+.guide-stage.current{background:#39776e;border-color:#62c7b1;color:#fff;font-weight:750}
+.guide-stage:focus-visible,.studio-guide button:focus-visible{outline:2px solid white;outline-offset:2px}
+.guide-message{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.guide-message>div{min-width:0;flex:1}
+.guide-message b{display:block;font-size:13px;color:#e2f4f2}
+.guide-message p{color:#bad0da;line-height:1.4;font-size:11px;margin-top:5px}
+.guide-message button{flex:0 0 auto;max-width:48%;white-space:normal;min-height:36px}
+.guide-bottom{border-top:1px solid #345063;padding-top:7px;display:flex;justify-content:space-between;gap:6px;align-items:center}
+.guide-bottom span{color:#8caab8;font-size:10px;line-height:1.4}
+.guide-bottom button{white-space:normal;flex:0 0 auto}
+.srt-primary,.clip-selection-controls{background:#122a32;border:1px solid #367568;border-radius:10px;padding:12px;margin:10px 0 15px;display:grid;gap:8px}
+.srt-primary h3,.clip-selection-controls h3{font-size:14px;color:#baf5e4;margin-bottom:2px}
+.srt-primary p,.clip-selection-controls p{line-height:1.45}
+.srt-primary .field,.clip-selection-controls .field{margin:0}
+.srt-primary .btn{min-height:40px}
+.clip-selection-controls .checkrow{margin:3px 0}
+.clip-selection-controls button{white-space:normal;min-height:36px}
+.setting-section{border:1px solid #354e65;border-radius:10px;margin:0 0 9px;background:#121f31}
+.setting-section summary{padding:14px;cursor:pointer;font-weight:750;color:#dcebf5;list-style-position:inside}
+.setting-section summary:hover{background:#1c3346;border-radius:9px}
+.setting-section[open] summary{border-bottom:1px solid #34495a}
+.setting-section .setting-body{padding:14px 13px 6px}
+.setting-section .setting-body>.field{margin-bottom:14px}
+.inspector-content details>summary{line-height:1.45}
+.inspector-content button:not(.guide-stage){max-width:100%}
+body:not(.simple-ui) .workspace{grid-template-columns:minmax(222px,19%) minmax(400px,1fr) minmax(260px,23%)}
+@media(max-width:1230px){.simple-ui .workspace{grid-template-columns:minmax(185px,18%) minmax(330px,1fr) minmax(280px,26%)}.guide-stages{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.simple-ui .workspace,body:not(.simple-ui) .workspace{display:flex;flex-direction:column;grid-template-columns:none}.studio-guide{padding:10px}.guide-stages{grid-template-columns:repeat(5,minmax(0,1fr))}.guide-bottom{flex-wrap:wrap}}
+@media(max-width:450px){.guide-stages{grid-template-columns:repeat(3,minmax(0,1fr))}.guide-message{flex-direction:column;align-items:stretch}.guide-message button{max-width:none}.inspector-content{padding:11px}.srt-primary,.clip-selection-controls{padding:10px}}

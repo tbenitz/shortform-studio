@@ -37,6 +37,10 @@ import {filterStorySuggestions} from './story-workbench-ui.js';
 import {inspectConnectedStory,deduplicateSourceCuts,chronologicalCuts,contextualCut,trimToSpokenDialogue,storyEditPlan} from './story-proof.js';
 import {insertAtPlayhead,overwriteAtPlayhead,rippleDelete,slipSelected,rollBoundary,frameTimecode,parseFrameTimecode,nearestEditPoint,nextBoundary,setStoryRole,timecodeCutList} from './timeline-workbench.js';
 import {extendSourceRange,completeExchangeRange,applyClipExtension,extendCandidateCut} from './clip-context.js';
+import {getCaptionTrack,captionStatus,importSrtAsDefault,beginWhisperCaptionRun,appendWhisperCaptionWords,finishWhisperCaptionRun,selectCaptionTrack,snapshotActiveTrack} from './subtitle-preference.js';
+import {studioGuideHTML} from './studio-guide.js';
+import {matchingCaptionSource,isCaptionSidecar} from './sidecar-match.js';
+import {orderClipSuggestions,suggestDiverseSelection,reviewClipStructure} from './clip-selection.js';
 import {timelineWorkbenchHTML} from './timeline-workbench-ui.js';
 import {saveSnapshot,loadSnapshot,deleteSnapshot,listSnapshots,saveLibraryProject,loadLibraryProject,listLibraryProjects,deleteLibraryProject,sharedMediaReferenced} from './storage.js';
 import {sampledMediaFingerprint,compareMediaIdentity,inspectProjectSources} from './source-integrity.js';
@@ -54,7 +58,7 @@ let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt
 let snapshotRecords=[],toolsSearch='',sessionActive=false,lastSavedInfo=null,sourceFavoritesOnly=false,directorFavoritesOnly=false,savedHandles=new Map(),restoreBusy=false;
 let libraryRecords=[],librarySearch='',libraryShowArchived=false,mediaAudit=null,mediaAuditBusy=false,libraryBusy=false,evidenceQuery='';
 let visualScanBusy=false,visualScanStatus='',visualScanAbort=null;
-let humorScope='all',humorMinScore=45,humorMaxCalls=48,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null,humorView='clips';
+let humorScope='all',humorMinScore=45,humorMaxCalls=48,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null,humorView='clips',humorReviewSort='source',humorReactionOnly=false,humorMultiSpeakerOnly=false;
 let reviewWordSearch='',reviewOnlyFlagged=true;
 let mediaProbeBusy=false,mediaProbeStatus='';
 let humorFilters={search:'',sort:'source',speaker:'all',onlyPlayable:false},humorReviewOpen=false,humorFilterOpen=false,humorPlacement='replace',precisionEditorOpen=false;let cropPickActive=false,cropDrawActive=false,cropDrawPointer=null;
@@ -74,6 +78,7 @@ async function save(notify=true){
   // overwrites the latest chosen compilation after a rapid sequence of edits.
   if(version!==saveRevision)return false;
   sessionActive=true;
+  for(const sourceId of Object.keys(p.subtitleTracks||{}))snapshotActiveTrack(p,sourceId);
   const disk={...p,assets:p.assets.map(({url,file,...rest})=>rest)};
   await saveProject(disk);
   // A rolling metadata-only checkpoint can recover work before a bad edit/crash.
@@ -118,10 +123,22 @@ function updateTimelineCursor(time){const cur=$('timelineCursor');if(cur)cur.sty
 const offsetOf=id=>{let t=0;for(const s of p.segments){if(s.id===id)break;t+=(s.end-s.start)/(s.speed||1)}return t};
 const field=(label,name,value,type='text',opts=null)=>`<label class="field">${esc(label)}${opts?`<select data-setting="${name}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(value)===String(o[0])?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`:`<input data-setting="${name}" type="${type}" ${type==='range'?(name==='zoom'?'min="0.5" max="3" step="0.05"':name==='captionSize'?'min="16" max="100"':name==='captionPosition'?'min="15" max="95"':'min="0" max="100"'):''} ${type==='checkbox'?(value?'checked':''):`value="${esc(value)}"`}>`}</label>`;
 const opts=(...names)=>names.map(v=>[v,v]);
-function settingSection(heading,html){return `<h3 class="section-title">${heading}</h3>${html}<div class="separator"></div>`}
+function settingSection(heading,html){const expanded=['Video and reframing','Caption and branding','Storage and interface'].includes(heading);return `<details class="setting-section" ${expanded?'open':''}><summary>${esc(heading)}</summary><div class="setting-body">${html}</div></details>`}
 function renderInspector(){const target=$('inspectorContent');$('inspectorTitle').textContent=({media:'Media controls',transcript:'Transcription',director:'AI Director',editor:'Clip editor',export:'Export studio',settings:'Studio settings',tools:'Production Tools',humor:'Funny Clips & Compilations'})[tab];$('inspectorMode').textContent=tab.toUpperCase();let html='';
  if(tab==='media'){const a=asset(p.selectedAsset);html=`<div class="info">Import videos here. You can make clips locally; optional AI uses your own configured service. Start by importing a real recording, then add its dialogue in Transcript.</div><div class="row wrap" style="margin:10px 0"><button id="quickFindClips" class="primary small">Find funny clips / stories</button><button id="quickOpenTranscript" class="small">Add transcript</button></div><div class="separator"></div>`+(a?`<h3>${esc(a.name)}</h3><div class="metric"><span>Duration</span><b>${fmt(a.duration)}</b></div><div class="metric"><span>Dimensions</span><b>${a.width||'—'} × ${a.height||'—'}</b></div><div class="metric"><span>File size</span><b>${(a.size/1048576).toFixed(1)} MB</b></div><div class="metric"><span>Local availability</span><b>${a.url?'Ready':'Missing / relink'}</b></div><div class="separator"></div>${a.type==='video'&&a.url?`<label class="field">Source preview (scrub the entire recording)<video id="sourcePreview" controls playsinline preload="metadata" src="${esc(a.url)}" style="display:block;width:100%;max-height:200px;background:#090d13;margin-top:8px"></video></label><div class="row tight"><button id="markIn" class="small">Set In from preview</button><button id="markOut" class="small">Set Out from preview</button></div><p class="tiny muted" style="margin-top:8px">Mark any range, or add the whole source using the button beside the library.</p><div class="separator"></div>`:''}${a.type==='video'?`<button id="scanFaces" class="full" ${faceBusy?'disabled':''}>${faceBusy?'Scanning frames…':'◎ Analyze faces for smart crop'}</button><p class="tiny muted">${(p.faceTracks?.[a.id]||[]).length} source-frame detections stored. Faces stay on this device.</p><button id="cancelFaceScan" ${faceBusy?'':'disabled'}>Cancel face scan</button><button id="scanScenes" class="full" ${sceneBusy?'disabled':''}>${sceneBusy?'Scanning video…':'◫ Detect scene changes'}</button><p class="tiny muted">${(p.sceneTracks?.[a.id]||[]).length} detected scene boundaries. Select a boundary to set source In/Out.</p><div class="stack" style="max-height:150px;overflow:auto">${(p.sceneTracks?.[a.id]||[]).slice(0,120).map((shot,i,all)=>`<button class="small" data-scene-time="${shot.time}" data-scene-end="${(all[i+1]?.time??a.duration).toFixed(2)}">Shot ${i+1} · ${fmt(shot.time)}</button>`).join('')}</div><button id="cancelSceneScan" ${sceneBusy?'':'disabled'}>Cancel scene scan</button>`:''}<button id="removeAsset" class="danger full">Remove this source</button>`:'<p class="muted">Choose an imported source to inspect its properties.</p>')}
- if(tab==='transcript'){const a=asset(p.selectedAsset);const u=utterances(p.words.filter(w=>w.assetId===p.selectedAsset));const filtered=searchTerm?u.filter(x=>x.text.toLowerCase().includes(searchTerm.toLowerCase())):u;const chosen=u.find(x=>selectedUtt&&x.assetId===selectedUtt.assetId&&Math.abs(x.start-selectedUtt.start)<.02)||u[0];const saved=p.transcriptProgress?.[p.selectedAsset];html=`<div class="info">Transcription feeds every AI Director proposal and subtitle. Use an SRT/VTT file, local Whisper, or paste text manually. Speaker labels are editable. Optional hosted diarization is available; uploading audio requires your explicit action.</div><div class="separator"></div><label class="field">Transcript source<select id="transcriptAsset">${p.assets.map(x=>`<option value="${x.id}" ${x.id===p.selectedAsset?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label><div class="row"><button id="transcribeBtn" class="primary" ${!a||asrBusy?'disabled':''}>${asrBusy?'Processing…':saved?.status!=='complete'&&saved?.nextAt>0?'Resume from '+fmt(saved.nextAt):'Run local Whisper'}</button><button id="cancelAsr" ${!asrBusy?'disabled':''}>Cancel</button></div><div id="asrStatus" class="tiny muted" style="padding:8px 0">${asrBusy?'Processing':saved?.nextAt?`${esc(saved.status||'Paused')} · ${fmt(saved.nextAt)} / ${fmt(saved.total||a?.duration||0)} processed and saved`:'Whisper runs locally; long videos are decoded in small windows, with resumable checkpoints.'}</div>${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length?`<div class="info">${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length} words have estimated timestamps (the model lacked attention-based alignment). Subtitle timing can be refined manually; wording is transcribed normally.</div>`:''}<div class="progress"><i id="asrProgress"></i></div><div class="info" style="margin-top:8px"><strong>Live Whisper subtitles</strong><div id="liveCaptionPreview" aria-live="polite" style="font-size:14px;margin:8px 0;min-height:24px">${esc(p.words.filter(w=>w.assetId===p.selectedAsset).slice(-12).map(w=>w.text).join(' ')||'Captions will appear as each Whisper chunk completes.')}</div><div class="tiny muted" id="liveTranscriptStream">Chunk-by-chunk recognition updates here while the model runs.</div><label class="checkrow"><input type="checkbox" id="followWhisperCaptions" ${followWhisperCaptions?'checked':''}>Follow newly recognized captions in video preview</label></div><div class="info">${(p.transcriptGaps?.[p.selectedAsset]||[]).length} possible untranscribed audio intervals. These may be speech, music, or other sounds.</div><button id="retryAllGaps" ${!(p.transcriptGaps?.[p.selectedAsset]||[]).length||asrBusy?'disabled':''}>Retry ALL suspected transcript gaps</button><div class="separator"></div><div class="info" id="subtitleSyncControls">
+ if(tab==='transcript'){const a=asset(p.selectedAsset);const activeCaption=getCaptionTrack(p,p.selectedAsset);const u=utterances(p.words.filter(w=>w.assetId===p.selectedAsset));const filtered=searchTerm?u.filter(x=>x.text.toLowerCase().includes(searchTerm.toLowerCase())):u;const chosen=u.find(x=>selectedUtt&&x.assetId===selectedUtt.assetId&&Math.abs(x.start-selectedUtt.start)<.02)||u[0];const saved=p.transcriptProgress?.[p.selectedAsset];html=`<div class="info"><b>SRT subtitles are preferred.</b> Import the matching original-timestamp .srt/.vtt. Whisper is optional; it won't silently replace the original subtitles.</div>
+<div class="srt-primary">
+<h3>Step 1 · Import SRT subtitles</h3>
+<label class="field">Original video for these SRT subtitles<select id="transcriptAsset">${p.assets.map(x=>`<option value="${x.id}" ${x.id===p.selectedAsset?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+<label class="field">Subtitle timing<select id="srtTimeBasis"><option value="source">Original recording timestamps (recommended)</option><option value="edited">Already edited timeline timestamps</option></select></label>
+<label class="btn primary full" for="srtUpload">Import SRT / VTT</label><input type="file" hidden id="srtUpload" accept=".srt,.vtt,text/plain">
+<p class="tiny muted">Original SRT words and timecodes become the active subtitles. Your video file is not modified.</p>
+<label class="field">Active subtitle source<select id="captionTrackChoice" aria-label="Choose subtitle source">
+<option value="srt" ${activeCaption.active==='srt'?'selected':''} ${!activeCaption.srtCount?'disabled':''}>SRT (preferred) · ${activeCaption.srtCount} words</option>
+<option value="whisper" ${activeCaption.active==='whisper'?'selected':''} ${!activeCaption.whisperCount?'disabled':''}>Whisper · ${activeCaption.whisperCount} words</option>
+${activeCaption.active==='none'?'<option value="none" selected>No subtitle file yet</option>':''}
+</select></label><p id="captionTrackStatus" class="tiny muted">${esc(captionStatus(p,p.selectedAsset))}</p>
+</div><div class="separator"></div><h3>Step 2 · Optional Whisper transcription</h3><p class="tiny muted">Use this when no SRT exists or when comparing transcripts. An imported SRT stays active until you explicitly switch sources.</p><div class="row"><button id="transcribeBtn" class="primary" ${!a||asrBusy?'disabled':''}>${asrBusy?'Processing…':saved?.status!=='complete'&&saved?.nextAt>0?'Resume from '+fmt(saved.nextAt):'Run local Whisper'}</button><button id="cancelAsr" ${!asrBusy?'disabled':''}>Cancel</button></div><div id="asrStatus" class="tiny muted" style="padding:8px 0">${asrBusy?'Processing':saved?.nextAt?`${esc(saved.status||'Paused')} · ${fmt(saved.nextAt)} / ${fmt(saved.total||a?.duration||0)} processed and saved`:'Whisper runs locally; long videos are decoded in small windows, with resumable checkpoints.'}</div>${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length?`<div class="info">${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length} words have estimated timestamps (the model lacked attention-based alignment). Subtitle timing can be refined manually; wording is transcribed normally.</div>`:''}<div class="progress"><i id="asrProgress"></i></div><div class="info" style="margin-top:8px"><strong>Live Whisper subtitles</strong><div id="liveCaptionPreview" aria-live="polite" style="font-size:14px;margin:8px 0;min-height:24px">${esc(p.words.filter(w=>w.assetId===p.selectedAsset).slice(-12).map(w=>w.text).join(' ')||'Captions will appear as each Whisper chunk completes.')}</div><div class="tiny muted" id="liveTranscriptStream">Chunk-by-chunk recognition updates here while the model runs.</div><label class="checkrow"><input type="checkbox" id="followWhisperCaptions" ${followWhisperCaptions?'checked':''}>Follow newly recognized captions in video preview</label></div><div class="info">${(p.transcriptGaps?.[p.selectedAsset]||[]).length} possible untranscribed audio intervals. These may be speech, music, or other sounds.</div><button id="retryAllGaps" ${!(p.transcriptGaps?.[p.selectedAsset]||[]).length||asrBusy?'disabled':''}>Retry ALL suspected transcript gaps</button><div class="separator"></div><div class="info" id="subtitleSyncControls">
   <b>Subtitle synchronization · ${esc(a?.name||'Select original video')}</b>
   <p class="tiny muted">Subtitles use the original video timestamps. After relinking or converting a recording, verify a spoken phrase at the beginning AND near the end. These controls shift captions without rewriting your saved transcript or changing clip cuts.</p>
   <label class="field">Subtitle offset (seconds: positive = later; negative = earlier)
@@ -136,8 +153,7 @@ function renderInspector(){const target=$('inspectorContent');$('inspectorTitle'
   <button id="subtitleAlignSelected" class="small full" ${!a?'disabled':''}>Align selected line to current video frame</button>
   <div class="tiny muted">Current shift: ${subtitleOffset(p,p.selectedAsset)>=0?'+':''}${subtitleOffset(p,p.selectedAsset).toFixed(2)} seconds · Preserved across reloads and exports</div>
 </div><div class="separator"></div>
-<label class="field">SRT timing refers to<select id="srtTimeBasis"><option value="source">Original, unedited video timeline</option><option value="edited">Edited project timeline (such as SRT exported from ShortForm Studio)</option></select></label>
-<label class="btn full" for="srtUpload">Import SRT / VTT</label><input type="file" hidden id="srtUpload" accept=".srt,.vtt,text/plain"><label class="field" style="margin-top:12px">Paste transcript (manual timing)<textarea id="pasteTranscript" rows="3" placeholder="Paste transcript text here…"></textarea></label><button id="insertTranscript">Add pasted transcript</button><div class="separator"></div><label class="field">Find dialogue<input id="transcriptSearch" value="${esc(searchTerm)}" placeholder="Filter by phrase"></label><div class="transcript-list" id="transcriptRows">${filtered.slice(0,120).map(x=>`<div class="utterance" data-utterance="${x.start}" data-source="${x.assetId}"><span class="speaker">${esc(x.speaker)} · ${fmt(x.start)}–${fmt(x.end)}</span>${esc(x.text)}</div>`).join('')||'<p class="muted">No dialogue in the selected source yet.</p>'}${filtered.length>120?`<small>Showing 120 of ${filtered.length}. Use search to find more.</small>`:''}</div><div class="separator"></div><label class="field">Speaker label<input id="speakerEdit" value="${esc(chosen?.speaker||'Speaker 1')}"></label><label class="field">Selected excerpt<textarea rows="4" id="uttText">${esc(chosen?.text||'')}</textarea></label><button id="applyUtt" ${!chosen?'disabled':''}>Save speaker/text changes</button><button id="exportSRT">Export subtitles (SRT)</button><div class="separator"></div><h3>Speaker review</h3><p class="tiny muted">${speakerSummary(p.words,p.selectedAsset).map(x=>`${esc(x.name)} (${x.words} words)`).join(' · ')||'No speakers detected'}</p><label class="field">Merge speaker label<input id="mergeFrom" placeholder="e.g. Speaker 3"></label><label class="field">Into speaker label<input id="mergeTo" placeholder="e.g. Speaker 1"></label><button id="mergeSpeakers">Merge labels</button><div class="separator"></div><label class="field">Optional HTTPS diarization endpoint<input id="diarizationEndpoint" value="${esc(p.settings.diarizationEndpoint||'')}" placeholder="https://your-service/diarize"></label><label class="field">Provider API key (session only)<input type="password" id="diarizationKey" placeholder="Optional"></label><button id="autoDiarize" ${!a?'disabled':''}>Analyze speakers with provider</button>`;
+<details class="humor-advanced"><summary>Paste transcript without original timestamps (advanced)</summary><label class="field" style="margin-top:12px">Paste transcript (manual timing)<textarea id="pasteTranscript" rows="3" placeholder="Paste transcript text here…"></textarea></label><button id="insertTranscript">Add pasted transcript</button></details><div class="separator"></div><label class="field">Find dialogue<input id="transcriptSearch" value="${esc(searchTerm)}" placeholder="Filter by phrase"></label><div class="transcript-list" id="transcriptRows">${filtered.slice(0,120).map(x=>`<div class="utterance" data-utterance="${x.start}" data-source="${x.assetId}"><span class="speaker">${esc(x.speaker)} · ${fmt(x.start)}–${fmt(x.end)}</span>${esc(x.text)}</div>`).join('')||'<p class="muted">No dialogue in the selected source yet.</p>'}${filtered.length>120?`<small>Showing 120 of ${filtered.length}. Use search to find more.</small>`:''}</div><div class="separator"></div><label class="field">Speaker label<input id="speakerEdit" value="${esc(chosen?.speaker||'Speaker 1')}"></label><label class="field">Selected excerpt<textarea rows="4" id="uttText">${esc(chosen?.text||'')}</textarea></label><button id="applyUtt" ${!chosen?'disabled':''}>Save speaker/text changes</button><button id="exportSRT">Export subtitles (SRT)</button><div class="separator"></div><h3>Speaker review</h3><p class="tiny muted">${speakerSummary(p.words,p.selectedAsset).map(x=>`${esc(x.name)} (${x.words} words)`).join(' · ')||'No speakers detected'}</p><label class="field">Merge speaker label<input id="mergeFrom" placeholder="e.g. Speaker 3"></label><label class="field">Into speaker label<input id="mergeTo" placeholder="e.g. Speaker 1"></label><button id="mergeSpeakers">Merge labels</button><div class="separator"></div><label class="field">Optional HTTPS diarization endpoint<input id="diarizationEndpoint" value="${esc(p.settings.diarizationEndpoint||'')}" placeholder="https://your-service/diarize"></label><label class="field">Provider API key (session only)<input type="password" id="diarizationKey" placeholder="Optional"></label><button id="autoDiarize" ${!a?'disabled':''}>Analyze speakers with provider</button>`;
  }
  if(tab==='director'){const coverage=sourceCoverage(p.assets,p.words,p.transcriptProgress,p.candidates);const totalHours=Math.max(1,Math.ceil(Math.max(0,...p.assets.map(a=>Number(a.duration)||0))/3600));
 const povAssets=p.assets.filter(a=>a.type==='video');
@@ -219,7 +235,7 @@ ${c.cropMode==='speaker'?'<p class="tiny muted">Map transcript speaker labels to
  }
  if(tab==='export'){html=`<div class="info"><b>Real MP4 export: H.264 video, AAC audio where supported.</b> Exports produce genuine MP4 containers with the captioned canvas and Web Audio mix. If your browser cannot encode AAC (notably desktop Linux), the encoder uses Opus audio inside a genuine MP4 instead of silently downloading WebM. <b>Some older players do not support Opus-in-MP4.</b> The output status identifies the actual codec. ChromeOS may use AAC where available. Real-time browser rendering requires supported hardware encoders; for very long video use the native FFmpeg renderer.</div><div class="separator"></div>${field('Output aspect ratio','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','1:1 Square'],['4:5','4:5 Portrait']])}${field('Output height (pixels)','outputHeight',p.settings.outputHeight,'number')}${field('Frame rate','fps',p.settings.fps,'number')}${field('Video bitrate (bps)','quality',p.settings.quality,'number')}<div class="metric"><span>Runtime</span><b>${fmt(duration(p))}</b></div><div class="metric"><span>Cut count</span><b>${p.segments.length}</b></div><div class="metric"><span>Timed captions</span><b>${mapWords(p).length}</b></div><div class="separator"></div><h3>Preflight quality inspection</h3><div class="stack" style="margin:9px 0">${preflight(p).map(q=>`<div class="tiny ${q.severity==='error'?'warning':'muted'}"><b>${esc(q.severity.toUpperCase())} · ${esc(q.title)}</b><br>${esc(q.detail)}</div>`).join('')||'<p class="success tiny">No structural issues detected. Manual content review is still required.</p>'}</div><div class="separator"></div><button id="doExport" class="primary full" ${renderBusy||!p.segments.length?'disabled':''}>${renderBusy?'Rendering MP4…':'Render MP4 and download'}</button><button id="cancelExport" class="danger full" ${renderBusy?'':'disabled'} style="margin-top:8px">Cancel render</button><div class="progress" style="margin:11px 0"><i id="renderProgress"></i></div><p class="tiny muted" id="renderStatus">Review all cuts and source integrity before publishing.</p><div class="separator"></div><button id="saveSrt" class="full">Download subtitles (SRT)</button><button id="saveEdl" class="full">Download editable cut list (JSON)</button><button id="saveBundle" class="full">Download project (JSON)</button><div class="separator"></div><p class="tiny muted">For long videos and high-resolution production, download Project JSON and run <code>python3 tools/render_project.py project.json --media-dir /media --out output.mp4</code> from the repository with FFmpeg installed.</p><p class="warning tiny">Browser exports are not frame-accurate professional renders. For robust long-form/4K exports, a native FFmpeg renderer is required; the project cut list is ready for an external renderer.</p>`}
  if(tab==='settings'){html=`<div class="info">Settings apply to this project. The default design is local-first. Local face detection, optional hosted speaker diarization, voice preview and optional TTS are available. Truly offline generative voice and automatic identity matching across videos require additional models.</div><div class="separator"></div>`+settingSection('Video and reframing',field('Aspect','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','Square'],['4:5','4:5']])+field('Zoom / crop','zoom',p.settings.zoom,'range')+field('Brightness (%)','brightness',p.settings.brightness,'number')+field('Contrast (%)','contrast',p.settings.contrast,'number')+field('Saturation (%)','saturation',p.settings.saturation,'number')+field('Visual look','videoFilter',p.settings.videoFilter,'text',[['normal','Natural'],['grayscale','Black and white'],['sepia','Warm sepia'],['vintage','Vintage'],['soft','Soft focus']])+`<label class="checkrow"><input type="checkbox" data-setting="autoFaceFraming" ${p.settings.autoFaceFraming?'checked':''}>Smart face-aware crop (after scanning source faces)</label>`+field('Face tracking strength (0–100)','faceTrackingStrength',p.settings.faceTrackingStrength,'number')+field('Default transition','transition',p.settings.transition,'text',[['cut','Hard cut'],['fade','Fade-in'],['dissolve','Dissolve (still previous frame)'],['wipe','Wipe'],['slide','Slide'],['zoom','Zoom']]))+settingSection('Caption and branding',field('Caption style','captionStyle',p.settings.captionStyle,'text',[['dynamic','Dynamic'],['minimal','Minimal'],['boxed','Boxed']])+field('Caption font size','captionSize',p.settings.captionSize,'number')+field('Caption words per chunk','captionWords',p.settings.captionWords,'number')+field('Caption lines max','captionMaxLines',p.settings.captionMaxLines,'number')+field('Caption vertical placement (%)','captionPosition',p.settings.captionPosition,'number')+field('Caption horizontal placement (%)','captionX',p.settings.captionX??50,'number')+field('Caption font','captionFont',p.settings.captionFont||'system-ui','text',[['system-ui','Modern sans serif'],['Arial','Arial'],['Georgia','Georgia'],['Impact','Impact'],['Verdana','Verdana']])+field('Text color','captionColor',p.settings.captionColor,'color')+field('Active word highlight','captionAccent',p.settings.captionAccent,'color')+field('Outline color','captionOutlineColor',p.settings.captionOutlineColor||'#10151d','color')+field('Outline thickness (0–12)','captionOutlineWidth',p.settings.captionOutlineWidth??5,'number')+field('Background color','captionBackground',p.settings.captionBackground,'color')+`<label class="checkrow"><input type="checkbox" data-setting="captionUppercase" ${p.settings.captionUppercase?'checked':''}>Uppercase captions</label><label class="checkrow"><input type="checkbox" data-setting="captionOn" ${p.settings.captionOn?'checked':''}>Show captions</label>`)+settingSection('Audio',field('Video gain (0–2)','videoVolume',p.settings.videoVolume,'number')+field('Added audio gain (0–2)','audioVolume',p.settings.audioVolume,'number')+`<label class="checkrow"><input type="checkbox" data-setting="duckMusic" ${p.settings.duckMusic?'checked':''}>Lower background music when source dialogue plays</label>`)+settingSection('Transcription',field('ASR model','whisperModel',p.settings.whisperModel,'text',[['onnx-community/whisper-tiny.en','Whisper Tiny English (fastest)'],['onnx-community/whisper-base.en','Whisper Base English (larger)'],['onnx-community/whisper-small.en','Whisper Small English (resource intensive)']])+field('ASR processor','processing',p.settings.processing,'text',[['webgpu','WebGPU preferred / WASM fallback'],['wasm','WASM CPU']])+field('Chunk seconds (8–29)','transcriptionChunk',p.settings.transcriptionChunk,'number')+field('Timestamp compatibility','transcriptionTiming',p.settings.transcriptionTiming||'auto','text',[['auto','Recommended: segment timestamps; plain fallback'],['segment','Segment timestamps; plain fallback'],['plain','Plain transcription; estimated timings'],['word','Advanced: word alignment (attention model required)']]))+settingSection('Voice-over generation',field('HTTPS TTS endpoint','ttsEndpoint',p.settings.ttsEndpoint)+field('TTS model','ttsModel',p.settings.ttsModel)+field('TTS voice','ttsVoice',p.settings.ttsVoice)+field('Voice speed','ttsSpeed',p.settings.ttsSpeed,'number'))+settingSection('Speaker diarization',field('HTTPS diarization endpoint','diarizationEndpoint',p.settings.diarizationEndpoint))+settingSection('Storage and interface',`<label class="checkrow"><input type="checkbox" data-setting="autoInsertMedia" ${p.settings.autoInsertMedia!==false?'checked':''}>Automatically add the full video to the editor on import</label><label class="checkrow"><input type="checkbox" data-setting="autoSave" ${p.settings.autoSave?'checked':''}>Automatic project saves</label><label class="checkrow"><input type="checkbox" data-setting="rememberMedia" ${p.settings.rememberMedia?'checked':''}>Store imported media in browser IndexedDB (quota permitting)</label>`+`<button id="checkStorage">Check browser storage quota</button><button id="clearCachedMedia" class="danger" style="margin-top:8px">Remove cached media files</button><div id="storageInfo" class="tiny muted" style="margin-top:8px"></div>`)+`<p class="tiny muted">Keyboard: Space play/pause · arrows skip 5 seconds · Delete remove cut · Ctrl+Z undo · Ctrl+Shift+Z redo · Ctrl+S save.</p>`;}
- if(tab==='tools'){html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time,libraryRecords,librarySearch,libraryShowArchived,mediaAudit);html+=sourceHealthHTML(p,evidenceQuery);html+=visualHealthHTML(p,{busy:visualScanBusy,status:visualScanStatus});html+=productionReviewHTML(p,snapshotRecords,{asrRunning:asrBusy,visionRunning:faceBusy||sceneBusy||visualScanBusy,rendering:renderBusy})}if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown,mode:humorView,aiConfigured:!!providerKey,filters:humorFilters,reviewOpen:humorReviewOpen,filterOpen:humorFilterOpen,placement:humorPlacement});
+ if(tab==='tools'){html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time,libraryRecords,librarySearch,libraryShowArchived,mediaAudit);html+=sourceHealthHTML(p,evidenceQuery);html+=visualHealthHTML(p,{busy:visualScanBusy,status:visualScanStatus});html+=productionReviewHTML(p,snapshotRecords,{asrRunning:asrBusy,visionRunning:faceBusy||sceneBusy||visualScanBusy,rendering:renderBusy})}if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown,mode:humorView,aiConfigured:!!providerKey,reviewSort:humorReviewSort,reactionOnly:humorReactionOnly,multiSpeakerOnly:humorMultiSpeakerOnly,filters:humorFilters,reviewOpen:humorReviewOpen,filterOpen:humorFilterOpen,placement:humorPlacement});
  if(tab==='media')html+=mediaCompatibilityHTML(asset(p.selectedAsset),{busy:mediaProbeBusy,status:mediaProbeStatus});
  if(tab==='editor')html+=timelineWorkbenchHTML(p,engine.time,{open:precisionEditorOpen});
  if(tab==='transcript'&&p.selectedAsset)html+=transcriptReviewHTML(p,p.selectedAsset,{query:reviewWordSearch,onlyFlagged:reviewOnlyFlagged});
@@ -231,7 +247,8 @@ ${c.cropMode==='speaker'?'<p class="tiny muted">Map transcript speaker labels to
  const sameTab=target.dataset.currentTab===tab;
  const openPanels=sameTab?new Set([...target.querySelectorAll('details[open][id]')].map(e=>e.id)):new Set();
  const currentScroll=sameTab?target.scrollTop:0;
- target.innerHTML=html;target.dataset.currentTab=tab;target.scrollTop=currentScroll;
+ target.innerHTML=studioGuideHTML(p,tab,{simple:p.settings.easyUI!==false})+html;target.dataset.currentTab=tab;target.scrollTop=currentScroll;
+ document.body.classList.toggle('simple-ui',p.settings.easyUI!==false);
  for(const id of openPanels){const panel=target.querySelector('[id="'+id+'"]');if(panel&&panel.tagName==='DETAILS')panel.open=true}
  wireInspector();}
 function editField(label,key,value,type='text',options){return `<label class="field">${esc(label)}${type==='select'?`<select data-edit="${key}">${options.map(o=>`<option value="${o[0]}" ${value===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`:`<input data-edit="${key}" type="${type}" value="${esc(value)}" step="any">`}</label>`}
@@ -542,9 +559,13 @@ async function runDirector(exhaustive=false){
  finally{directorBusy=false;if(tab==='director')renderInspector()}
 }
 
-function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const key=e.dataset.setting;let val=e.type==='checkbox'?e.checked:e.type==='number'||e.type==='range'?Number(e.value):e.value;if(key==='clipMin'||key==='clipMax'){val=clamp(val,0,21600)}if(key==='clipCount')val=clamp(val,0,MAX_DISCOVERY_CLIPS);if(key==='gameplayMinScore')val=clamp(val,25,90);if(key==='semanticSamples')val=clamp(val,40,450);if(key==='maxAICalls')val=clamp(val,1,96);if(key==='captionSize')val=clamp(val,12,120);if(key==='captionWords')val=clamp(val,1,12);if(key==='captionX'||key==='captionPosition')val=clamp(val,5,95);if(key==='captionOutlineWidth')val=clamp(val,0,12);if(key==='captionMaxLines')val=clamp(val,1,3);p.settings[key]=val;if(key==='aspect')$('aspectSelect').value=val;engine.setSize();update()});
+function wireInspector(){const c=$('inspectorContent');
+ c.querySelectorAll('[data-guide-tab]').forEach(button=>button.onclick=()=>chooseTab(button.dataset.guideTab));
+ const captionChoice=$('captionTrackChoice');if(captionChoice)captionChoice.onchange=()=>{const id=p.selectedAsset;if(!id)return;try{commit('Switched subtitle source');const n=selectCaptionTrack(p,id,captionChoice.value);selectedUtt=null;update();toast('Using '+captionChoice.value.toUpperCase()+' subtitles · '+n+' timed words')}catch(error){toast(error.message,true);renderInspector()}};
+c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const key=e.dataset.setting;let val=e.type==='checkbox'?e.checked:e.type==='number'||e.type==='range'?Number(e.value):e.value;if(key==='clipMin'||key==='clipMax'){val=clamp(val,0,21600)}if(key==='clipCount')val=clamp(val,0,MAX_DISCOVERY_CLIPS);if(key==='gameplayMinScore')val=clamp(val,25,90);if(key==='semanticSamples')val=clamp(val,40,450);if(key==='maxAICalls')val=clamp(val,1,96);if(key==='captionSize')val=clamp(val,12,120);if(key==='captionWords')val=clamp(val,1,12);if(key==='captionX'||key==='captionPosition')val=clamp(val,5,95);if(key==='captionOutlineWidth')val=clamp(val,0,12);if(key==='captionMaxLines')val=clamp(val,1,3);p.settings[key]=val;if(key==='aspect')$('aspectSelect').value=val;engine.setSize();update()});
  c.querySelectorAll('[data-edit]').forEach(e=>e.onchange=()=>{const key=e.dataset.edit,obj=p.segments.find(s=>s.id===p.selectedSegment)||p.audio.find(a=>a.id===p.selectedAudio);if(!obj)return;commit();const k=key==='audioStart'?'start':key==='audioDuration'?'duration':key==='audioVolume'?'volume':key==='audioRole'?'role':key;let v=e.type==='number'?Number(e.value):e.value;if(k==='speed')v=clamp(v,.25,3);if(k==='start')v=clamp(v,0,obj.end?obj.end-.1:duration(p));if(k==='end')v=clamp(v,(obj.start||0)+.1,asset(obj.assetId)?.duration||Number.MAX_SAFE_INTEGER);if(k==='volume')v=clamp(v,0,2);if(['focusX','focusY','focusEndX','focusEndY'].includes(k))v=clamp(v,0,1);if(k==='zoom'||k==='zoomEnd')v=clamp(v,.5,5);if(k==='cropFaceIndex')v=clamp(Number(v),-1,3);if(k==='faceStrength')v=clamp(Number(v),0,100);obj[k]=v;update()});
  const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
+ on('toggleEasyUI',()=>{commit('Changed workspace layout');p.settings.easyUI=p.settings.easyUI===false;update();toast(p.settings.easyUI?'Spacious guided layout enabled':'Compact layout enabled')});
  on('sourceProbeDecode',async()=>{
   if(mediaProbeBusy)return;
   const a=asset(p.selectedAsset);
@@ -656,7 +677,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('previewVoice',()=>{try{previewSpeech($('narrationScript')?.value||'',p.settings.browserVoiceName,p.settings.ttsSpeed)}catch(e){toast(e.message,true)}});
  on('stopVoice',stopSpeech);
  on('generateVoice',async()=>{const script=$('narrationScript')?.value?.trim();if(!script)return toast('Enter narration text first',true);voiceKey=$('voiceApiKey')?.value||voiceKey;if(!confirm('Send this narration text to the configured speech-generation service?'))return;const button=$('generateVoice');button.disabled=true;try{const file=await synthesizeSpeech(script,{endpoint:p.settings.ttsEndpoint,model:p.settings.ttsModel,voice:p.settings.ttsVoice,speed:p.settings.ttsSpeed,apiKey:voiceKey});const at=engine.time;const a=await addFile(file);commit();p.audio.push({id:uid(),assetId:a.id,start:at,sourceStart:0,duration:Math.min(a.duration||duration(p)-at,Math.max(.2,duration(p)-at)),volume:1,role:'voice'});update();toast('Generated speech added as an editable audio overlay')}catch(e){toast(`Voice generation: ${e.message}`,true)}finally{if(button)button.disabled=false}});
- on('removeAsset',async()=>{if(!confirm('Remove source and all its timeline segments?'))return;const id=p.selectedAsset;commit();p.assets=p.assets.filter(x=>x.id!==id);p.words=p.words.filter(w=>w.assetId!==id);p.segments=p.segments.filter(s=>s.assetId!==id);p.audio=p.audio.filter(s=>s.assetId!==id);p.selectedAsset=p.assets[0]?.id||null;assets.get(id)?.url&&URL.revokeObjectURL(assets.get(id).url);assets.delete(id);savedHandles.delete(id);/* Source caches are shared by saved library project versions. Explicitly clear cached media in Settings when desired. */update()});
+ on('removeAsset',async()=>{if(!confirm('Remove source and all its timeline segments?'))return;const id=p.selectedAsset;commit();p.assets=p.assets.filter(x=>x.id!==id);p.words=p.words.filter(w=>w.assetId!==id);if(p.subtitleTracks)delete p.subtitleTracks[id];p.segments=p.segments.filter(s=>s.assetId!==id);p.audio=p.audio.filter(s=>s.assetId!==id);p.selectedAsset=p.assets[0]?.id||null;assets.get(id)?.url&&URL.revokeObjectURL(assets.get(id).url);assets.delete(id);savedHandles.delete(id);/* Source caches are shared by saved library project versions. Explicitly clear cached media in Settings when desired. */update()});
  on('insertTranscript',()=>{if(!p.selectedAsset)return toast('Select a source first',true);const value=$('pasteTranscript').value.trim();if(!value)return toast('Paste transcript text first',true);commit();const a=asset(p.selectedAsset);p.words.push(...timeWords(value,a.id,0,Math.max(10,a.duration)));update();toast('Transcript text added with approximate timestamps; review alignment')});
  on('transcribeBtn',async()=>{
  const a=asset(p.selectedAsset);
@@ -665,7 +686,8 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  p.transcriptProgress||={};p.transcriptGaps||={};
  const prev=p.transcriptProgress[a.id];
  const startAt=prev?.status!=='complete'&&Number(prev?.nextAt)>0?Math.min(Number(prev.nextAt),a.duration):0;
- if(!startAt){commit('Starting transcription');p.words=p.words.filter(w=>w.assetId!==a.id);p.transcriptGaps[a.id]=[]}
+ if(!startAt){commit('Starting transcription');p.transcriptGaps[a.id]=[]}
+ beginWhisperCaptionRun(p,a.id,{resume:!!startAt});
  p.transcriptProgress[a.id]={nextAt:startAt,total:a.duration,status:'working'};
  asrBusy=true;asrStop=false;renderInspector();
  try{
@@ -673,7 +695,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
    durationHint:a.duration,startAt,
    onPartial:async info=>{
     // Keep already completed words visible in CC immediately after every Whisper window.
-    p.words=appendLiveWords(p.words,info.words);
+    appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
     if(p.selectedAsset===a.id){
      const text=info.words.map(w=>w.text).join(' ');
      const live=$('liveCaptionPreview');if(live&&text)live.textContent=text;
@@ -693,18 +715,23 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
     asrProgress(cp.nextAt/cp.total,`Saved ${fmt(cp.nextAt)} / ${fmt(cp.total)} · ${p.words.filter(w=>w.assetId===a.id).length} words`);
    }
   });
-  const sourceWords=p.words.filter(w=>w.assetId===a.id);
-  p.words=p.words.filter(w=>w.assetId!==a.id).concat(reconcileWords(sourceWords));
+  const completed=finishWhisperCaptionRun(p,a.id,reconcileWords);
+  const sourceWords=p.subtitleTracks[a.id].whisper;
   p.transcriptProgress[a.id]={nextAt:result.total,total:result.total,status:'complete'};
   await save(false);update();
-  toast(`Completed ${fmt(result.total)} of audio. ${sourceWords.length} words saved. Review approximate subtitle timing.`);
+  toast(`Completed ${fmt(result.total)} of audio. ${sourceWords.length} words saved.`+(completed.keptSrt?' Original SRT subtitles stay active.':' Review Whisper subtitle timing.'));
  }catch(e){
   const progress=p.transcriptProgress[a.id];if(progress)progress.status='paused';
   await save(false);
   toast(`${asrStop?'Paused':'Transcription stopped'} at ${fmt(progress?.nextAt||0)}. ${e.message}. Use Resume to continue without restarting.`,!asrStop);
  }finally{asrBusy=false;asrStop=false;renderInspector()}
 });
- on('retryAllGaps',async()=>{const a=asset(p.selectedAsset),gaps=p.transcriptGaps?.[a?.id]||[];if(!a?.file||!gaps.length)return toast('No gaps to retry or media file missing',true);asrBusy=true;asrStop=false;renderInspector();try{const extra=await retryGaps(a.file,a.id,p.settings,gaps,asrProgress,()=>asrStop,{durationHint:a.duration});commit();p.words=p.words.filter(w=>w.assetId!==a.id).concat(reconcileWords([...p.words.filter(w=>w.assetId===a.id),...extra]));p.transcriptGaps[a.id]=gaps.filter(g=>!extra.some(w=>w.start<g.end&&w.end>g.start));update();toast(`Retried ${gaps.length} flagged intervals; ${p.transcriptGaps[a.id].length} still unresolved. Review every flagged span.`)}catch(e){toast(`Gap retry failed: ${e.message}`,true)}finally{asrBusy=false;renderInspector()}});
+ on('retryAllGaps',async()=>{const a=asset(p.selectedAsset),gaps=p.transcriptGaps?.[a?.id]||[];if(!a?.file||!gaps.length)return toast('No gaps to retry or media file missing',true);asrBusy=true;asrStop=false;renderInspector();try{const extra=await retryGaps(a.file,a.id,p.settings,gaps,asrProgress,()=>asrStop,{durationHint:a.duration});commit();if(getCaptionTrack(p,a.id).active==='srt'){
+   p.subtitleTracks[a.id].whisper=reconcileWords([...(p.subtitleTracks[a.id].whisper||[]),...extra]);
+  }else{
+   p.words=p.words.filter(w=>w.assetId!==a.id).concat(reconcileWords([...p.words.filter(w=>w.assetId===a.id),...extra]));
+   if(p.subtitleTracks?.[a.id])p.subtitleTracks[a.id].whisper=p.words.filter(w=>w.assetId===a.id);
+  }p.transcriptGaps[a.id]=gaps.filter(g=>!extra.some(w=>w.start<g.end&&w.end>g.start));update();toast(`Retried ${gaps.length} flagged intervals; ${p.transcriptGaps[a.id].length} still unresolved. Review every flagged span.`)}catch(e){toast(`Gap retry failed: ${e.message}`,true)}finally{asrBusy=false;renderInspector()}});
  on('cancelAsr',()=>{asrStop=true;toast('Stopping after the current recognition chunk')});
  const srt=$('srtUpload');if(srt)srt.onchange=async()=>{
   if(!p.selectedAsset)return toast('Choose a source',true);
@@ -723,12 +750,17 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
     affected.get(w.assetId).push([w.start,w.end]);
    }
    commit('Imported edited-timeline SRT');
-   p.words=p.words.filter(w=>!(affected.get(w.assetId)||[]).some(([start,end])=>w.end>start&&w.start<end)).concat(mapped);
-   update();toast('Imported '+mapped.length+' edited-timeline words into original source time. Video and captions retain their alignment.');
+   // Construct source-specific SRT tracks BEFORE replacing the active transcript.
+   // Otherwise the previous Whisper track would accidentally capture the new SRT.
+   for(const id of sourceIds){
+    const outside=p.words.filter(w=>w.assetId===id&&!(affected.get(id)||[]).some(([start,end])=>w.end>start&&w.start<end));
+    importSrtAsDefault(p,id,[...outside,...mapped.filter(w=>w.assetId===id)]);
+   }
+   update();toast('Imported '+mapped.length+' edited-timeline SRT words as the preferred source subtitles.');
   }else{
    commit('Imported original-source SRT');
-   p.words=p.words.filter(w=>w.assetId!==p.selectedAsset).concat(words);
-   update();toast('Imported '+words.length+' words in original-video time for '+(asset(p.selectedAsset)?.name||'selected source'));
+   const count=importSrtAsDefault(p,p.selectedAsset,words);
+   update();toast('SRT ACTIVE: '+count+' original-timestamp words for '+(asset(p.selectedAsset)?.name||'selected source'));
   }
  };
  const syncControl=$('subtitleOffsetInput');
@@ -1342,6 +1374,21 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('humorFindAI',()=>runFunnySearch(humorView,{forceAI:true}));
  on('humorCancel',()=>{humorAbort?.abort();toast('AI humor scan cancellation requested')});
  on('humorMore',()=>{humorShown+=70;renderInspector()});
+ const reviewSortPicker=$('humorReviewSort');
+ if(reviewSortPicker)reviewSortPicker.onchange=()=>{humorReviewSort=reviewSortPicker.value;humorShown=70;renderInspector()};
+ const reactionPicker=$('humorReactionOnly');
+ if(reactionPicker)reactionPicker.onchange=()=>{humorReactionOnly=reactionPicker.checked;humorShown=70;renderInspector()};
+ const multiPicker=$('humorMultiSpeakerOnly');
+ if(multiPicker)multiPicker.onchange=()=>{humorMultiSpeakerOnly=multiPicker.checked;humorShown=70;renderInspector()};
+ on('humorPickFive',()=>{
+  const available=filterStorySuggestions(viewableHumorMoments(p,{scope:humorScope}),p.assets,humorFilters);
+  const filtered=orderClipSuggestions(available,p.words,{sort:'structure',reactionOnly:humorReactionOnly,multiSpeakerOnly:humorMultiSpeakerOnly}).map(x=>x.moment);
+  const picked=suggestDiverseSelection(filtered,p.words,{count:5});
+  if(!picked.length)return toast('No source-grounded clips match these review filters yet.',true);
+  commit('Curated diverse real source moments');
+  p.compilationOrder=[...new Set([...(p.compilationOrder||[]),...picked.map(x=>x.id)])];
+  update();toast('Added '+picked.length+' different source moments to review. No unrelated montage was built; preview each before export.');
+ });
  // Source-truth workbench: original SRT words only; no AI API calls.
  const currentHumorSelection=()=>{
   const byId=new Map(viewableHumorMoments(p).map(m=>[m.id,m]));
@@ -1448,6 +1495,20 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   update();toast('Restored the original source-linked suggestion.');
  });
  // Extend the actual original footage, and update the stored selection used by compilations.
+ c.querySelectorAll('[data-humor-complete]').forEach(button=>button.onclick=()=>{
+  const m=p.humorMoments?.find(x=>x.id===button.dataset.humorComplete);
+  if(!m)return;
+  try{
+   const next=completeExchangeRange(m,p.words,p.assets,{maxExtra:60});
+   const turns=transcriptTurns(p.words,m.assetId).filter(t=>t.end>=next.start&&t.start<=next.end);
+   const dialogue=turns.map(t=>(t.speaker&&t.speaker!=='Speaker 1'?t.speaker+': ':'')+t.text).join('\n');
+   commit('Keep entire real funny exchange');
+   m.start=next.start;m.end=next.end;
+   if(dialogue)m.dialogue=dialogue;
+   m.reason=String(m.reason||'')+' · Expanded to real connected SRT exchange, verified by user.';
+   update();toast('Kept the source conversation through the real setup, reply and reaction. Listen before building.');
+  }catch(error){toast('Complete exchange: '+error.message,true)}
+ });
  c.querySelectorAll('[data-humor-expand]').forEach(button=>button.onclick=()=>{
   const m=p.humorMoments?.find(x=>x.id===button.dataset.humorExpand);
   if(!m)return;
@@ -1615,8 +1676,9 @@ async function importRememberedFiles(){
 }
 function syncSourceRange(){const a=asset(p.selectedAsset);$('sourceIn').value='0';$('sourceOut').value=sourceSecondsValue(a);}
 async function importFiles(files,handles=new Map()){
- const array=[...files].filter(x=>x.type.startsWith('video/')||x.type.startsWith('audio/')||x.type.startsWith('image/')||/\.(mkv|mov|mp4|webm|wav|mp3|m4a)$/i.test(x.name));
- if(!array.length)return toast('No supported media files selected',true);
+ const selected=[...files],captions=selected.filter(isCaptionSidecar);
+ const array=selected.filter(x=>!isCaptionSidecar(x)&&(x.type.startsWith('video/')||x.type.startsWith('audio/')||x.type.startsWith('image/')||/\.(mkv|mov|mp4|webm|wav|mp3|m4a)$/i.test(x.name)));
+ if(!array.length&&!captions.length)return toast('No supported media or SRT subtitle files selected',true);
  commit();let imported=0,inserted=0,relinked=0;
  for(const file of array){try{
   const missing=possibleMissingSourceRelink(p.assets,file,p.segments,p.words);
@@ -1632,8 +1694,20 @@ async function importFiles(files,handles=new Map()){
   }else if(a.type==='video'&&!a.duration)toast('Could not determine '+a.name+' duration. Try converting to MP4/H.264.',true);
  }catch(e){toast('Import '+file.name+': '+e.message,true)}
  }
+ let captioned=0;
+ for(const file of captions){
+  try{
+   const source=matchingCaptionSource(file.name,p.assets);
+   if(!source){toast('Cannot match '+file.name+' to exactly one original source. Select its video in Transcript and import this SRT manually.',true);continue}
+   const words=parseSRT(await file.text(),source.id);
+   if(!words.length){toast(file.name+' has no usable timed SRT/VTT captions.',true);continue}
+   importSrtAsDefault(p,source.id,words);captioned++;
+   p.selectedAsset=source.id;
+   toast('SRT default enabled for '+source.name+' · '+words.length+' original-timed words.');
+  }catch(error){toast('Subtitle '+file.name+': '+error.message,true)}
+ }
  syncSourceRange();update();
- toast('Imported '+imported+' source(s); relinked '+relinked+' existing recordings; added '+inserted+' new full-source cuts ('+fmt(duration(p))+').');
+ toast('Imported '+imported+' source(s), '+captioned+' SRT sidecar(s), relinked '+relinked+' and added '+inserted+' full-source cut(s) ('+fmt(duration(p))+').');
 }
 function refreshLastProjectButton(){
  const button=$('loadLastProject'),hint=$('lastProjectHint');
