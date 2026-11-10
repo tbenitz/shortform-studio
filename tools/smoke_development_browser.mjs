@@ -37,8 +37,8 @@ try{
  await page.locator('#reviewOnlyFlagged').uncheck();
  await page.locator('#reviewWordSearch').fill('Actually');
  await page.locator('#reviewWordSearch').press('Tab');
- if(!(await page.locator('#reviewWordList').innerText()).includes('Actually'))
-  throw Error('Corrected original source word was not preserved in caption review.');
+ if((await page.locator('#reviewWordList [data-word-text]').first().inputValue())!=='Actually')
+  throw Error('Corrected original source word was not preserved in the input value of the saved caption review.');
  console.log('PASS: Real imported SRT edited non-destructively and retained timestamp.');
  const secondBytes=await readFile(fixture);
  await page.locator('#fileUpload').setInputFiles({name:'second-original.webm',mimeType:'video/webm',buffer:secondBytes});
