@@ -8,7 +8,7 @@ let browser;
 try{
  browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage();
- const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
  for(let n=0;n<35;n++){try{await page.goto('http://127.0.0.1:8823/',{waitUntil:'domcontentloaded',timeout:3000});break}catch(e){if(n===34)throw e;await new Promise(r=>setTimeout(r,200))}}
  await page.locator('#fileUpload').setInputFiles('qa-wave-test.webm');
  await page.waitForFunction(()=>document.querySelectorAll('#videoTrack [data-seg]').length>=1,null,{timeout:16000});
