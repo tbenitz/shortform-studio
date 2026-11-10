@@ -39,12 +39,16 @@ import {insertAtPlayhead,overwriteAtPlayhead,rippleDelete,slipSelected,rollBound
 import {timelineWorkbenchHTML} from './timeline-workbench-ui.js';
 import {saveSnapshot,loadSnapshot,deleteSnapshot,listSnapshots,saveLibraryProject,loadLibraryProject,listLibraryProjects,deleteLibraryProject,sharedMediaReferenced} from './storage.js';
 import {sampledMediaFingerprint,compareMediaIdentity,inspectProjectSources} from './source-integrity.js';
+import {transcriptCoverage,searchProjectEvidence,makeTranscriptReviewMarkers,evidenceSearchHTML,sourceHealthHTML} from './source-health.js';
+import {scanOriginalVideoFrames,visualHealthHTML} from './source-visual-qa.js';
+import {installCommandPalette} from './command-palette.js';
 import {makeVerifiedBackup,readProjectBackup,PROJECT_BACKUP_FORMAT} from './project-backup.js';
 import {makeLibraryProject,cloneLibraryProject} from './project-library.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
 let p=newProject(),tab='media',assets=new Map(),history=[],future=[],selectedUtt=null,searchTerm='',asrStop=false,asrBusy=false,renderBusy=false,providerKey=loadDirectorKey(),followWhisperCaptions=true,audioRecorder=null,audioChunks=[],recordStart=0,recordStartedAt=0,faceBusy=false,faceController=null,sceneBusy=false,sceneController=null,voiceKey='',diarizationKey='',timelinePixelsPerSecond=null,directorShown=48,directorHour='all',directorResultView='active',directorOutputPreference='auto',povReferenceChoice=null,povTargetChoice=null,povSyncStatus='',povStoryPacing='natural',directorBusy=false,directorAbort=null,directorStatus='',gameplayBusy=false,gameplayAbort=null,gameplayStatus='';
 let snapshotRecords=[],toolsSearch='',sessionActive=false,lastSavedInfo=null,sourceFavoritesOnly=false,directorFavoritesOnly=false,savedHandles=new Map(),restoreBusy=false;
-let libraryRecords=[],librarySearch='',libraryShowArchived=false,mediaAudit=null,mediaAuditBusy=false,libraryBusy=false;
+let libraryRecords=[],librarySearch='',libraryShowArchived=false,mediaAudit=null,mediaAuditBusy=false,libraryBusy=false,evidenceQuery='';
+let visualScanBusy=false,visualScanStatus='',visualScanAbort=null;
 let humorScope='all',humorMinScore=45,humorMaxCalls=48,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null,humorView='clips';
 let humorFilters={search:'',sort:'source',speaker:'all',onlyPlayable:false},humorReviewOpen=false,humorFilterOpen=false,humorPlacement='replace',precisionEditorOpen=false;let cropPickActive=false,cropDrawActive=false,cropDrawPointer=null;
 const asset=id=>assets.get(id)||p.assets.find(a=>a.id===id);
@@ -208,7 +212,7 @@ ${c.cropMode==='speaker'?'<p class="tiny muted">Map transcript speaker labels to
  }
  if(tab==='export'){html=`<div class="info"><b>Real MP4 export: H.264 video, AAC audio where supported.</b> Exports produce genuine MP4 containers with the captioned canvas and Web Audio mix. If your browser cannot encode AAC (notably desktop Linux), the encoder uses Opus audio inside a genuine MP4 instead of silently downloading WebM. <b>Some older players do not support Opus-in-MP4.</b> The output status identifies the actual codec. ChromeOS may use AAC where available. Real-time browser rendering requires supported hardware encoders; for very long video use the native FFmpeg renderer.</div><div class="separator"></div>${field('Output aspect ratio','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','1:1 Square'],['4:5','4:5 Portrait']])}${field('Output height (pixels)','outputHeight',p.settings.outputHeight,'number')}${field('Frame rate','fps',p.settings.fps,'number')}${field('Video bitrate (bps)','quality',p.settings.quality,'number')}<div class="metric"><span>Runtime</span><b>${fmt(duration(p))}</b></div><div class="metric"><span>Cut count</span><b>${p.segments.length}</b></div><div class="metric"><span>Timed captions</span><b>${mapWords(p).length}</b></div><div class="separator"></div><h3>Preflight quality inspection</h3><div class="stack" style="margin:9px 0">${preflight(p).map(q=>`<div class="tiny ${q.severity==='error'?'warning':'muted'}"><b>${esc(q.severity.toUpperCase())} · ${esc(q.title)}</b><br>${esc(q.detail)}</div>`).join('')||'<p class="success tiny">No structural issues detected. Manual content review is still required.</p>'}</div><div class="separator"></div><button id="doExport" class="primary full" ${renderBusy||!p.segments.length?'disabled':''}>${renderBusy?'Rendering MP4…':'Render MP4 and download'}</button><button id="cancelExport" class="danger full" ${renderBusy?'':'disabled'} style="margin-top:8px">Cancel render</button><div class="progress" style="margin:11px 0"><i id="renderProgress"></i></div><p class="tiny muted" id="renderStatus">Review all cuts and source integrity before publishing.</p><div class="separator"></div><button id="saveSrt" class="full">Download subtitles (SRT)</button><button id="saveEdl" class="full">Download editable cut list (JSON)</button><button id="saveBundle" class="full">Download project (JSON)</button><div class="separator"></div><p class="tiny muted">For long videos and high-resolution production, download Project JSON and run <code>python3 tools/render_project.py project.json --media-dir /media --out output.mp4</code> from the repository with FFmpeg installed.</p><p class="warning tiny">Browser exports are not frame-accurate professional renders. For robust long-form/4K exports, a native FFmpeg renderer is required; the project cut list is ready for an external renderer.</p>`}
  if(tab==='settings'){html=`<div class="info">Settings apply to this project. The default design is local-first. Local face detection, optional hosted speaker diarization, voice preview and optional TTS are available. Truly offline generative voice and automatic identity matching across videos require additional models.</div><div class="separator"></div>`+settingSection('Video and reframing',field('Aspect','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','Square'],['4:5','4:5']])+field('Zoom / crop','zoom',p.settings.zoom,'range')+field('Brightness (%)','brightness',p.settings.brightness,'number')+field('Contrast (%)','contrast',p.settings.contrast,'number')+field('Saturation (%)','saturation',p.settings.saturation,'number')+field('Visual look','videoFilter',p.settings.videoFilter,'text',[['normal','Natural'],['grayscale','Black and white'],['sepia','Warm sepia'],['vintage','Vintage'],['soft','Soft focus']])+`<label class="checkrow"><input type="checkbox" data-setting="autoFaceFraming" ${p.settings.autoFaceFraming?'checked':''}>Smart face-aware crop (after scanning source faces)</label>`+field('Face tracking strength (0–100)','faceTrackingStrength',p.settings.faceTrackingStrength,'number')+field('Default transition','transition',p.settings.transition,'text',[['cut','Hard cut'],['fade','Fade-in'],['dissolve','Dissolve (still previous frame)'],['wipe','Wipe'],['slide','Slide'],['zoom','Zoom']]))+settingSection('Caption and branding',field('Caption style','captionStyle',p.settings.captionStyle,'text',[['dynamic','Dynamic'],['minimal','Minimal'],['boxed','Boxed']])+field('Caption font size','captionSize',p.settings.captionSize,'number')+field('Caption words per chunk','captionWords',p.settings.captionWords,'number')+field('Caption lines max','captionMaxLines',p.settings.captionMaxLines,'number')+field('Caption vertical placement (%)','captionPosition',p.settings.captionPosition,'number')+field('Caption horizontal placement (%)','captionX',p.settings.captionX??50,'number')+field('Caption font','captionFont',p.settings.captionFont||'system-ui','text',[['system-ui','Modern sans serif'],['Arial','Arial'],['Georgia','Georgia'],['Impact','Impact'],['Verdana','Verdana']])+field('Text color','captionColor',p.settings.captionColor,'color')+field('Active word highlight','captionAccent',p.settings.captionAccent,'color')+field('Outline color','captionOutlineColor',p.settings.captionOutlineColor||'#10151d','color')+field('Outline thickness (0–12)','captionOutlineWidth',p.settings.captionOutlineWidth??5,'number')+field('Background color','captionBackground',p.settings.captionBackground,'color')+`<label class="checkrow"><input type="checkbox" data-setting="captionUppercase" ${p.settings.captionUppercase?'checked':''}>Uppercase captions</label><label class="checkrow"><input type="checkbox" data-setting="captionOn" ${p.settings.captionOn?'checked':''}>Show captions</label>`)+settingSection('Audio',field('Video gain (0–2)','videoVolume',p.settings.videoVolume,'number')+field('Added audio gain (0–2)','audioVolume',p.settings.audioVolume,'number')+`<label class="checkrow"><input type="checkbox" data-setting="duckMusic" ${p.settings.duckMusic?'checked':''}>Lower background music when source dialogue plays</label>`)+settingSection('Transcription',field('ASR model','whisperModel',p.settings.whisperModel,'text',[['onnx-community/whisper-tiny.en','Whisper Tiny English (fastest)'],['onnx-community/whisper-base.en','Whisper Base English (larger)'],['onnx-community/whisper-small.en','Whisper Small English (resource intensive)']])+field('ASR processor','processing',p.settings.processing,'text',[['webgpu','WebGPU preferred / WASM fallback'],['wasm','WASM CPU']])+field('Chunk seconds (8–29)','transcriptionChunk',p.settings.transcriptionChunk,'number')+field('Timestamp compatibility','transcriptionTiming',p.settings.transcriptionTiming||'auto','text',[['auto','Recommended: segment timestamps; plain fallback'],['segment','Segment timestamps; plain fallback'],['plain','Plain transcription; estimated timings'],['word','Advanced: word alignment (attention model required)']]))+settingSection('Voice-over generation',field('HTTPS TTS endpoint','ttsEndpoint',p.settings.ttsEndpoint)+field('TTS model','ttsModel',p.settings.ttsModel)+field('TTS voice','ttsVoice',p.settings.ttsVoice)+field('Voice speed','ttsSpeed',p.settings.ttsSpeed,'number'))+settingSection('Speaker diarization',field('HTTPS diarization endpoint','diarizationEndpoint',p.settings.diarizationEndpoint))+settingSection('Storage and interface',`<label class="checkrow"><input type="checkbox" data-setting="autoInsertMedia" ${p.settings.autoInsertMedia!==false?'checked':''}>Automatically add the full video to the editor on import</label><label class="checkrow"><input type="checkbox" data-setting="autoSave" ${p.settings.autoSave?'checked':''}>Automatic project saves</label><label class="checkrow"><input type="checkbox" data-setting="rememberMedia" ${p.settings.rememberMedia?'checked':''}>Store imported media in browser IndexedDB (quota permitting)</label>`+`<button id="checkStorage">Check browser storage quota</button><button id="clearCachedMedia" class="danger" style="margin-top:8px">Remove cached media files</button><div id="storageInfo" class="tiny muted" style="margin-top:8px"></div>`)+`<p class="tiny muted">Keyboard: Space play/pause · arrows skip 5 seconds · Delete remove cut · Ctrl+Z undo · Ctrl+Shift+Z redo · Ctrl+S save.</p>`;}
- if(tab==='tools')html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time,libraryRecords,librarySearch,libraryShowArchived,mediaAudit);if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown,mode:humorView,aiConfigured:!!providerKey,filters:humorFilters,reviewOpen:humorReviewOpen,filterOpen:humorFilterOpen,placement:humorPlacement});
+ if(tab==='tools'){html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time,libraryRecords,librarySearch,libraryShowArchived,mediaAudit);html+=sourceHealthHTML(p,evidenceQuery);html+=visualHealthHTML(p,{busy:visualScanBusy,status:visualScanStatus})}if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown,mode:humorView,aiConfigured:!!providerKey,filters:humorFilters,reviewOpen:humorReviewOpen,filterOpen:humorFilterOpen,placement:humorPlacement});
  if(tab==='editor')html+=timelineWorkbenchHTML(p,engine.time,{open:precisionEditorOpen});const currentScroll=target.dataset.currentTab===tab?target.scrollTop:0;target.innerHTML=html;target.dataset.currentTab=tab;target.scrollTop=currentScroll;wireInspector();}
 function editField(label,key,value,type='text',options){return `<label class="field">${esc(label)}${type==='select'?`<select data-edit="${key}">${options.map(o=>`<option value="${o[0]}" ${value===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`:`<input data-edit="${key}" type="${type}" value="${esc(value)}" step="any">`}</label>`}
 function chooseTab(name){tab=name;all('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));renderInspector();if(name==='tools'){refreshSnapshots();refreshLibrary()}}
@@ -926,6 +930,98 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   if(!p.segments.length)return toast('No edited source cuts to export.',true);
   download(timecodeCutList(p),String(p.name||'project')+'-source-timecodes.txt','text/plain;charset=utf-8');
  });
+ // Local source visual scan decodes a bounded number of actual frames.
+ on('toolsScanVisual',async()=>{
+  if(visualScanBusy)return;
+  const selected=asset(p.selectedAsset);
+  if(!selected||selected.type!=='video'||!selected.file)return toast('Select and relink an original video in the Media library before scanning.',true);
+  visualScanBusy=true;visualScanAbort=new AbortController();
+  const sourceId=selected.id,projectId=p.id,button=$('toolsScanVisual'),cancel=$('toolsCancelVisual');
+  if(button)button.disabled=true;if(cancel)cancel.disabled=false;
+  visualScanStatus='Opening and decoding actual original frames…';
+  if($('toolsVisualScanStatus'))$('toolsVisualScanStatus').textContent=visualScanStatus;
+  try{
+   const report=await scanOriginalVideoFrames(selected.file,{count:24,signal:visualScanAbort.signal,onProgress:(ratio,info)=>{
+    visualScanStatus='Decoded '+info.completed+'/'+info.total+' original samples · source '+fmt(info.time);
+    if($('toolsVisualScanStatus'))$('toolsVisualScanStatus').textContent=visualScanStatus;
+   }});
+   if(projectId!==p.id||!p.assets.some(a=>a.id===sourceId))throw Error('Project changed before the scan completed. Results were not applied.');
+   commit('Reviewed decoded source frame samples');
+   p.visualHealthReports||={};p.visualHealthReports[sourceId]=report;
+   visualScanStatus='Scan completed: '+report.sampleCount+' actual frames sampled, '+report.warnings.length+' possible issues for manual review.';
+   update();if($('visualHealthDetails'))$('visualHealthDetails').open=true;
+   toast(visualScanStatus);
+  }catch(error){
+   visualScanStatus='Visual inspection did not complete: '+error.message;
+   if($('toolsVisualScanStatus'))$('toolsVisualScanStatus').textContent=visualScanStatus;
+   toast(visualScanStatus,true);
+  }finally{
+   visualScanBusy=false;visualScanAbort=null;
+   if(button?.isConnected)button.disabled=false;if(cancel?.isConnected)cancel.disabled=true;
+  }
+ });
+ on('toolsCancelVisual',()=>{
+  if(visualScanAbort){visualScanAbort.abort();visualScanStatus='Cancel requested; incomplete scan data will not be saved.';if($('toolsVisualScanStatus'))$('toolsVisualScanStatus').textContent=visualScanStatus}
+ });
+ on('toolsExportVisual',()=>{
+  const records=p.visualHealthReports||{};
+  if(!Object.keys(records).length)return toast('Scan actual video frames before exporting this review.',true);
+  download(JSON.stringify({kind:'shortform-local-visual-review-v1',projectId:p.id,reports:records,
+    disclaimer:'Only sparse original-source decoded frames have been inspected; this is not output validation, full corruption detection or verified visual action.'},null,2),
+    String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-')+'-visual-review.json','application/json');
+  toast('Exported actual-source visual sampling metadata, not captured images or video.');
+ });
+ // Source-health features inspect imported timed words only, not the original audio signal.
+ on('toolsExportSourceHealth',()=>{
+  download(JSON.stringify(transcriptCoverage(p),null,2),String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-')+'-source-coverage.json','application/json');
+  toast('Downloaded timed-transcript coverage report; gaps are unverified for speech/silence.');
+ });
+ on('toolsMarkTranscriptGaps',()=>{
+  const marks=makeTranscriptReviewMarkers(p,transcriptCoverage(p),{limit:30});
+  if(!marks.length)return toast('No new transcript gaps intersect footage currently on the timeline.',true);
+  commit('Bookmarked '+marks.length+' source transcript gaps');
+  p.markers=[...(p.markers||[]),...marks];update();
+  toast('Added '+marks.length+' review markers on actual timeline footage. Listen to those intervals.');
+ });
+ const evidenceField=$('toolsEvidenceSearch');
+ const bindEvidenceMatches=()=>{
+  const results=searchProjectEvidence(p,evidenceQuery,{limit:50});
+  c.querySelectorAll('[data-evidence-index]').forEach(button=>button.onclick=()=>{
+   const item=results[Number(button.dataset.evidenceIndex)];
+   if(!item)return;
+   if(item.kind==='marker'){engine.seek(item.programTime||0);return toast('Jumped to matching timeline marker.')}
+   if(item.kind==='cut'){
+    p.selectedSegment=item.id;chooseTab('editor');engine.seek(item.programTime||0);
+    return toast('Selected matching edited cut; inspect original source.');
+   }
+   const source=asset(item.assetId);
+   if(!source)return toast('Matching original source is not linked in this project.',true);
+   p.selectedAsset=source.id;chooseTab('media');syncSourceRange();
+   if($('sourceIn'))$('sourceIn').value=Number(item.start||0).toFixed(3);
+   if($('sourceOut'))$('sourceOut').value=Math.min(source.duration||0,Number(item.end||item.start||0)+3).toFixed(3);
+   const preview=$('sourcePreview');
+   if(preview){const seek=()=>{try{preview.currentTime=Number(item.start||0)}catch{}};if(preview.readyState)seek();else preview.addEventListener('loadedmetadata',seek,{once:true})}
+   toast('Located literal evidence in original source. Review its actual audio/video.');
+  });
+ };
+ if(evidenceField) {
+  evidenceField.oninput=()=>{
+   evidenceQuery=evidenceField.value;
+   const results=$('toolsEvidenceResults');
+   if(results)results.innerHTML=evidenceSearchHTML(p,evidenceQuery);
+   const button=$('toolsExportEvidenceSearch');
+   if(button)button.disabled=!evidenceQuery.trim();
+   bindEvidenceMatches();
+  };
+  bindEvidenceMatches();
+ }
+ on('toolsExportEvidenceSearch',()=>{
+  if(!evidenceQuery.trim())return toast('Enter a project search first.',true);
+  download(JSON.stringify({query:evidenceQuery,matches:searchProjectEvidence(p,evidenceQuery,{limit:500}),
+   disclaimer:'Literal metadata and timestamped transcript matches only; untranscribed speech and visual action are not searched.'},null,2),
+   String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-')+'-evidence-search.json','application/json');
+  toast('Downloaded original-source-referenced search results.');
+ });
  // Production Tools: metadata reports and user-managed project checkpoints.
  const safeFile=()=>String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-').slice(0,80)||'project';
  on('toolsExportCSV',()=>download(cutSheetCSV(p),safeFile()+'-cuts.csv','text/csv;charset=utf-8'));
@@ -1630,4 +1726,25 @@ function bind(){all('.tab').forEach(b=>b.onclick=()=>chooseTab(b.dataset.tab));$
      toast('Unmuted the preview and restored the current clip/game audio to 100%. Try Play.');
    }catch(e){toast('Restore sound: '+e.message,true)}
  };$('undoBtn').onclick=undo;$('redoBtn').onclick=redo;$('splitBtn').onclick=splitSelected;$('deleteBtn').onclick=removeSelected;$('fitBtn').onclick=()=>{timelinePixelsPerSecond=null;renderTimeline();toast('Fit full edit to timeline')};$('zoomInBtn').onclick=()=>{timelinePixelsPerSecond=Math.min(40,(timelinePixelsPerSecond||($('timelineScroller').clientWidth/Math.max(1,duration(p))))*2);renderTimeline()};$('zoomOutBtn').onclick=()=>{timelinePixelsPerSecond=Math.max(.05,(timelinePixelsPerSecond||($('timelineScroller').clientWidth/Math.max(1,duration(p))))/2);renderTimeline()};window.addEventListener('keydown',e=>{const focus=/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'');if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();save();return}if(focus)return;if(e.key===' '){e.preventDefault();engine.play()}else if(e.key==='ArrowLeft'){e.preventDefault();engine.seek(engine.time-5)}else if(e.key==='ArrowRight'){e.preventDefault();engine.seek(engine.time+5)}else if(e.key==='Delete'||e.key==='Backspace')removeSelected();else if(e.ctrlKey&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo()}});window.addEventListener('beforeunload',()=>{clearTimeout(saving)})}
-bind();bindPreviewAndCropControls();restore();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});
+bind();bindPreviewAndCropControls();
+installCommandPalette({
+ getProject:()=>p,
+ onNavigate:where=>chooseTab(where),
+ onEvidence:item=>{
+  if(item.kind==='marker'){engine.seek(Number(item.programTime)||0);toast('Jumped to original review marker');return}
+  if(item.kind==='cut'){
+   p.selectedSegment=item.id;chooseTab('editor');engine.seek(Number(item.programTime)||0);
+   toast('Selected the matching edited cut. Review its original source.');return;
+  }
+  const source=asset(item.assetId);
+  if(!source)return toast('That original source is no longer linked.',true);
+  p.selectedAsset=source.id;chooseTab('media');syncSourceRange();
+  const start=Number(item.start)||0,end=Math.min(Number(source.duration)||0,Number(item.end||start)+3);
+  if($('sourceIn'))$('sourceIn').value=start.toFixed(3);
+  if($('sourceOut'))$('sourceOut').value=end.toFixed(3);
+  const vid=$('sourcePreview');
+  if(vid){const seek=()=>{try{vid.currentTime=start}catch{}};if(vid.readyState)seek();else vid.addEventListener('loadedmetadata',seek,{once:true})}
+  toast('Located source evidence. Check the original sound and video before using it.');
+ }
+});
+restore();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});

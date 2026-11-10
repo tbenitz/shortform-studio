@@ -1,0 +1,31 @@
+name: Roadmap wave - browser source review
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Install FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Prepare a real sample video
+        run: |
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i 'testsrc2=size=320x180:rate=12:duration=18' \
+            -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=18' \
+            -map 0:v -map 1:a -c:v libvpx -deadline realtime -cpu-used 8 \
+            -b:v 180k -c:a libopus -b:a 48k -t 18 qa-wave-test.webm
+      - name: Test source health, frame decode and Ctrl+K in actual Chromium
+        run: node tools/smoke_wave_browser.mjs
