@@ -41,6 +41,7 @@ import {saveSnapshot,loadSnapshot,deleteSnapshot,listSnapshots,saveLibraryProjec
 import {sampledMediaFingerprint,compareMediaIdentity,inspectProjectSources} from './source-integrity.js';
 import {transcriptCoverage,searchProjectEvidence,makeTranscriptReviewMarkers,evidenceSearchHTML,sourceHealthHTML} from './source-health.js';
 import {scanOriginalVideoFrames,visualHealthHTML} from './source-visual-qa.js';
+import {installCommandPalette} from './command-palette.js';
 import {makeVerifiedBackup,readProjectBackup,PROJECT_BACKUP_FORMAT} from './project-backup.js';
 import {makeLibraryProject,cloneLibraryProject} from './project-library.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
@@ -1725,4 +1726,25 @@ function bind(){all('.tab').forEach(b=>b.onclick=()=>chooseTab(b.dataset.tab));$
      toast('Unmuted the preview and restored the current clip/game audio to 100%. Try Play.');
    }catch(e){toast('Restore sound: '+e.message,true)}
  };$('undoBtn').onclick=undo;$('redoBtn').onclick=redo;$('splitBtn').onclick=splitSelected;$('deleteBtn').onclick=removeSelected;$('fitBtn').onclick=()=>{timelinePixelsPerSecond=null;renderTimeline();toast('Fit full edit to timeline')};$('zoomInBtn').onclick=()=>{timelinePixelsPerSecond=Math.min(40,(timelinePixelsPerSecond||($('timelineScroller').clientWidth/Math.max(1,duration(p))))*2);renderTimeline()};$('zoomOutBtn').onclick=()=>{timelinePixelsPerSecond=Math.max(.05,(timelinePixelsPerSecond||($('timelineScroller').clientWidth/Math.max(1,duration(p))))/2);renderTimeline()};window.addEventListener('keydown',e=>{const focus=/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'');if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();save();return}if(focus)return;if(e.key===' '){e.preventDefault();engine.play()}else if(e.key==='ArrowLeft'){e.preventDefault();engine.seek(engine.time-5)}else if(e.key==='ArrowRight'){e.preventDefault();engine.seek(engine.time+5)}else if(e.key==='Delete'||e.key==='Backspace')removeSelected();else if(e.ctrlKey&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo()}});window.addEventListener('beforeunload',()=>{clearTimeout(saving)})}
-bind();bindPreviewAndCropControls();restore();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});
+bind();bindPreviewAndCropControls();
+installCommandPalette({
+ getProject:()=>p,
+ onNavigate:where=>chooseTab(where),
+ onEvidence:item=>{
+  if(item.kind==='marker'){engine.seek(Number(item.programTime)||0);toast('Jumped to original review marker');return}
+  if(item.kind==='cut'){
+   p.selectedSegment=item.id;chooseTab('editor');engine.seek(Number(item.programTime)||0);
+   toast('Selected the matching edited cut. Review its original source.');return;
+  }
+  const source=asset(item.assetId);
+  if(!source)return toast('That original source is no longer linked.',true);
+  p.selectedAsset=source.id;chooseTab('media');syncSourceRange();
+  const start=Number(item.start)||0,end=Math.min(Number(source.duration)||0,Number(item.end||start)+3);
+  if($('sourceIn'))$('sourceIn').value=start.toFixed(3);
+  if($('sourceOut'))$('sourceOut').value=end.toFixed(3);
+  const vid=$('sourcePreview');
+  if(vid){const seek=()=>{try{vid.currentTime=start}catch{}};if(vid.readyState)seek();else vid.addEventListener('loadedmetadata',seek,{once:true})}
+  toast('Located source evidence. Check the original sound and video before using it.');
+ }
+});
+restore();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});
