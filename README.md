@@ -16,6 +16,7 @@
 - [Next 100 steps from your master requirements (PLAN-001–PLAN-100)](#planned-next-100-master-linked-development-steps-plan-001plan-100) — phased priorities and exact owner acceptance tests.
 - [New owner review R53–R56](#new-implementation-review-r53r56-recovery-checkpoints-and-honest-humor-review) — rolling checkpoints, reject/restore and source evidence.
 - [First PLAN implementation batch (R57–R65)](#new-implementation-review-r57r65-first-wave-1-code-batch) — multi-project library, verified backups and media checks.
+- [30 additional master-linked implementation checks (R66–R95)](#new-implementation-review-r66r95-story-proof-and-precision-editing) — actual source-story review, safe cut operations and precise timecode tools.
 - [Current implementation progress ledger](#implementation-progress-ledger--first-planned-wave-1-batch) — PLAN IDs advanced, unfinished limitations and owner review.
 - [Simple humor UI and MP4 recovery checks (R41–R46)](#new-implementation-review-r41r46-simple-humor-ai-and-mp4-recovery) — two-mode humor workflow and encoder deployment fix.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
@@ -554,6 +555,102 @@ The original 100 PLAN milestones remain untouched below; these are implementatio
 | All other PLAN and NEXT IDs | No new complete implementation claim from this batch | Planned or previously partial | Develop and validate each milestone separately |
 
 **Data handling:** All source files remain local, except for optional AI provider workflows that separately request permission. The library shares original media file IDs between project copies; deleting a project metadata entry does not delete source bytes. Original footage still requires Chrome permissions or re-linking after browser storage cleanup. A valid source identity match verifies only bounded samples (not every byte). No PLAN, NEXT, R or master checkbox is checked by a coding agent or successful test.
+
+### New implementation review R66–R95 (story proof and precision editing)
+
+**30 additional, separately testable development increments mapped to 30 unique existing PLAN milestones.** The code is in the project, but these are *narrow implementation slices*, not blanket completion claims for the much broader master requirements. Each stays `[ ]` until **you** specifically test and approve it. This release does **not** add visual-action recognition, automatic verification of genuine humor, cross-camera identity recognition, or a professional native NLE. The story audit is based on true source IDs, timestamps and timed SRT text; it explicitly warns about unsupported inferences. The timeline precision tools change saved editable cuts, not the original video bytes.
+
+- [ ] **R66** · **PLAN-026** · Action/reaction dialogue cues, without false visual claims
+  - **Manual acceptance:** On real SRT source moments, inspect story evidence. Action/reaction words should be identified as spoken-text clues, never as visually confirmed gunfights or actual laughter.
+
+- [ ] **R67** · **PLAN-027** · Visible setup and payoff context before publishing
+  - **Manual acceptance:** Select an SRT candidate with timed dialogue on both sides. Open Review, refine and export selected story; inspect Before and After text. It must quote only original timed words.
+
+- [ ] **R68** · **PLAN-028** · Long funny conversations retain natural length
+  - **Manual acceptance:** Make a continuous 100+ second funny clip. Review and Export should not flag an imaginary 75- or 90-second hard cap unless a duration limit was explicitly set.
+
+- [ ] **R69** · **PLAN-029** · Distant conversation connections require source evidence
+  - **Manual acceptance:** Choose two distant moments from the same recording. The report must flag large jumps with weak topic overlap and show shared source words when available, not claim narrative continuity without evidence.
+
+- [ ] **R70** · **PLAN-030** · Manually remove overlapping duplicate candidate footage
+  - **Manual acceptance:** Select two substantially overlapping original-source moments, click Remove repeat footage, and confirm only one remains in the compilation selection while both original proposals stay recoverable.
+
+- [ ] **R71** · **PLAN-031** · Transparent technical evidence rather than invented engagement ratings
+  - **Manual acceptance:** Open source evidence JSON and inspect per-cut original source timestamps, actual transcript, issues and explicit warning that it is not an engagement or humor-quality prediction.
+
+- [ ] **R72** · **PLAN-032** · Batch select or clear source-grounded funny moments
+  - **Manual acceptance:** Filter the candidate list, use Select all displayed clips, and verify only matching real original-source moments enter the selection. Clear selection must not delete original suggestions.
+
+- [ ] **R73** · **PLAN-033** · Preserve selected long compilations for actual timeline assembly
+  - **Manual acceptance:** Select multiple jokes from real source recordings, build a compilation and inspect editable cut ranges. The long-form selection must not be arbitrarily shortened to 75 seconds.
+
+- [ ] **R74** · **PLAN-034** · Optional duration limits only, no default maximum
+  - **Manual acceptance:** With clipMin=0 and clipMax=0, verify both Editor and Export omit fake over-limit warnings. Explicit user-defined clip limits must still produce meaningful warnings.
+
+- [ ] **R75** · **PLAN-035** · Validate each proposed cut against an actual original source
+  - **Manual acceptance:** Export the story audit after choosing a cut with a missing source, invalid in/out or out-of-bounds end. It must identify specific source failures without inventing a replacement file.
+
+- [ ] **R76** · **PLAN-036** · Editable story-role labels on real timeline cuts
+  - **Manual acceptance:** Select a clip in Editor → Precision editing and assign Setup, Action, Joke, Reaction, Payoff, Bridge or Other. Save/reload and verify the role persists.
+
+- [ ] **R77** · **PLAN-037** · Ordered source-linked event edit plan
+  - **Manual acceptance:** Export a selected story edit plan. Each cut must keep original asset ID, file name, in/out seconds, actual aligned dialogue, and its position in the proposed sequence.
+
+- [ ] **R78** · **PLAN-038** · Restore chronology, refuse unsynchronized camera sorting
+  - **Manual acceptance:** Select same-source cuts in reversed order and click Put cuts in source order. Verify ascending original timestamps; selecting unsynchronized multiple sources must refuse automatic cross-camera sorting.
+
+- [ ] **R79** · **PLAN-039** · Flag unsynchronized or context-changing source jumps
+  - **Manual acceptance:** Review a compilation with cuts from two videos. The audit must show a cross-source synchronization warning, not present the story as automatically verified or completed.
+
+- [ ] **R80** · **PLAN-040** · User decides quantity; do not fill story with random shots
+  - **Manual acceptance:** Filter to a small set of original jokes. Selecting all displayed must select only available matching source moments. No synthetic or unrelated filler may be appended solely to meet a target count.
+
+- [ ] **R81** · **PLAN-041** · Download real source-referenced story edit plan
+  - **Manual acceptance:** Use Download detailed edit plan and inspect the JSON. It must contain original source references, timestamps, story roles, actual transcript excerpts and named review warnings.
+
+- [ ] **R82** · **PLAN-042** · No manufactured clips, placeholder events or synthetic evidence
+  - **Manual acceptance:** Inspect the story report. It should contain only source IDs and true SRT intervals, with visualVerification=false, no generated footage and no assertions of imaginary events.
+
+- [ ] **R83** · **PLAN-043** · Save edited story roles and evidence-backed edit rationale
+  - **Manual acceptance:** Assign a story role, save, reload and export a source edit plan. Verify that role and transcript warnings remain source-linked instead of disappearing from the editable metadata.
+
+- [ ] **R84** · **PLAN-044** · Separate measurable issues from subjective story judgment
+  - **Manual acceptance:** Open the source review. Missing media, invalid ranges and repeat footage must be structural warnings; actual joke quality, visual action and speaker identity must be explicitly unverified.
+
+- [ ] **R85** · **PLAN-045** · Per-cut explanations and precise issue codes
+  - **Manual acceptance:** Construct missing-context or out-of-order edits, export evidence JSON and confirm each issue includes a code and explanation tied to a particular cut and source interval.
+
+- [ ] **R86** · **PLAN-046** · Show possible missing setup or payoff
+  - **Manual acceptance:** Select a source clip that begins/ends near timed dialogue with words just outside the cut. Review must warn POSSIBLE_SETUP_CUT or POSSIBLE_PAYOFF_CUT, never assume it is definitively incomplete.
+
+- [ ] **R87** · **PLAN-047** · Offer transcript-grounded context extension and trimming
+  - **Manual acceptance:** Select a clip, click Include earlier dialogue, Include later reaction or Trim empty edges. In/out points should change only when real timed source words justify it; undo must work.
+
+- [ ] **R88** · **PLAN-048** · Audit duplicate, repeated and unrelated source choices
+  - **Manual acceptance:** Choose overlapping original windows or distant topic mismatches. The evidence report must identify duplicate source coverage or weak topical continuity and never auto-label it as a coherent event.
+
+- [ ] **R89** · **PLAN-049** · Surface action/reaction words as unverified source evidence
+  - **Manual acceptance:** Use an SRT containing action and reaction words. The evidence panel should quote actual text and explicitly not claim the corresponding video action or reaction was visually confirmed.
+
+- [ ] **R90** · **PLAN-050** · Report the connected conversational event sequence
+  - **Manual acceptance:** Build a two-or-more-cut story from moments sharing real source topics. Review it in selected order and check source timestamps; unrelated moments should not be silently inserted.
+
+- [ ] **R91** · **PLAN-084** · True source/program HH:MM:SS:FF timecodes
+  - **Manual acceptance:** In Editor → Precision editing check program timecode and selected source in/out at project FPS. Enter 00:00:01:15 at 30 fps and confirm it seeks to 1.5 seconds.
+
+- [ ] **R92** · **PLAN-085** · Insert source range or overwrite existing footage at playhead
+  - **Manual acceptance:** Set source In/Out in Media, click Insert source at playhead and verify a source cut is split and inserted. Try Overwrite with confirmation: surrounding original footage must remain and Undo must work.
+
+- [ ] **R93** · **PLAN-086** · Ripple delete a cut and shift dependent audio/markers
+  - **Manual acceptance:** Insert a real source excerpt ahead of a narration overlay and marker, then delete it with Ripple delete. The edit must close its gap and return downstream audio/marker times to their correct positions.
+
+- [ ] **R94** · **PLAN-087** · Explicit snap to frame, marker, word and cut boundary
+  - **Manual acceptance:** In Precision editing use Snap to nearest frame, Nearest marker, Nearest word, Previous cut and Next cut. Verify the actual playhead changes to those genuine project/word positions.
+
+- [ ] **R95** · **PLAN-089** · Non-destructive story metadata is directly editable
+  - **Manual acceptance:** Change a source cut story role in Precision editing, undo, redo and export a source cut list. Original asset bytes must remain untouched and the chosen role must appear in metadata.
+
+**Engineering status:** Source evidence, cut/chronology analysis, duplicate removal, timed-dialogue context, candidate filtering, editable roles, source-backed edit-plan export, frame timecodes, insert/overwrite/slip/roll, ripple delete and snapping now have working code. These support, but do not fully satisfy, the 30 linked master requirements. Every broad PLAN item remains unchecked and open for future work (including semantic vision, audio-based humor verification and full multitrack editing).
 
 ### Full future-update tracking queue (NEXT-001–NEXT-040)
 
