@@ -37,3 +37,17 @@ jobs:
         run: node tools/smoke_wave_browser.mjs
       - name: Test SRT correction, manual POV sync, source decode and version compare in Chromium
         run: node tools/smoke_development_browser.mjs
+      - name: Install Chrome for existing humor-editor UI regression
+        run: npx playwright install --with-deps chrome
+      - name: Build real 50-second original source for complete joke/compilation regression
+        run: |
+          mkdir -p _site
+          cp index.html icon.svg manifest.webmanifest sw.js _site/
+          cp -R src _site/
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i 'testsrc2=size=320x180:rate=12:duration=50' \
+            -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=50' \
+            -map 0:v -map 1:a -c:v libvpx -deadline realtime -cpu-used 8 \
+            -b:v 300k -c:a libopus -b:a 48k -t 50 _site/humor-test.webm
+      - name: Verify existing humor, compiled story, manual crop and new extend controls
+        run: node tools/smoke_humor_browser.mjs
