@@ -42,6 +42,9 @@ import {sampledMediaFingerprint,compareMediaIdentity,inspectProjectSources} from
 import {transcriptCoverage,searchProjectEvidence,makeTranscriptReviewMarkers,evidenceSearchHTML,sourceHealthHTML} from './source-health.js';
 import {scanOriginalVideoFrames,visualHealthHTML} from './source-visual-qa.js';
 import {installCommandPalette} from './command-palette.js';
+import {reviewWordRows,repairTimedWord,splitTimedWord,mergeTimedWord,transcriptReviewHTML} from './transcript-review.js';
+import {fitManualPovAnchors,povManualSyncHTML} from './pov-manual-review.js';
+import {compareProjectVersions,productionReviewHTML} from './production-review.js';
 import {makeVerifiedBackup,readProjectBackup,PROJECT_BACKUP_FORMAT} from './project-backup.js';
 import {makeLibraryProject,cloneLibraryProject} from './project-library.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
@@ -50,6 +53,7 @@ let snapshotRecords=[],toolsSearch='',sessionActive=false,lastSavedInfo=null,sou
 let libraryRecords=[],librarySearch='',libraryShowArchived=false,mediaAudit=null,mediaAuditBusy=false,libraryBusy=false,evidenceQuery='';
 let visualScanBusy=false,visualScanStatus='',visualScanAbort=null;
 let humorScope='all',humorMinScore=45,humorMaxCalls=48,humorShown=70,humorBusy=false,humorStatus='',humorAbort=null,humorView='clips';
+let reviewWordSearch='',reviewOnlyFlagged=true;
 let humorFilters={search:'',sort:'source',speaker:'all',onlyPlayable:false},humorReviewOpen=false,humorFilterOpen=false,humorPlacement='replace',precisionEditorOpen=false;let cropPickActive=false,cropDrawActive=false,cropDrawPointer=null;
 const asset=id=>assets.get(id)||p.assets.find(a=>a.id===id);
 const media=id=>assets.get(id)?.file;
@@ -212,8 +216,20 @@ ${c.cropMode==='speaker'?'<p class="tiny muted">Map transcript speaker labels to
  }
  if(tab==='export'){html=`<div class="info"><b>Real MP4 export: H.264 video, AAC audio where supported.</b> Exports produce genuine MP4 containers with the captioned canvas and Web Audio mix. If your browser cannot encode AAC (notably desktop Linux), the encoder uses Opus audio inside a genuine MP4 instead of silently downloading WebM. <b>Some older players do not support Opus-in-MP4.</b> The output status identifies the actual codec. ChromeOS may use AAC where available. Real-time browser rendering requires supported hardware encoders; for very long video use the native FFmpeg renderer.</div><div class="separator"></div>${field('Output aspect ratio','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','1:1 Square'],['4:5','4:5 Portrait']])}${field('Output height (pixels)','outputHeight',p.settings.outputHeight,'number')}${field('Frame rate','fps',p.settings.fps,'number')}${field('Video bitrate (bps)','quality',p.settings.quality,'number')}<div class="metric"><span>Runtime</span><b>${fmt(duration(p))}</b></div><div class="metric"><span>Cut count</span><b>${p.segments.length}</b></div><div class="metric"><span>Timed captions</span><b>${mapWords(p).length}</b></div><div class="separator"></div><h3>Preflight quality inspection</h3><div class="stack" style="margin:9px 0">${preflight(p).map(q=>`<div class="tiny ${q.severity==='error'?'warning':'muted'}"><b>${esc(q.severity.toUpperCase())} · ${esc(q.title)}</b><br>${esc(q.detail)}</div>`).join('')||'<p class="success tiny">No structural issues detected. Manual content review is still required.</p>'}</div><div class="separator"></div><button id="doExport" class="primary full" ${renderBusy||!p.segments.length?'disabled':''}>${renderBusy?'Rendering MP4…':'Render MP4 and download'}</button><button id="cancelExport" class="danger full" ${renderBusy?'':'disabled'} style="margin-top:8px">Cancel render</button><div class="progress" style="margin:11px 0"><i id="renderProgress"></i></div><p class="tiny muted" id="renderStatus">Review all cuts and source integrity before publishing.</p><div class="separator"></div><button id="saveSrt" class="full">Download subtitles (SRT)</button><button id="saveEdl" class="full">Download editable cut list (JSON)</button><button id="saveBundle" class="full">Download project (JSON)</button><div class="separator"></div><p class="tiny muted">For long videos and high-resolution production, download Project JSON and run <code>python3 tools/render_project.py project.json --media-dir /media --out output.mp4</code> from the repository with FFmpeg installed.</p><p class="warning tiny">Browser exports are not frame-accurate professional renders. For robust long-form/4K exports, a native FFmpeg renderer is required; the project cut list is ready for an external renderer.</p>`}
  if(tab==='settings'){html=`<div class="info">Settings apply to this project. The default design is local-first. Local face detection, optional hosted speaker diarization, voice preview and optional TTS are available. Truly offline generative voice and automatic identity matching across videos require additional models.</div><div class="separator"></div>`+settingSection('Video and reframing',field('Aspect','aspect',p.settings.aspect,'text',[['9:16','9:16 Vertical'],['16:9','16:9 Wide'],['1:1','Square'],['4:5','4:5']])+field('Zoom / crop','zoom',p.settings.zoom,'range')+field('Brightness (%)','brightness',p.settings.brightness,'number')+field('Contrast (%)','contrast',p.settings.contrast,'number')+field('Saturation (%)','saturation',p.settings.saturation,'number')+field('Visual look','videoFilter',p.settings.videoFilter,'text',[['normal','Natural'],['grayscale','Black and white'],['sepia','Warm sepia'],['vintage','Vintage'],['soft','Soft focus']])+`<label class="checkrow"><input type="checkbox" data-setting="autoFaceFraming" ${p.settings.autoFaceFraming?'checked':''}>Smart face-aware crop (after scanning source faces)</label>`+field('Face tracking strength (0–100)','faceTrackingStrength',p.settings.faceTrackingStrength,'number')+field('Default transition','transition',p.settings.transition,'text',[['cut','Hard cut'],['fade','Fade-in'],['dissolve','Dissolve (still previous frame)'],['wipe','Wipe'],['slide','Slide'],['zoom','Zoom']]))+settingSection('Caption and branding',field('Caption style','captionStyle',p.settings.captionStyle,'text',[['dynamic','Dynamic'],['minimal','Minimal'],['boxed','Boxed']])+field('Caption font size','captionSize',p.settings.captionSize,'number')+field('Caption words per chunk','captionWords',p.settings.captionWords,'number')+field('Caption lines max','captionMaxLines',p.settings.captionMaxLines,'number')+field('Caption vertical placement (%)','captionPosition',p.settings.captionPosition,'number')+field('Caption horizontal placement (%)','captionX',p.settings.captionX??50,'number')+field('Caption font','captionFont',p.settings.captionFont||'system-ui','text',[['system-ui','Modern sans serif'],['Arial','Arial'],['Georgia','Georgia'],['Impact','Impact'],['Verdana','Verdana']])+field('Text color','captionColor',p.settings.captionColor,'color')+field('Active word highlight','captionAccent',p.settings.captionAccent,'color')+field('Outline color','captionOutlineColor',p.settings.captionOutlineColor||'#10151d','color')+field('Outline thickness (0–12)','captionOutlineWidth',p.settings.captionOutlineWidth??5,'number')+field('Background color','captionBackground',p.settings.captionBackground,'color')+`<label class="checkrow"><input type="checkbox" data-setting="captionUppercase" ${p.settings.captionUppercase?'checked':''}>Uppercase captions</label><label class="checkrow"><input type="checkbox" data-setting="captionOn" ${p.settings.captionOn?'checked':''}>Show captions</label>`)+settingSection('Audio',field('Video gain (0–2)','videoVolume',p.settings.videoVolume,'number')+field('Added audio gain (0–2)','audioVolume',p.settings.audioVolume,'number')+`<label class="checkrow"><input type="checkbox" data-setting="duckMusic" ${p.settings.duckMusic?'checked':''}>Lower background music when source dialogue plays</label>`)+settingSection('Transcription',field('ASR model','whisperModel',p.settings.whisperModel,'text',[['onnx-community/whisper-tiny.en','Whisper Tiny English (fastest)'],['onnx-community/whisper-base.en','Whisper Base English (larger)'],['onnx-community/whisper-small.en','Whisper Small English (resource intensive)']])+field('ASR processor','processing',p.settings.processing,'text',[['webgpu','WebGPU preferred / WASM fallback'],['wasm','WASM CPU']])+field('Chunk seconds (8–29)','transcriptionChunk',p.settings.transcriptionChunk,'number')+field('Timestamp compatibility','transcriptionTiming',p.settings.transcriptionTiming||'auto','text',[['auto','Recommended: segment timestamps; plain fallback'],['segment','Segment timestamps; plain fallback'],['plain','Plain transcription; estimated timings'],['word','Advanced: word alignment (attention model required)']]))+settingSection('Voice-over generation',field('HTTPS TTS endpoint','ttsEndpoint',p.settings.ttsEndpoint)+field('TTS model','ttsModel',p.settings.ttsModel)+field('TTS voice','ttsVoice',p.settings.ttsVoice)+field('Voice speed','ttsSpeed',p.settings.ttsSpeed,'number'))+settingSection('Speaker diarization',field('HTTPS diarization endpoint','diarizationEndpoint',p.settings.diarizationEndpoint))+settingSection('Storage and interface',`<label class="checkrow"><input type="checkbox" data-setting="autoInsertMedia" ${p.settings.autoInsertMedia!==false?'checked':''}>Automatically add the full video to the editor on import</label><label class="checkrow"><input type="checkbox" data-setting="autoSave" ${p.settings.autoSave?'checked':''}>Automatic project saves</label><label class="checkrow"><input type="checkbox" data-setting="rememberMedia" ${p.settings.rememberMedia?'checked':''}>Store imported media in browser IndexedDB (quota permitting)</label>`+`<button id="checkStorage">Check browser storage quota</button><button id="clearCachedMedia" class="danger" style="margin-top:8px">Remove cached media files</button><div id="storageInfo" class="tiny muted" style="margin-top:8px"></div>`)+`<p class="tiny muted">Keyboard: Space play/pause · arrows skip 5 seconds · Delete remove cut · Ctrl+Z undo · Ctrl+Shift+Z redo · Ctrl+S save.</p>`;}
- if(tab==='tools'){html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time,libraryRecords,librarySearch,libraryShowArchived,mediaAudit);html+=sourceHealthHTML(p,evidenceQuery);html+=visualHealthHTML(p,{busy:visualScanBusy,status:visualScanStatus})}if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown,mode:humorView,aiConfigured:!!providerKey,filters:humorFilters,reviewOpen:humorReviewOpen,filterOpen:humorFilterOpen,placement:humorPlacement});
- if(tab==='editor')html+=timelineWorkbenchHTML(p,engine.time,{open:precisionEditorOpen});const currentScroll=target.dataset.currentTab===tab?target.scrollTop:0;target.innerHTML=html;target.dataset.currentTab=tab;target.scrollTop=currentScroll;wireInspector();}
+ if(tab==='tools'){html=productionToolsHTML(p,snapshotRecords,toolsSearch,engine.time,libraryRecords,librarySearch,libraryShowArchived,mediaAudit);html+=sourceHealthHTML(p,evidenceQuery);html+=visualHealthHTML(p,{busy:visualScanBusy,status:visualScanStatus});html+=productionReviewHTML(p,snapshotRecords,{asrRunning:asrBusy,visionRunning:faceBusy||sceneBusy||visualScanBusy,rendering:renderBusy})}if(tab==='humor')html=humorStudioHTML(p,{status:humorStatus,busy:humorBusy,scope:humorScope,minScore:humorMinScore,maxCalls:humorMaxCalls,displayLimit:humorShown,mode:humorView,aiConfigured:!!providerKey,filters:humorFilters,reviewOpen:humorReviewOpen,filterOpen:humorFilterOpen,placement:humorPlacement});
+ if(tab==='editor')html+=timelineWorkbenchHTML(p,engine.time,{open:precisionEditorOpen});
+ if(tab==='transcript'&&p.selectedAsset)html+=transcriptReviewHTML(p,p.selectedAsset,{query:reviewWordSearch,onlyFlagged:reviewOnlyFlagged});
+ if(tab==='director'){
+  const vids=p.assets.filter(a=>a.type==='video'),ref=povReferenceChoice||p.povSync?.referenceId||vids[0]?.id;
+  const tar=povTargetChoice||p.povSync?.targetId||vids.find(a=>a.id!==ref)?.id;
+  html+=povManualSyncHTML(p,ref,tar);
+ }
+ const sameTab=target.dataset.currentTab===tab;
+ const openPanels=sameTab?new Set([...target.querySelectorAll('details[open][id]')].map(e=>e.id)):new Set();
+ const currentScroll=sameTab?target.scrollTop:0;
+ target.innerHTML=html;target.dataset.currentTab=tab;target.scrollTop=currentScroll;
+ for(const id of openPanels){const panel=target.querySelector('[id="'+id+'"]');if(panel&&panel.tagName==='DETAILS')panel.open=true}
+ wireInspector();}
 function editField(label,key,value,type='text',options){return `<label class="field">${esc(label)}${type==='select'?`<select data-edit="${key}">${options.map(o=>`<option value="${o[0]}" ${value===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`:`<input data-edit="${key}" type="${type}" value="${esc(value)}" step="any">`}</label>`}
 function chooseTab(name){tab=name;all('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));renderInspector();if(name==='tools'){refreshSnapshots();refreshLibrary()}}
 async function refreshSnapshots(){try{snapshotRecords=await listSnapshots(p.id);if(tab==='tools')renderInspector()}catch(e){toast('Could not load project snapshots: '+e.message,true)}}
@@ -525,6 +541,74 @@ async function runDirector(exhaustive=false){
 function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const key=e.dataset.setting;let val=e.type==='checkbox'?e.checked:e.type==='number'||e.type==='range'?Number(e.value):e.value;if(key==='clipMin'||key==='clipMax'){val=clamp(val,0,21600)}if(key==='clipCount')val=clamp(val,0,MAX_DISCOVERY_CLIPS);if(key==='gameplayMinScore')val=clamp(val,25,90);if(key==='semanticSamples')val=clamp(val,40,450);if(key==='maxAICalls')val=clamp(val,1,96);if(key==='captionSize')val=clamp(val,12,120);if(key==='captionWords')val=clamp(val,1,12);if(key==='captionX'||key==='captionPosition')val=clamp(val,5,95);if(key==='captionOutlineWidth')val=clamp(val,0,12);if(key==='captionMaxLines')val=clamp(val,1,3);p.settings[key]=val;if(key==='aspect')$('aspectSelect').value=val;engine.setSize();update()});
  c.querySelectorAll('[data-edit]').forEach(e=>e.onchange=()=>{const key=e.dataset.edit,obj=p.segments.find(s=>s.id===p.selectedSegment)||p.audio.find(a=>a.id===p.selectedAudio);if(!obj)return;commit();const k=key==='audioStart'?'start':key==='audioDuration'?'duration':key==='audioVolume'?'volume':key==='audioRole'?'role':key;let v=e.type==='number'?Number(e.value):e.value;if(k==='speed')v=clamp(v,.25,3);if(k==='start')v=clamp(v,0,obj.end?obj.end-.1:duration(p));if(k==='end')v=clamp(v,(obj.start||0)+.1,asset(obj.assetId)?.duration||Number.MAX_SAFE_INTEGER);if(k==='volume')v=clamp(v,0,2);if(['focusX','focusY','focusEndX','focusEndY'].includes(k))v=clamp(v,0,1);if(k==='zoom'||k==='zoomEnd')v=clamp(v,.5,5);if(k==='cropFaceIndex')v=clamp(Number(v),-1,3);if(k==='faceStrength')v=clamp(Number(v),0,100);obj[k]=v;update()});
  const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
+ // Word-level correction operates only on actual saved source timestamps.
+ const reviewSearch=$('reviewWordSearch');
+ if(reviewSearch)reviewSearch.onchange=()=>{reviewWordSearch=reviewSearch.value;renderInspector()};
+ const flaggedBox=$('reviewOnlyFlagged');
+ if(flaggedBox)flaggedBox.onchange=()=>{reviewOnlyFlagged=flaggedBox.checked;renderInspector()};
+ const applyWordReview=(label,id,mutate)=>{
+  try{
+   const draft=mutate();
+   commit(label);p.words=draft.words;
+   update();toast(label+' · original media unchanged');
+  }catch(error){toast('Transcript correction: '+error.message,true)}
+ };
+ c.querySelectorAll('[data-word-save]').forEach(button=>button.onclick=()=>{
+  const row=button.closest('[data-review-word]'),id=button.dataset.wordSave;
+  const values={text:row?.querySelector('[data-word-text]')?.value,speaker:row?.querySelector('[data-word-speaker]')?.value,
+   start:row?.querySelector('[data-word-start]')?.value,end:row?.querySelector('[data-word-end]')?.value};
+  applyWordReview('Corrected original timed word',id,()=>repairTimedWord(p,id,values));
+ });
+ c.querySelectorAll('[data-word-split]').forEach(button=>button.onclick=()=>{
+  const id=button.dataset.wordSplit;
+  applyWordReview('Split original-source caption into two words',id,()=>splitTimedWord(p,id));
+ });
+ c.querySelectorAll('[data-word-merge]').forEach(button=>button.onclick=()=>{
+  const id=button.dataset.wordMerge;
+  applyWordReview('Merged adjacent original-source caption words',id,()=>mergeTimedWord(p,id));
+ });
+ const addHumanPovMark=()=>{
+  try{
+   const {referenceId,targetId,reference,target}=getPovPair();
+   const a=Number($('povMarkA')?.value),b=Number($('povMarkB')?.value);
+   if(!Number.isFinite(a)||!Number.isFinite(b)||a<0||b<0||a>reference.duration||b>target.duration)
+    throw Error('Enter two valid original source timestamps within each recording.');
+   const key=referenceId+'|'+targetId,old=p.povManualMarkers?.[key]||[];
+   const proposed=[...old,{referenceTime:a,targetTime:b}];
+   if(proposed.some((x,i)=>i<proposed.length-1&&Math.abs(x.referenceTime-a)<.25))
+    throw Error('Mark a different original event at least 0.25 seconds away.');
+   const fitted=proposed.length>=2?fitManualPovAnchors(proposed,reference.duration,target.duration):null;
+   commit('Added original-source POV event marker');
+   p.povManualMarkers||={};p.povManualMarkers[key]=proposed;
+   if(fitted){p.povSync={...fitted,referenceId,targetId,referenceSize:reference.size,targetSize:target.size};
+    povSyncStatus='Fitted '+proposed.length+' actual human-marked event pairs. Verify both source videos and the shared overlap.';
+   }else povSyncStatus='First manual POV event recorded; mark another real shared event near the end of both recordings.';
+   update();toast(povSyncStatus);
+  }catch(error){toast('POV event mark: '+error.message,true)}
+ };
+ on('povAddEventMark',addHumanPovMark);
+ on('povClearEventMarks',()=>{
+  try{
+   const {referenceId,targetId}=getPovPair(),key=referenceId+'|'+targetId;
+   const marks=p.povManualMarkers?.[key]||[];
+   if(!marks.length)return;
+   if(!confirm('Clear these human sync marks? The paired alignment is removed if it depended on these marks.'))return;
+   commit('Cleared POV manual anchors');
+   delete p.povManualMarkers[key];
+   if(p.povSync?.method==='manual-event-pairs'&&p.povSync.referenceId===referenceId&&p.povSync.targetId===targetId)p.povSync=null;
+   update();toast('Manual marks cleared. Transcript alignment, if any, remains separate.');
+  }catch(error){toast(error.message,true)}
+ });
+ on('reviewCompareSnapshot',()=>{
+  const id=$('reviewSnapshotChoice')?.value,out=$('reviewVersionResult');
+  const saved=snapshotRecords.find(x=>x.id===id);
+  if(!saved?.project)return toast('Select a saved snapshot that still exists in the project.',true);
+  try{
+   const result=compareProjectVersions(saved.project,p);
+   if(out)out.textContent=JSON.stringify(result,null,2);
+   toast('Compared actual saved metadata with the current edit; no changes were applied.');
+  }catch(error){toast('Version compare: '+error.message,true)}
+ });
  // Use real summary clicks instead of async toggle events from detached DOM
  // nodes, which could close these controls while the user typed a filter.
  const storyPane=$('storyWorkbench');if(storyPane)storyPane.querySelector('summary')?.addEventListener('click',()=>{humorReviewOpen=!storyPane.open});
