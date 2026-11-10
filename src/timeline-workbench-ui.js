@@ -2,12 +2,12 @@ import {frameTimecode,clipStartTime} from './timeline-workbench.js';
 import {duration,fmt,escapeHTML as esc} from './model.js';
 /** Professional but optional precision editing operations; all controls operate
  * on actual source ranges and current editor timeline. No inert affordances. */
-export function timelineWorkbenchHTML(project,playhead){
+export function timelineWorkbenchHTML(project,playhead,{open=false}={}){
  const selected=(project.segments||[]).find(s=>s.id===project.selectedSegment),hasSource=(project.assets||[]).some(a=>a.type==='video');
  const fps=Number(project.settings?.fps)||30;
  const from=selected?clipStartTime(project.segments,selected.id):null;
  const t=frameTimecode(playhead,fps);
- return '<div class="separator"></div><details id="precisionEditor" class="humor-advanced">'+
+ return '<div class="separator"></div><details id="precisionEditor" class="humor-advanced" '+(open?'open':'')+'>'+
  '<summary>Precision editing · timecodes, insert, overwrite, slip and roll</summary>'+
  '<p class="tiny muted">Every operation edits original source references without transcoding or fabricating footage. Undo is available after each edit. Import a video first.</p>'+
  '<div class="metric"><span>Program playhead</span><b>'+esc(t)+' @ '+fps+' fps</b></div>'+
