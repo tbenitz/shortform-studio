@@ -158,7 +158,8 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
    let j=from,end=sceneStart,words=0;
    while(j<list.length&&j<from+(autoDuration?800:120)){
     const u=list[j],gap=j>from?u.start-list[j-1].end:0;
-    if(gap>(autoDuration?4.5:Math.min(4.5,max)))break;
+    // An explicit minimum duration may include normal five-second pauses; no timed text is removed.
+    if(gap>(autoDuration?4.5:Math.min(6.5,max)))break;
     if(u.end-sceneStart>max+.001)break;
     end=Math.min(sourceDuration,u.end);words+=(u.text||'').split(/\s+/).length;j++;
    }
