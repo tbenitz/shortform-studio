@@ -15,9 +15,10 @@ export function parseFrameTimecode(value,fps=30){
  return Number(m[1])*3600+Number(m[2])*60+Number(m[3])+Number(m[4])/f;
 }
 export function clipStartTime(segments,id){let time=0;for(const s of segments||[]){if(s.id===id)return time;time+=length(s)}return null}
-export function nearestEditPoint(project,time,{threshold=.25,includeWords=false,includeMarkers=true}={}){
- const candidates=[{time:0,kind:'project start'}];let at=0;
- for(const s of project.segments||[]){candidates.push({time:at,kind:'cut start',clipId:s.id});at+=length(s);candidates.push({time:at,kind:'cut end',clipId:s.id})}
+export function nearestEditPoint(project,time,{threshold=.25,includeWords=false,includeMarkers=true,includeClipEdges=true}={}){
+ const candidates=[];let at=0;
+ for(const s of project.segments||[]){if(includeClipEdges)candidates.push({time:at,kind:'cut start',clipId:s.id});at+=length(s);if(includeClipEdges)candidates.push({time:at,kind:'cut end',clipId:s.id})}
+ if(includeClipEdges)candidates.push({time:0,kind:'project start'});
  if(includeMarkers)for(const m of project.markers||[])if(Number.isFinite(m.time))candidates.push({time:m.time,kind:'marker',id:m.id});
  if(includeWords){let t=0;for(const seg of project.segments||[]){for(const w of project.words||[]){
   if(w.assetId!==seg.assetId||w.start<seg.start||w.end>seg.end)continue;
