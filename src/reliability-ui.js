@@ -25,6 +25,7 @@ export function reliabilityToolsHTML(project,libraryRows=[],search='',showArchiv
  '<h3>Original file integrity</h3><p class="tiny muted">Check connected original recordings against their saved sampled fingerprints. Uses at most 1 MiB per file, regardless of recording length. It will not silently replace changed sources. A sample match does not guarantee the complete file is uncorrupted.</p>'+
  '<button id="toolsVerifySources" class="full" '+(project?.assets?.length?'':'disabled')+'>Verify original media now</button>'+
  '<p id="toolsVerifyStatus" class="tiny muted">'+escape(totals)+'</p>'+
+ '<button id="toolsSaveMediaBaseline" class="small" '+(sourceCheck?.sources?.some(x=>x.status==='unverified'&&x.actual)?'':'disabled')+'>Accept fingerprints for previously unverified sources</button>'+
  '<div id="toolsVerifyResults" class="production-list">'+sourceRows+'</div><div class="separator"></div>'+
  '<h3>Verified portable backup</h3><p class="tiny muted">Downloads editable project metadata with a SHA-256 integrity check. Original media and API keys are not embedded. Restoring a corrupt backup is blocked before overwriting your project.</p>'+
  '<button id="toolsExportBackup" class="full">Download verified project backup (.json)</button>'+
