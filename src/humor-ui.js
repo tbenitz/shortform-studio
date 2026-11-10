@@ -5,7 +5,7 @@ import {viewableHumorMoments,humorEvidence,humorReviewCounts} from './humor-revi
 import {sourceStoryWorkbenchHTML,storyDiscoveryFiltersHTML,filterStorySuggestions} from './story-workbench-ui.js';
 
 /** One intent, two actions: user should not configure an AI pipeline. */
-export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,maxCalls=48,displayLimit=100,instructions=null,mode='clips',aiConfigured=false,filters={},reviewOpen=false}={}){
+export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,maxCalls=48,displayLimit=100,instructions=null,mode='clips',aiConfigured=false,filters={},reviewOpen=false,filterOpen=false,placement='replace'}={}){
  const sources=(p.assets||[]).filter(a=>a.type==='video'||a.type==='audio'),lookup=new Map(sources.map(a=>[a.id,a]));
  const all=viewableHumorMoments(p,{scope});
  const reviewCounts=humorReviewCounts(p);
@@ -47,7 +47,7 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
   '<div class="humor-choices"><button id="humorFindLocal" class="'+(mode==='clips'?'primary':'')+'" '+(busy?'disabled':'')+'>☺ Find Funny Clips<small>Separate jokes and funny conversations</small></button>'+
   '<button id="humorFindStory" class="'+(mode==='story'?'primary':'')+'" '+(busy?'disabled':'')+'>▥ Make a Funny Story<small>Connect related setup, banter and payoff</small></button></div>'+
   '<p class="tiny muted">SRT is the source of truth · '+(aiConfigured?'AI Director connected — contextual humor review':'No AI key detected — local transcript matching')+'. No random unrelated cuts.</p>'+
-  advanced+storyDiscoveryFiltersHTML(all,sources,filters)+
+  advanced+storyDiscoveryFiltersHTML(all,sources,filters,{open:filterOpen})+
   '<div id="humorStatus" class="tiny muted" role="status">'+esc(status||((p.humorScanInfo?.totalBatches)?'Reviewed '+p.humorScanInfo.processedBatches+'/'+p.humorScanInfo.totalBatches+' transcript batches'+(p.humorScanInfo.complete?'':' — PARTIAL'):'Ready. Import a video and its SRT, then choose a button.'))+'</div>'+
   (busy?'<button id="humorCancel" class="small danger full">Cancel analysis</button>':'');
  const clipsSection='<div class="separator"></div><div class="row between wrap"><h3>Funny clips ('+filtered.length+' shown / '+all.length+' found)</h3><button class="small" id="humorDownloadAll" '+(all.length?'':'disabled')+'>Dialogue TXT</button></div>'+
@@ -58,7 +58,7 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
   '<div class="humor-list">'+storyCards+'</div><details><summary>Or choose individual moments manually ('+all.length+')</summary><div class="humor-list">'+cards+'</div></details>';
  const footer='<div class="separator"></div><h3>Your selection · '+selected.length+' cuts · '+fmt(selectedDuration)+'</h3>'+
   '<div class="humor-list">'+selectedCards+'</div>'+
-  '<details><summary>How should this affect my current edit?</summary><label class="field">Placement<select id="compilationMode"><option value="replace">Replace current timeline (confirmation required)</option><option value="append">Append to timeline</option></select></label></details>'+
+  '<details><summary>How should this affect my current edit?</summary><label class="field">Placement<select id="compilationMode"><option value="replace" '+(placement==='replace'?'selected':'')+'>Replace current timeline (confirmation required)</option><option value="append" '+(placement==='append'?'selected':'')+'>Append to timeline</option></select></label></details>'+
   '<div class="row wrap"><button id="humorDownloadSelected" class="small" '+(selected.length?'':'disabled')+'>Selected dialogue TXT</button>'+
   '<button id="humorBuild" class="primary" '+(selected.length&&!busy?'':'disabled')+'>Build selected '+(selected.length===1?'clip':'compilation')+' in Editor</button></div>'+
   '<p class="tiny muted">The final video uses the selected source footage, not AI-created visuals. Edit the timeline and export to MP4 when ready.</p>';
