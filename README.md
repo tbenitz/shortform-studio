@@ -14,6 +14,7 @@
 - [Humor, compilation and cropping review (R26–R40)](#new-implementation-review-r26r40-humor-compilations-and-cropping) — what to click and how to approve.
 - [All 40 prioritized future updates](#full-future-update-tracking-queue-next-001next-040) — planned items, plus every existing master requirement.
 - [Next 100 steps from your master requirements (PLAN-001–PLAN-100)](#planned-next-100-master-linked-development-steps-plan-001plan-100) — phased priorities and exact owner acceptance tests.
+- [New owner review R53–R56](#new-implementation-review-r53r56-recovery-checkpoints-and-honest-humor-review) — rolling checkpoints, reject/restore and source evidence.
 - [Simple humor UI and MP4 recovery checks (R41–R46)](#new-implementation-review-r41r46-simple-humor-ai-and-mp4-recovery) — two-mode humor workflow and encoder deployment fix.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
 - [Plain-English video editing and AI glossary](#plain-english-glossary--video-and-ai-terms) — explains the unfamiliar words.
@@ -487,6 +488,24 @@
   - **Hands-on owner test:** Draw around a person, build a compilation if wanted, export genuine MP4, play the downloaded file and check it actually has the same focus/zoom as the program preview. Check both portrait and wide aspect ratios; the original file must remain untouched. Do not approve if media is black, audio missing, or framing differs.
 
 **Design distinction:** A drawn box adjusts the saved clip's camera focus/zoom (cropping by reframing). It is **not** a freehand silhouette cutout, background removal, or verified visual speaker identification. If you specifically need one of those effects, it requires a separate implementation and test.
+
+### New implementation review R53–R56 (recovery checkpoints and honest humor review)
+
+These controls have been added for **your hands-on review**. None is automatically approved by deployment, code or CI. They correspond to existing master IDs **PRJ-010/011, SHORT-010, QA-002, QA-006, DIR-012** and existing planned items **NEXT-013/014/017**. The master, previous R, NEXT and PLAN checkboxes remain unchecked.
+
+- [ ] **R53** Reject a bad funny clip and keep it out of repeated results
+  - **Test:** Import a timed SRT with at least two humorous candidates. In Funny Clips & Stories click **Not funny ×** on one. Verify it disappears, the other remains, the rejected one is removed from your selected compilation, and running local/AI review again does not silently bring it back.
+
+- [ ] **R54** Undo a rejection and preserve the decision after saving and reloading
+  - **Test:** Reject one suggestion, Save, refresh, load the same project. Expand **Rejected funny moments**; the rejection and its original source timestamp/dialogue should still be present. Click **Restore suggestion** and confirm it returns without any AI API call.
+
+- [ ] **R55** Automatic project metadata checkpoints and bounded restoration history
+  - **Test:** Edit and Save a project, open Production Tools and confirm **Automatic recovery checkpoint** exists. Save another meaningful edit after five minutes: a later checkpoint must appear. Confirm no more than the last eight automatic checkpoints are retained, named manual snapshots remain, and restoring an older snapshot recovers the original clip order/settings. Original video files remain separate and might need relinking.
+
+- [ ] **R56** Every funny clip explains its original timestamp, source and uncertainty
+  - **Test:** On a proposal, expand **Read actual dialogue and why it was suggested**. Confirm the source file, actual SRT dialogue, precise original in/out timestamps, analysis type (AI vs local heuristic), and warning that the model did not visually verify the joke. Make sure a missing original reports that source reconnection is required.
+
+**Current implementation scope:** These are local metadata and text-evidence features; there is no trained adaptive humor model, automatic visual confirmation of a joke, or cloud backup. Bad suggestions are hidden using source/time-overlap matching (not semantic understanding). Automatic recovery is triggered only after successful project saves and at most every five minutes; browser storage can still be lost if site data is cleared. The full master requirement is not approved just because one release-specific test passes.
 
 ### Full future-update tracking queue (NEXT-001–NEXT-040)
 
