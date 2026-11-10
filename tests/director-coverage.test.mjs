@@ -40,3 +40,11 @@ test('exhaustive discovery does not use unstable generated moment ids',()=>{
  const list=wordsInRecording();const a=discoverFullRecording(list,[asset],{clipCount:5,mode:'all'}),b=discoverFullRecording(list,[asset],{clipCount:5,mode:'all'});
  assert.deepEqual(a.map(clipSignature),b.map(clipSignature));
 });
+
+test('natural-duration discovery does not collapse separated dialogue across 3 hours into only two huge clips',()=>{
+ const clips=discoverFullRecording(wordsInRecording(),[asset],{clipMin:0,clipMax:0,clipCount:0,mode:'all',minScore:0,allowNonlinear:false});
+ assert(clips.length>=35,'Expected distinct natural conversation intervals; received '+clips.length);
+ const hours=new Set(clips.map(c=>Math.floor(clipAnchor(c).time/3600)));
+ assert.deepEqual([...hours].sort(),[0,1,2]);
+ assert(new Set(clips.map(c=>Math.floor(clipAnchor(c).time/300))).size>=30);
+});
