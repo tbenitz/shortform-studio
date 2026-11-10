@@ -11,9 +11,18 @@ try{
  page.on('pageerror',e=>errors.push(e.message));
  page.on('dialog',d=>d.accept());
  for(let i=0;i<35;i++){try{await page.goto('http://127.0.0.1:8854/',{waitUntil:'domcontentloaded',timeout:3500});break}catch(e){if(i===34)throw e;await new Promise(r=>setTimeout(r,200))}}
- await page.locator('#fileUpload').setInputFiles('qa-wave-test.webm');
+ await page.locator('#fileUpload').setInputFiles([
+  'qa-wave-test.webm',
+  {name:'qa-wave-test.en.srt',mimeType:'text/plain',buffer:Buffer.from('1\n00:00:01,000 --> 00:00:02,800\nOur real source captions\n')}
+ ]);
  await page.waitForFunction(()=>document.querySelectorAll('#assetsList [data-asset]').length===1,null,{timeout:13000});
  if(!(await page.locator('.studio-guide').count()))throw Error('Guided control missing in Media');
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject(),id=p?.assets?.[0]?.id;
+  return p?.subtitleTracks?.[id]?.active==='srt'&&p?.words?.some(w=>w.text==='captions');
+ },null,{timeout:15000});
+ console.log('PASS: Import video + matching English SRT in one action automatically activates original captions.');
  await page.locator('.studio-guide [data-guide-tab="transcript"]').click();
  await page.waitForFunction(()=>document.querySelector('#srtUpload')&&document.querySelector('#captionTrackChoice'),null,{timeout:4000});
  await page.locator('#srtUpload').setInputFiles({name:'real-captions.srt',mimeType:'text/plain',buffer:Buffer.from(
