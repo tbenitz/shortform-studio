@@ -67,8 +67,8 @@ try{
  await page.locator('#productionReviewPanel summary').click();
  await page.locator('#reviewCompareSnapshot').click();
  const compared=await page.locator('#reviewVersionResult').innerText();
- if(!compared.includes('"addedCuts"')||!compared.includes('"s'))
-  throw Error('Version comparison did not show actual source cut differences: '+compared);
+ if(!Array.isArray(JSON.parse(compared).addedCuts)||JSON.parse(compared).addedCuts.length<1)
+  throw Error('Version comparison did not show added real source cut IDs: '+compared);
  const disclosed=await page.locator('#productionReviewPanel').innerText();
  if(!disclosed.includes('Optional external HTTPS service'))throw Error('Cloud data flow labels missing');
  console.log('PASS: Saved-version diff and real local/remote data-flow disclosures.');
