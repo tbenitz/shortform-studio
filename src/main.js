@@ -208,6 +208,25 @@ function editField(label,key,value,type='text',options){return `<label class="fi
 function chooseTab(name){tab=name;all('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));renderInspector();if(name==='tools'){refreshSnapshots();refreshLibrary()}}
 async function refreshSnapshots(){try{snapshotRecords=await listSnapshots(p.id);if(tab==='tools')renderInspector()}catch(e){toast('Could not load project snapshots: '+e.message,true)}}
 async function refreshLibrary(){try{libraryRecords=await listLibraryProjects();if(tab==='tools')renderInspector()}catch(e){toast('Project library unavailable: '+e.message,true)}}
+async function openSavedLibraryEntry(id){
+ if(libraryBusy||restoreBusy)return;
+ const entry=await loadLibraryProject(id);
+ if(!entry?.project)throw Error('Saved project no longer exists in this browser library.');
+ if(sessionActive&&(p.assets.length||p.words.length||p.segments.length)&&
+    !confirm('Open "'+entry.name+'"? Unsaved current edits will be replaced. You can save the current project to the library first.'))return;
+ const next=validateProject(entry.project);libraryBusy=true;
+ try{
+  engine.pause();clearTimeout(saving);
+  for(const current of assets.values())if(current.url)URL.revokeObjectURL(current.url);
+  assets.clear();savedHandles.clear();history=[];future=[];p=next;sessionActive=false;engine.time=0;mediaAudit=null;
+  const connected=await linkSavedAssets();
+  sessionActive=true;draw();await save(false);
+  await Promise.all([refreshSnapshots(),refreshLibrary()]);
+  chooseTab('tools');
+  const missing=showMissingMedia().length;
+  toast('Opened '+entry.name+' · '+connected+' originals reconnected'+(missing?' · '+missing+' need relinking':'')+'.',!!missing);
+ }finally{libraryBusy=false}
+}
 function asrProgress(n,msg){const bar=$('asrProgress');if(bar)bar.style.width=`${Math.floor(n*100)}%`;if($('asrStatus'))$('asrStatus').textContent=msg;setStatus(msg)}
 /** Analyze the actual video/audio track. Keep 24-second RAM windows and store progress in project metadata. */
 async function runGameplayScan(target=null,{silent=false,windows=null}={}){
@@ -742,6 +761,97 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('recordVoice',recordVoice);
  on('doExport',doExport);on('cancelExport',()=>engine.cancelRender());on('saveEdl',()=>download(JSON.stringify({version:1,segments:p.segments,audio:p.audio,settings:p.settings},null,2),`${p.name}-cuts.json`,'application/json'));on('saveBundle',()=>download(JSON.stringify({...p,assets:p.assets.map(({file,url,...rest})=>rest)},null,2),`${p.name}-project.json`,'application/json'));
 
+ // Wave 1: the library is metadata only. All project copies refer to the
+ // same immutable original source IDs. Never duplicate or delete their bytes
+ // just because a saved project version is archived or removed.
+ on('toolsSaveLibrary',async()=>{
+  if(libraryBusy)return;libraryBusy=true;
+  try{
+   await save(false);
+   const current=libraryRecords.find(x=>x.id===p.id);
+   const entry=makeLibraryProject(p,{archived:!!current?.archived});
+   await saveLibraryProject(entry);libraryRecords=await listLibraryProjects();
+   if(tab==='tools')renderInspector();toast('Saved "'+entry.name+'" to your local project library.');
+  }catch(error){toast('Save to library failed: '+error.message,true)}
+  finally{libraryBusy=false}
+ });
+ const filterField=$('toolsLibrarySearch');
+ if(filterField)filterField.oninput=()=>{
+  librarySearch=filterField.value;const position=filterField.selectionStart??librarySearch.length;
+  renderInspector();
+  const next=$('toolsLibrarySearch');next?.focus();next?.setSelectionRange(position,position);
+ };
+ const archiveField=$('toolsLibraryArchived');
+ if(archiveField)archiveField.onchange=()=>{libraryShowArchived=archiveField.checked;renderInspector()};
+ c.querySelectorAll('[data-library-load]').forEach(b=>b.onclick=async()=>{
+  try{await openSavedLibraryEntry(b.dataset.libraryLoad)}catch(error){toast('Open saved project: '+error.message,true)}
+ });
+ c.querySelectorAll('[data-library-copy]').forEach(b=>b.onclick=async()=>{
+  if(libraryBusy)return;libraryBusy=true;
+  try{
+   const original=await loadLibraryProject(b.dataset.libraryCopy);
+   if(!original)throw Error('Saved project not found');
+   const copy=cloneLibraryProject(original,{id:uid()});
+   await saveLibraryProject(copy);
+   libraryRecords=await listLibraryProjects();renderInspector();
+   toast('Duplicated project as "'+copy.name+'". Source media are shared and were not copied.');
+  }catch(error){toast('Duplicate project: '+error.message,true)}
+  finally{libraryBusy=false}
+ });
+ c.querySelectorAll('[data-library-archive]').forEach(b=>b.onclick=async()=>{
+  try{
+   const existing=await loadLibraryProject(b.dataset.libraryArchive);
+   if(!existing)throw Error('Saved project not found');
+   await saveLibraryProject({...existing,archived:!existing.archived,updatedAt:Date.now()});
+   await refreshLibrary();
+   toast(existing.archived?'Project restored from archive.':'Project archived; source files were not deleted.');
+  }catch(error){toast('Archive project: '+error.message,true)}
+ });
+ c.querySelectorAll('[data-library-delete]').forEach(b=>b.onclick=async()=>{
+  const record=libraryRecords.find(x=>x.id===b.dataset.libraryDelete);if(!record)return;
+  if(!confirm('Delete the saved library entry "'+record.name+'"? This deletes only its local metadata copy, not original recordings or the current project.'))return;
+  try{await deleteLibraryProject(record.id);await refreshLibrary();toast('Deleted saved project entry without deleting source files.')}
+  catch(error){toast('Delete saved project: '+error.message,true)}
+ });
+ on('toolsVerifySources',async()=>{
+  if(mediaAuditBusy)return;
+  mediaAuditBusy=true;
+  const button=$('toolsVerifySources');if(button)button.disabled=true;
+  try{
+   mediaAudit=await inspectProjectSources(p,id=>assets.get(id)?.file,{
+    onProgress:(ratio,row)=>{
+     const status=$('toolsVerifyStatus');
+     if(status)status.textContent='Checking actual source samples: '+Math.round(ratio*100)+'% · '+row.name+' · '+row.status;
+    }
+   });
+   renderInspector();
+   toast('Checked '+mediaAudit.total+' originals: '+mediaAudit.matched+' matched, '+mediaAudit.mismatched+' different, '+mediaAudit.missing+' missing, '+mediaAudit.unverified+' unverified.');
+  }catch(error){toast('Media identity scan failed: '+error.message,true)}
+  finally{mediaAuditBusy=false;if(button?.isConnected)button.disabled=false}
+ });
+ on('toolsSaveMediaBaseline',()=>{
+  if(!mediaAudit?.sources?.length)return;
+  const proposed=mediaAudit.sources.filter(x=>x.status==='unverified'&&x.actual);
+  if(!proposed.length)return;
+  if(!confirm('Save baseline fingerprints for '+proposed.length+' previously unverified source(s)? This does not prove they match files from before the baseline was recorded.'))return;
+  commit('Saved user-approved source identity baselines');
+  for(const row of proposed){const item=p.assets.find(x=>x.id===row.id);if(item)item.sourceFingerprint=row.actual}
+  mediaAudit=null;update();toast('Saved sampled source identity baselines. Run Verify original media again to compare.');
+ });
+ on('toolsExportBackup',async()=>{
+  try{
+   const backup=await makeVerifiedBackup(p);
+   const name=String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-').slice(0,80);
+   download(JSON.stringify(backup,null,2),name+'-verified-backup.json','application/json');
+   toast('Downloaded SHA-256 verified project metadata. Original source videos are not included.');
+  }catch(error){toast('Backup failed: '+error.message,true)}
+ });
+ const backupField=$('toolsImportBackup');
+ if(backupField)backupField.onchange=async()=>{
+  const file=backupField.files?.[0];backupField.value='';if(!file)return;
+  try{await openJSON(file,{requireVerified:true})}
+  catch(error){toast('Verified restore refused: '+error.message,true)}
+ };
  // Production Tools: metadata reports and user-managed project checkpoints.
  const safeFile=()=>String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-').slice(0,80)||'project';
  on('toolsExportCSV',()=>download(cutSheetCSV(p),safeFile()+'-cuts.csv','text/csv;charset=utf-8'));
