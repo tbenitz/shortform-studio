@@ -33,7 +33,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#captionTrackStatus')?.textContent?.includes('SRT active'),null,{timeout:10000});
  if((await page.locator('#captionTrackChoice').inputValue())!=='srt')throw Error('Original SRT was not the preferred caption source');
  const wh=page.locator('#captionTrackChoice option[value="whisper"]');
- if(!(await wh.isDisabled()))throw Error('Untranscribed Whisper track must not be shown as available');
+ if((await wh.getAttribute('disabled'))===null)throw Error('Untranscribed Whisper track must be explicitly disabled: '+(await wh.evaluate(el=>el.outerHTML)));
  await page.locator('#saveProject').click();
  await page.waitForFunction(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
