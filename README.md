@@ -8,6 +8,8 @@
 
 **Live application:** [Open ShortForm Studio](https://tbenitz.github.io/shortform-studio/) · [See recent GitHub test results](https://github.com/tbenitz/shortform-studio/actions)
 
+**Current development branch (not yet merged/deployed):** [Roadmap Wave pull request #3](https://github.com/tbenitz/shortform-studio/pull/3). New source-health, decoded-frame inspection and Ctrl+K features are available in the branch for code review. The public Pages site only includes them after successful merge/deployment.
+
 **Choose the right section:**
 - [Original 14 review items (R01–R14)](#implementation-batch--available-for-your-review-2026-11-08) — new controls from the latest code batch.
 - [Newest feature review (R15–R25)](#new-implementation-review-r15r25-favorites-mp4-and-recoverable-projects) — favorites, MP4 output, fresh startup and media reconnection.
@@ -19,7 +21,7 @@
 - [30 additional master-linked implementation checks (R66–R95)](#new-implementation-review-r66r95-story-proof-and-precision-editing) — actual source-story review, safe cut operations and precise timecode tools.
 - [Engineering status board — all 100 existing planned milestones](#engineering-status-board--plan-001plan-100) — not started, in development, or owner review.
 - [100 additional unstarted proposals](#new-unstarted-idea-backlog--idea-001idea-100) — IDEA-001–IDEA-100 for future planning.
-- [New owner-review checks R96–R99](#new-owner-acceptance-checks-r96r99--2026-11-09) — source gap review and project-wide evidence search.
+- [New owner-review checks R96–R101](#new-owner-acceptance-checks-r96r101--2026-11-09) — source gap review and project-wide evidence search.
 - [Current implementation progress ledger](#implementation-progress-ledger--first-planned-wave-1-batch) — PLAN IDs advanced, unfinished limitations and owner review.
 - [Simple humor UI and MP4 recovery checks (R41–R46)](#new-implementation-review-r41r46-simple-humor-ai-and-mp4-recovery) — two-mode humor workflow and encoder deployment fix.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
@@ -69,7 +71,7 @@
 
 **Updated November 9, 2026.** This board tracks **engineering progress**, not owner approval. Existing IDs and every owner-acceptance checkbox remain unchanged. A code slice counts as **Ready for owner review** only when its stated narrow behavior is available to try; a broader master requirement may still be incomplete. **In development** means an identifiable partial implementation or supporting code, not a shipped feature. **Not started** means no implementation slice is being claimed here. Revisit statuses after each verified release.
 
-**Status snapshot:** 37 with specific reviewable slices · 48 in development · 15 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
+**Status snapshot:** 39 with specific reviewable slices · 47 in development · 14 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
 
 | Owner approval (never automatic) / PLAN ID | Master ID | Engineering status | Scope |
 | --- | --- | --- | --- |
@@ -94,7 +96,7 @@
 | [ ] PLAN-019 | ASR-013 | In development | Save incremental transcription checkpoints across sessions |
 | [ ] PLAN-020 | SEC-002 | In development | Show which files, frames, audio chunks, or transcripts leave the device |
 | [ ] PLAN-021 | SEC-013 | In development | Avoid exposing API tokens in logs or exported project files |
-| [ ] PLAN-022 | QA-010 | In development | Detect black frames, frozen frames, and missing video |
+| [ ] PLAN-022 | QA-010 | Ready for owner review (partial slice) · R100 | Detect black frames, frozen frames, and missing video |
 | [ ] PLAN-023 | QA-020 | In development | Block misleading success states if verification did not actually run |
 | [ ] PLAN-024 | TEST-001 | In development | Test basic import/playback/trim/export without any AI service |
 | [ ] PLAN-025 | TEST-025 | In development | Test regression cases for all previously reported broken features |
@@ -148,7 +150,7 @@
 | [ ] PLAN-073 | IDX-021 | In development | Use coarse scanning followed by targeted high-detail inspection |
 | [ ] PLAN-074 | TEST-023 | In development | Test different output ratios keep faces, HUD, and text in frame |
 | [ ] PLAN-075 | FX-008 | Not started | Keyframed pan, zoom, and subject-following camera motion |
-| [ ] PLAN-076 | UX-007 | Not started | Global command palette for actions and media search |
+| [ ] PLAN-076 | UX-007 | Ready for owner review (partial slice) · R101 | Global command palette for actions and media search |
 | [ ] PLAN-077 | UX-012 | In development | Small-screen and Chromebook-friendly adaptive layouts |
 | [ ] PLAN-078 | UX-020 | In development | No inert buttons, simulated progress, or deceptive success messages |
 | [ ] PLAN-079 | PRJ-001 | Ready for owner review (partial slice) · R60–R61 | Create, rename, duplicate, archive, delete, and search projects |
@@ -174,7 +176,7 @@
 | [ ] PLAN-099 | EXP-023 | In development | Never report export success based solely on progress reaching 100% |
 | [ ] PLAN-100 | MODEL-006 | Not started | Verify model loads and produces expected output on a test clip |
 
-#### New owner acceptance checks R96–R99 — 2026-11-09
+#### New owner acceptance checks R96–R101 — 2026-11-09
 
 These are **implementation slices**, not the full master IDs. They remain unchecked, including after passing automated tests or review-branch deployment. To test the proposed changes, use the review branch or a merged deployment → **Production Tools** → expand **Source health & project-wide search**.
 
@@ -183,7 +185,10 @@ These are **implementation slices**, not the full master IDs. They remain unchec
 - [ ] **R98** · PLAN-081 — Search across literal source filenames, actual original dialogue, clip notes, markers and Director proposal titles, then jump to source or edited cut. **Test:** Search for a spoken phrase and a clip title; check original timestamps in both destinations and confirm unrelated material is not fabricated.
 - [ ] **R99** · PLAN-016/PLAN-081 — Export coverage and literal-search reports as machine-readable JSON. **Test:** Download both reports, verify original source IDs and timecodes, and ensure they expressly say video and speech have not been independently verified.
 
-**Known limits:** Coverage is based on word timestamp spans, not actual audio or an ASR accuracy percentage. Sparse dialogue does not automatically mean missing audio. Search is literal, not full semantic video indexing. These additions do not fulfill professional visual QA, codec compatibility, all-source waveform scanning, or the entire existing 100-item plan. Chrome browser validation on your actual videos is still required.
+- [ ] **R100** · PLAN-022 — Actually decode 24 frames spread across the selected real original video; flag sampled near-black or repeated static images as **possible review clues**, never confirmed corruption. **Test:** In Media select a linked video, open Production Tools → Inspect actual original video frames, scan it, check the source timestamps and warning descriptions, try Cancel, then save/reload and export the JSON. A valid static shot must not be described as definite corruption, and uninspected footage must remain unverified.
+- [ ] **R101** · PLAN-076 — Ctrl/Cmd+K opens a keyboard navigable search palette for all actual editor workspaces plus literal project/source evidence. **Test:** Press Ctrl+K, type "production" and Enter to open Production Tools; repeat to find an original transcript phrase, select it, and verify the source preview seeks to its true timestamp. Press Escape to close, and check that no cloud request or unrelated fabricated match occurs.
+
+**Known limits:** Coverage is based on word timestamp spans, not actual audio or an ASR accuracy percentage. Sampled visual frames are **not** an exhaustive source scan or final-render verification. Sparse dialogue does not automatically mean missing audio. Search is literal, not full semantic video indexing. These additions do not fulfill professional visual QA, codec compatibility, all-source waveform scanning, or the entire existing 100-item plan. Chrome browser validation on your actual videos is still required.
 
 ### New unstarted idea backlog — IDEA-001–IDEA-100
 
