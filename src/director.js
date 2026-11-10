@@ -100,7 +100,12 @@ export async function remoteCandidates(words,assets,settings,key,onProgress=()=>
   const start=Math.floor(n*all.length/windowCount),end=Math.floor((n+1)*all.length/windowCount);
   windows.push(sampleAcrossTimeline(all.slice(start,end),windowSize).map(u=>({id:u.id,assetId:u.assetId,start:u.start,end:u.end,text:u.text.slice(0,500)})));
  }
- const instructions=`You edit faithful short-form videos. Return JSON object {"clips":[{"title":"...","reason":"...","indices":[0,1,2]}]}. Indices reference ONLY the supplied utterances. Combine non-adjacent timestamps only when their meanings genuinely connect; include setup, payoff, context. Never fabricate dialogue, misrepresent chronological events or create fake reactions. Return as many distinct coherent clips as the supplied window supports, including different topics and different original timestamps. Avoid reusing the same anchor moments. Use natural setup, banter, payoff and reaction duration rather than imposing a preset 75-second clip maximum. Only honor a duration limit when explicitly requested by the user. Mode: ${settings.mode}. Editor instructions: ${settings.directorInstructions||'None'}. Return ONLY JSON.`;
+ const instructions=`You are a story editor choosing from an ACTUAL ORIGINAL-SOURCE transcript, not a generic viral-clip keyword scorer.
+GOAL: Find complete, engaging moments with authentic funny conversations, jokes, reactions, clever exchanges, insights, or a coherent mini-story depending on the user's direction. Never claim real-world action that is not in the supplied dialogue.
+READ THE CONTEXT before each highlight: identify (1) setup / who or what is being discussed, (2) the surprising turn or joke, (3) the answer, laugh, comeback, consequence or meaningful conclusion. Include the WHOLE exchange, not only its funniest isolated sentence. If the transcript lacks context, mark it in reason or return no clip. Do not make abrupt beginning/end cuts mid-sentence. There is no automatic 30/60/75 second limit. Let the complete exchange determine duration.
+For COMPILATIONS: choose distinct moments about a specific recurring subject, running joke or genuine sequence. Preserve original chronological order for the same event. Do not stitch unrelated banter simply because both excerpts mention 'funny', 'bro', 'game', or 'laugh'. For a story, the viewer should understand the topic at the beginning and see a real payoff at the end.
+Return ONLY JSON: {"clips":[{"title":"specific, descriptive actual subject","reason":"cite literal setup, joke/payoff and why they belong together; disclose if reaction not present","indices":[0,1,2]}]}. Indices refer to exact zero-based indices supplied. Prefer consecutive utterance indices for a single conversation; nonadjacent sequences must demonstrably share a unique topic and cannot imply a false event. Do not mix different unsynchronized media files. Never invent words, laughs, faces, kills, reactions, outcomes, timestamps, or speakers. Skip dry filler, repetitive weak proposals and incomplete exchanges. Return multiple DISTINCT worthwhile clips only if they really exist. If none qualify, return an empty clips list.
+Mode: ${settings.mode}. User's creative goal: ${settings.directorInstructions||'Find full funny moments and coherent stories with real setup and payoff.'}`;
  const proposals=[];for(let n=0;n<windows.length;n++){
   onProgress(n/windows.length,`Analyzing transcript window ${n+1}/${windows.length}`);
   const utt=windows[n];let response;
@@ -117,11 +122,26 @@ export async function remoteCandidates(words,assets,settings,key,onProgress=()=>
   }
   const payload=await response.json(),out=payload.choices?.[0]?.message?.content||'';let parsed;try{parsed=JSON.parse(out.replace(/^```(?:json)?\s*/,'').replace(/```$/,''))}catch{throw Error('AI response was not valid JSON')}
   if(!Array.isArray(parsed.clips))throw Error('AI did not return a clips array');
-  for(const x of parsed.clips){const indices=[...new Set((x.indices||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<utt.length))].slice(0,9);const segs=indices.map(i=>makeSegment(utt[i].assetId,utt[i].start,utt[i].end)),dur=segs.reduce((t,s)=>t+s.end-s.start,0);
+  for(const x of parsed.clips){
+   const indices=[...new Set((x.indices||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<utt.length))].sort((a,b)=>a-b).slice(0,40);
+   if(!indices.length)continue;
+   const chosen=indices.map(i=>utt[i]),sourceId=chosen[0].assetId;
+   // An unaligned cross-camera collage is NOT a single authentic conversation.
+   if(chosen.some(u=>u.assetId!==sourceId))continue;
+   const segs=[];
+   for(const u of chosen){
+    const prev=segs.at(-1),gap=prev?u.start-prev.end:Infinity;
+    if(prev&&gap>=-.1&&gap<=4.5)prev.end=Math.max(prev.end,u.end);
+    else segs.push(makeSegment(u.assetId,u.start,u.end));
+   }
+   // Do not silently add a chapter of unrelated original footage between remote excerpts.
+   if(segs.length>1&&segs.some((q,i)=>i>0&&q.start-segs[i-1].end>180))continue;
+   for(const seg of segs){const asset=assets.find(a=>a.id===seg.assetId);if(asset?.duration>0){seg.start=Math.max(0,Math.round(Math.max(0,seg.start-1.1)*1000)/1000);seg.end=Math.min(asset.duration,Math.round((seg.end+1.75)*1000)/1000)}}
+   const dur=segs.reduce((t,s)=>t+(s.end-s.start),0);
    if(!segs.length||dur<1)continue;proposals.push({id:uid(),title:String(x.title||'AI clip').slice(0,120),reason:String(x.reason||'AI proposed sequence').slice(0,600),score:74,mode:settings.mode,segments:segs,duration:dur,anchorAssetId:segs[0].assetId,anchorTime:segs[0].start,createdAt:Date.now(),source:'remote-ai',utteranceIds:indices.map(i=>utt[i].id)})
   }
  }
  onProgress(1,`Reviewed ${windows.length} windows across ${all.length} transcript moments`);
- const local=generateCandidates(words,assets,{...settings,mode:'all',clipCount:0,discoveryAll:true,history:[],existingCandidates:[]});
- return selectDiverseCandidates([...proposals,...local],settings)
+ if(!proposals.length){onProgress(1,'No complete, grounded AI edits found in the sampled dialogue. No keyword fallback clips disguised as AI stories.');return [];}
+ return selectDiverseCandidates(proposals,settings)
 }
