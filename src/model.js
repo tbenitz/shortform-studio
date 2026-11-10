@@ -15,7 +15,24 @@ humorRejected:Array.isArray(data.humorRejected)?data.humorRejected.filter(x=>x&&
 compilationOrder:Array.isArray(data.compilationOrder)?data.compilationOrder.filter(id=>typeof id==='string').slice(-2500):[],
 humorInstructions:typeof data.humorInstructions==='string'?data.humorInstructions.slice(0,2000):'',
 humorScanInfo:data.humorScanInfo&&typeof data.humorScanInfo==='object'?data.humorScanInfo:null}};
-export const parseSRT=(content,assetId)=>{const text=content.replace(/\r/g,'');const units=text.trim().split(/\n\s*\n/g);const out=[];const parse=t=>{const a=t.replace(',','.').split(':').map(Number);return a.length===3?a[0]*3600+a[1]*60+a[2]:a.length===2?a[0]*60+a[1]:0};for(const unit of units){const m=unit.match(/(\d{1,2}:\d{2}:\d{2}[,.]\d+|\d{2}:\d{2}[,.]\d+)\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,.]\d+|\d{2}:\d{2}[,.]\d+)/);if(!m)continue;const start=parse(m[1]),end=parse(m[2]);const words=unit.slice(unit.indexOf(m[0])+m[0].length).trim().replace(/<[^>]*>/g,'').split(/\s+/).filter(Boolean);words.forEach((t,i)=>out.push({id:uid(),assetId,text:t,start:start+(end-start)*i/words.length,end:start+(end-start)*(i+1)/words.length,speaker:'Speaker 1',confidence:null}));}return out};
-export const toSRT=(words)=>{const format=t=>{const ms=Math.floor((t%1)*1000),s=Math.floor(t%60),m=Math.floor(t/60%60),h=Math.floor(t/3600);return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`};let chunks=[];for(let i=0;i<words.length;i+=6){const w=words.slice(i,i+6);chunks.push(`${chunks.length+1}\n${format(w[0].projectStart??w[0].start)} --> ${format(w.at(-1).projectEnd??w.at(-1).end)}\n${w.map(x=>x.text).join(' ')}`)}return chunks.join('\n\n')+'\n'};
+export const parseSRT=(content,assetId)=>{const text=content.replace(/\r/g,'');const units=text.trim().split(/\n\s*\n/g);const out=[];const parse=t=>{const a=t.replace(',','.').split(':').map(Number);return a.length===3?a[0]*3600+a[1]*60+a[2]:a.length===2?a[0]*60+a[1]:0};for(const unit of units){const m=unit.match(/(\d{1,2}:\d{2}:\d{2}[,.]\d+|\d{2}:\d{2}[,.]\d+)\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,.]\d+|\d{2}:\d{2}[,.]\d+)/);if(!m)continue;const start=parse(m[1]),end=parse(m[2]);const words=unit.slice(unit.indexOf(m[0])+m[0].length).trim().replace(/<[^>]*>/g,'').split(/\s+/).filter(Boolean);const cueId=uid();words.forEach((t,i)=>out.push({id:uid(),assetId,text:t,start:start+(end-start)*i/words.length,end:start+(end-start)*(i+1)/words.length,speaker:'Speaker 1',confidence:null,origin:'srt',subtitleCueId:cueId}));}return out};
+export const toSRT=(words)=>{
+ const format=t=>{const ms=Math.floor((t%1)*1000),s=Math.floor(t%60),m=Math.floor(t/60%60),h=Math.floor(t/3600);return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`};
+ const list=(words||[]).filter(w=>Number.isFinite(w.projectStart??w.start)&&Number.isFinite(w.projectEnd??w.end)&&(w.projectEnd??w.end)>(w.projectStart??w.start));
+ const chunks=[];let group=[];
+ const flush=()=>{if(!group.length)return;
+  const start=group[0].projectStart??group[0].start,end=group.at(-1).projectEnd??group.at(-1).end;
+  chunks.push((chunks.length+1)+'\n'+format(start)+' --> '+format(end)+'\n'+group.map(x=>x.text).join(' '));group=[];
+ };
+ for(const w of list){
+  const prev=group.at(-1),sameOriginalCue=!!w.subtitleCueId&&prev?.subtitleCueId===w.subtitleCueId&&prev.assetId===w.assetId;
+  const sameGeneratedChunk=!w.subtitleCueId&&!prev?.subtitleCueId&&group.length<6;
+  const prevEnd=prev?.projectEnd??prev?.end??0,nextStart=w.projectStart??w.start;
+  const connected=!prev||nextStart>=prevEnd-.15&&nextStart-prevEnd<2;
+  if(prev&&(!connected||!(sameOriginalCue||sameGeneratedChunk)))flush();
+  group.push(w);
+ }
+ flush();return chunks.join('\n\n')+'\n';
+};
 export function download(data,name,mime='application/octet-stream'){const blob=data instanceof Blob?data:new Blob([data],{type:mime});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},3000)}
 export function timeWords(text,assetId,start=0,seconds=60){const tokens=text.match(/\S+/g)||[];return tokens.map((text,i)=>({id:uid(),assetId,text,start:start+seconds*i/tokens.length,end:start+seconds*(i+1)/tokens.length,speaker:'Speaker 1',confidence:null}))}
