@@ -44,10 +44,10 @@ export function sourceStoryWorkbenchHTML(project,moments,{search='',sort='source
   (problems.length?'<p class="tiny muted">These findings are review prompts, not proof a proposed joke or action is good. No automatic rejection occurs.</p>':'<p class="tiny muted">No structural issues were detected in these intervals. Watch the actual footage to confirm story quality.</p>')+
   '</details>';
 }
-export function storyDiscoveryFiltersHTML(moments,assets,{search='',sort='source',speaker='all',onlyPlayable=false}={}){
+export function storyDiscoveryFiltersHTML(moments,assets,{search='',sort='source',speaker='all',onlyPlayable=false}={}, {open=false}={}){
  const names=[...new Set((moments||[]).flatMap(m=>String(m.dialogue||'').split('\n').filter(x=>/^[\w .'-]{2,50}:/.test(x)).map(x=>x.slice(0,x.indexOf(':')))))].slice(0,50);
  const options=[['source','Original source time'],['score','Highest humor match score'],['longest','Longest conversation'],['shortest','Shortest conversation']];
- return '<details class="humor-advanced"><summary>Find a specific joke / filter results</summary>'+
+ return '<details class="humor-advanced" id="humorFiltersPanel" '+(open?'open':'')+'><summary>Find a specific joke / filter results</summary>'+
   '<label class="field">Search actual spoken text<input id="humorSearch" value="'+esc(search)+'" placeholder="e.g. helicopter, prank, funny banter"></label>'+
   '<label class="field">Sort clips<select id="humorSort">'+options.map(([v,label])=>'<option value="'+v+'" '+(sort===v?'selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
   '<label class="field">Named speaker<select id="humorSpeaker"><option value="all">All transcript speakers</option>'+names.map(x=>'<option value="'+esc(x)+'" '+(speaker===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'+
