@@ -53,7 +53,7 @@ export function installCommandPalette({getProject,onNavigate,onEvidence}){
  dialog.append(header,input,help,container);document.body.append(dialog);
  let items=[],selected=0,timer=null;
  const perform=()=>{
-  clearTimeout(timer);
+  clearTimeout(timer);timer=null;
   items=searchPaletteItems(getProject(),input.value);
   selected=0;render();
  };
