@@ -1,0 +1,67 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {newProject,makeSegment,parseSRT,validateProject} from '../src/model.js';
+import {getCaptionTrack,captionStatus,importSrtAsDefault,beginWhisperCaptionRun,appendWhisperCaptionWords,finishWhisperCaptionRun,selectCaptionTrack,snapshotActiveTrack} from '../src/subtitle-preference.js';
+const word=(assetId,start,text,end=start+.5)=>({assetId,start,end,text,speaker:'Speaker 1'});
+const srt='1\n00:00:01,000 --> 00:00:03,000\nThe helicopter crashed!\n\n2\n00:00:03,500 --> 00:00:05,000\nThat was hilarious!\n';
+const sample=()=>{const p=newProject();p.assets=[{id:'v',name:'real-video.webm',duration:120},{id:'b',name:'other-video.webm',duration:100}];p.segments=[makeSegment('v',0,120)];return p};
+test('SRT is active as soon as imported, using original source timing and leaving other videos alone',()=>{
+ const p=sample();p.words=[word('b',2,'Elsewhere'),word('v',1,'Earlier generated caption')];
+ const got=parseSRT(srt,'v');assert.ok(got.length>=6);
+ importSrtAsDefault(p,'v',got);
+ assert.equal(getCaptionTrack(p,'v').active,'srt');
+ assert.equal(getCaptionTrack(p,'v').srtCount,got.length);
+ assert.equal(p.words.find(w=>w.assetId==='v').text,'The');
+ assert.ok(p.words.some(w=>w.assetId==='b'&&w.text==='Elsewhere'));
+ assert.match(captionStatus(p,'v'),/SRT active/);
+});
+test('Whisper partial windows and pause/resume do not change imported SRT captions',()=>{
+ const p=sample(),original=parseSRT(srt,'v');
+ importSrtAsDefault(p,'v',original);
+ const before=JSON.stringify(p.words);
+ const start=beginWhisperCaptionRun(p,'v');
+ assert.equal(start.keptSrt,true);
+ appendWhisperCaptionWords(p,'v',[word('v',1,'I'),word('v',1.6,'said')]);
+ appendWhisperCaptionWords(p,'v',[word('v',2.2,'different')]);
+ assert.equal(JSON.stringify(p.words),before,'The actual exported caption track may not change during ASR');
+ beginWhisperCaptionRun(p,'v',{resume:true});
+ appendWhisperCaptionWords(p,'v',[word('v',3.2,'words')]);
+ const done=finishWhisperCaptionRun(p,'v');
+ assert.equal(done.keptSrt,true);
+ assert.equal(done.whisperCount,4);
+ assert.deepEqual(p.words,original);
+ assert.equal(getCaptionTrack(p,'v').whisperCount,4);
+});
+test('explicit subtitle selector swaps between Whisper and original SRT, retaining manual corrections',()=>{
+ const p=sample(),original=parseSRT(srt,'v');
+ importSrtAsDefault(p,'v',original);
+ beginWhisperCaptionRun(p,'v');
+ appendWhisperCaptionWords(p,'v',[word('v',2,'Whisper'),word('v',3,'voice')]);
+ finishWhisperCaptionRun(p,'v');
+ selectCaptionTrack(p,'v','whisper');
+ assert.deepEqual(p.words.map(w=>w.text),['Whisper','voice']);
+ p.words[0].text='Corrected whisper';
+ selectCaptionTrack(p,'v','srt');
+ assert.equal(p.words[0].text,'The');
+ p.words[0].text='The corrected';
+ selectCaptionTrack(p,'v','whisper');
+ assert.equal(p.words[0].text,'Corrected whisper');
+ selectCaptionTrack(p,'v','srt');
+ assert.equal(p.words[0].text,'The corrected');
+ const hydrated=validateProject(JSON.parse(JSON.stringify(p)));
+ assert.equal(hydrated.subtitleTracks.v.active,'srt');
+ assert.equal(hydrated.words[0].text,'The corrected');
+});
+test('SRT switches cannot claim to activate an absent track',()=>{
+ const p=sample();assert.throws(()=>selectCaptionTrack(p,'v','srt'),/No original SRT/);
+ assert.throws(()=>selectCaptionTrack(p,'v','whisper'),/No Whisper result/);
+ assert.throws(()=>selectCaptionTrack(p,'v','invented'),/Choose SRT/);
+});
+test('Whisper-only recordings continue to use recognized dialogue and valid source timestamps',()=>{
+ const p=sample();assert.equal(beginWhisperCaptionRun(p,'v').keptSrt,false);
+ appendWhisperCaptionWords(p,'v',[word('v',3,'hello')]);
+ const r=finishWhisperCaptionRun(p,'v');
+ assert.equal(r.keptSrt,false);
+ assert.equal(p.words.filter(x=>x.assetId==='v')[0].text,'hello');
+ assert.equal(getCaptionTrack(p,'v').active,'whisper');
+});
