@@ -15,6 +15,8 @@
 - [All 40 prioritized future updates](#full-future-update-tracking-queue-next-001next-040) — planned items, plus every existing master requirement.
 - [Next 100 steps from your master requirements (PLAN-001–PLAN-100)](#planned-next-100-master-linked-development-steps-plan-001plan-100) — phased priorities and exact owner acceptance tests.
 - [New owner review R53–R56](#new-implementation-review-r53r56-recovery-checkpoints-and-honest-humor-review) — rolling checkpoints, reject/restore and source evidence.
+- [First PLAN implementation batch (R57–R65)](#new-implementation-review-r57r65-first-wave-1-code-batch) — multi-project library, verified backups and media checks.
+- [Current implementation progress ledger](#implementation-progress-ledger--first-planned-wave-1-batch) — PLAN IDs advanced, unfinished limitations and owner review.
 - [Simple humor UI and MP4 recovery checks (R41–R46)](#new-implementation-review-r41r46-simple-humor-ai-and-mp4-recovery) — two-mode humor workflow and encoder deployment fix.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
 - [Plain-English video editing and AI glossary](#plain-english-glossary--video-and-ai-terms) — explains the unfamiliar words.
@@ -506,6 +508,52 @@ These controls have been added for **your hands-on review**. None is automatical
   - **Test:** On a proposal, expand **Read actual dialogue and why it was suggested**. Confirm the source file, actual SRT dialogue, precise original in/out timestamps, analysis type (AI vs local heuristic), and warning that the model did not visually verify the joke. Make sure a missing original reports that source reconnection is required.
 
 **Current implementation scope:** These are local metadata and text-evidence features; there is no trained adaptive humor model, automatic visual confirmation of a joke, or cloud backup. Bad suggestions are hidden using source/time-overlap matching (not semantic understanding). Automatic recovery is triggered only after successful project saves and at most every five minutes; browser storage can still be lost if site data is cleared. The full master requirement is not approved just because one release-specific test passes.
+
+### New implementation review R57–R65 (first Wave 1 code batch)
+
+**Implementation pushed, not automatically accepted.** These nine narrow review items cover the first implementation work against PLAN-001–PLAN-100. All remain unchecked until your specific manual approval. **A sampled fingerprint is not a complete hash of a video**, metadata backup does not include original source media, and media compatibility beyond the browser decoder has not been guaranteed.
+
+- [ ] **R57** Bounded identity sampling on original import
+  - **Owner hands-on test:** Import a video, including a long recording, and open Production Tools → Verify original media. The import must read only small file samples (not decode an entire recording) and store a SHA-256 sampled identity for the source. Sample matches are NOT a full-file corruption scan.
+
+- [ ] **R58** Reject or confirm wrong-file source relinking explicitly
+  - **Owner hands-on test:** Relink a source to a different video that has the same name and size if you have one. If sampled bytes differ, a specific warning must appear BEFORE replacing the old original. Cancel must keep the existing source, SRT times and cuts intact. Only explicit confirmation may accept a replacement.
+
+- [ ] **R59** Verify cached originals when restoring projects
+  - **Owner hands-on test:** Save a project containing an original video with a saved fingerprint, reload and press Load Last Project or Open from the project library. The correctly cached original should reconnect. A changed but same-name file with different sampled content should not auto-reconnect.
+
+- [ ] **R60** Save, search and open multiple named local projects
+  - **Owner hands-on test:** Open Production Tools → Project library, save project A, edit the timeline and save another named project B (or duplicate a saved version). Search by project or source filename, open A again, and confirm its edited clip ranges and settings restore. Media permissions may need renewal.
+
+- [ ] **R61** Duplicate, archive and delete a library entry without deleting shared source files
+  - **Owner hands-on test:** Duplicate a project, archive the copy, toggle Show archived and find it, then unarchive or delete it. The original project must still load and its source media should not be removed merely because one metadata copy was deleted.
+
+- [ ] **R62** Download a portable metadata backup with genuine SHA-256 verification
+  - **Owner hands-on test:** Open Production Tools → Download verified project backup. Inspect the JSON; it must carry a SHA-256 digest over project metadata, include source names/IDs/timestamps and editor data, and NOT include original video bytes or API keys.
+
+- [ ] **R63** Block a corrupt or modified backup before replacing current edits
+  - **Owner hands-on test:** Modify a field inside a downloaded backup JSON without updating its integrity digest. Try Verify and restore saved backup. It must report an integrity failure and leave the current editor project untouched.
+
+- [ ] **R64** Restore an intact verified backup and support legacy unverified projects separately
+  - **Owner hands-on test:** Import a valid downloaded verified backup and verify edit/speaker/caption metadata returns, then relink any missing source media. The dedicated verified-backup input must refuse legacy plain JSON, while the older Load Project control should still import legacy projects with a clear unverified warning.
+
+- [ ] **R65** Show honest source audit status and allow explicit first-time baseline
+  - **Owner hands-on test:** In Production Tools click Verify original media. Check matched, missing, mismatched and unverified status per file. For a previously unverified original, accept a baseline explicitly, then verify again. A mismatched source must NOT silently become the new baseline.
+
+### Implementation progress ledger — first planned Wave 1 batch
+
+The original 100 PLAN milestones remain untouched below; these are implementation notes only, **not master-level completion claims or approvals**. The remaining PLAN steps stay planned until real code and individual tests exist.
+
+| PLAN item / master ID | Code introduced | Current engineering status | Unfinished acceptance scope |
+| --- | --- | --- | --- |
+| PLAN-003 / PRJ-016 | Original-media source fingerprint checks before auto-relinking, saved in metadata | Partial implementation · R57–R59 review | Full path, codec/timecode and content-equivalence identity beyond bounded sampled bytes |
+| PLAN-004 / PRJ-022 | SHA-256 verified JSON backup, validation before restoring edits | Partial implementation · R62–R64 review | Bundled media, cross-machine portable reattachment and comprehensive backup auditing |
+| PLAN-007 / REL-009 | Bounded original-source identity checks on library reopen and cached media restore | Partial implementation · R57–R59 review | Checkpoint identity across every AI/audio/visual processing stage |
+| PLAN-012 / IMP-013 | Detection of changed/mismatched source samples and explicit relink warning | Partial implementation · R57–R59 review | Actual corrupt frame, dropped-frame and damaged-container detection |
+| PLAN-079 / PRJ-001 | IndexedDB project library: save/open/search, copy, archive and delete metadata | Partial implementation · R60–R61 review | Complete project dashboard, thumbnails and multi-device/cloud sync |
+| All other PLAN and NEXT IDs | No new complete implementation claim from this batch | Planned or previously partial | Develop and validate each milestone separately |
+
+**Data handling:** All source files remain local, except for optional AI provider workflows that separately request permission. The library shares original media file IDs between project copies; deleting a project metadata entry does not delete source bytes. Original footage still requires Chrome permissions or re-linking after browser storage cleanup. A valid source identity match verifies only bounded samples (not every byte). No PLAN, NEXT, R or master checkbox is checked by a coding agent or successful test.
 
 ### Full future-update tracking queue (NEXT-001–NEXT-040)
 
