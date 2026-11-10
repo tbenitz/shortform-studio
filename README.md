@@ -17,6 +17,9 @@
 - [New owner review R53–R56](#new-implementation-review-r53r56-recovery-checkpoints-and-honest-humor-review) — rolling checkpoints, reject/restore and source evidence.
 - [First PLAN implementation batch (R57–R65)](#new-implementation-review-r57r65-first-wave-1-code-batch) — multi-project library, verified backups and media checks.
 - [30 additional master-linked implementation checks (R66–R95)](#new-implementation-review-r66r95-story-proof-and-precision-editing) — actual source-story review, safe cut operations and precise timecode tools.
+- [Engineering status board — all 100 existing planned milestones](#engineering-status-board--plan-001plan-100) — not started, in development, or owner review.
+- [100 additional unstarted proposals](#new-unstarted-idea-backlog--idea-001idea-100) — IDEA-001–IDEA-100 for future planning.
+- [New owner-review checks R96–R99](#new-owner-acceptance-checks-r96r99--2026-11-09) — source gap review and project-wide evidence search.
 - [Current implementation progress ledger](#implementation-progress-ledger--first-planned-wave-1-batch) — PLAN IDs advanced, unfinished limitations and owner review.
 - [Simple humor UI and MP4 recovery checks (R41–R46)](#new-implementation-review-r41r46-simple-humor-ai-and-mp4-recovery) — two-mode humor workflow and encoder deployment fix.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
@@ -61,6 +64,260 @@
 **Checkbox meanings:** `[ ]` = not yet personally accepted / pending review (may already exist in the app); `[x]` = owner explicitly accepted and no later breakage report has invalidated it. Reports that a feature is implemented, partly implemented, planned, experimental, failing, or untested should be written as notes, not used as checkbox substitutes.
 
 **How to approve:** The owner may say, for example, **"I tested ASR-003 and EDIT-004; mark both complete."** An explicit owner instruction can authorize exactly those checkbox changes. If the owner later says **"ASR-003 is broken"**, return it to `[ ]` and document the problem.
+
+### Engineering status board — PLAN-001–PLAN-100
+
+**Updated November 9, 2026.** This board tracks **engineering progress**, not owner approval. Existing IDs and every owner-acceptance checkbox remain unchanged. A code slice counts as **Ready for owner review** only when its stated narrow behavior is available to try; a broader master requirement may still be incomplete. **In development** means an identifiable partial implementation or supporting code, not a shipped feature. **Not started** means no implementation slice is being claimed here. Revisit statuses after each verified release.
+
+**Status snapshot:** 37 with specific reviewable slices · 48 in development · 15 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
+
+| Owner approval (never automatic) / PLAN ID | Master ID | Engineering status | Scope |
+| --- | --- | --- | --- |
+| [ ] PLAN-001 | PRJ-010 | In development | Periodic recovery snapshots with restore points |
+| [ ] PLAN-002 | PRJ-011 | In development | Persistent undo history or saved version checkpoints |
+| [ ] PLAN-003 | PRJ-016 | Ready for owner review (partial slice) · R57–R59 | Re-link missing media by identity, path, or verified metadata |
+| [ ] PLAN-004 | PRJ-022 | Ready for owner review (partial slice) · R62–R64 | Portable backup integrity check and restored-project verification |
+| [ ] PLAN-005 | REL-004 | In development | Save granular checkpoints after completed processing chunks |
+| [ ] PLAN-006 | REL-005 | In development | Resume safely after browser reload or server restart when persistent backend exists |
+| [ ] PLAN-007 | REL-009 | Ready for owner review (partial slice) · R57–R59 | Validate each checkpoint and its source/media identity before reuse |
+| [ ] PLAN-008 | REL-010 | In development | Provide clear queued, running, paused, complete, warning, failed states |
+| [ ] PLAN-009 | REL-023 | In development | Never fabricate task completion when a worker exits unexpectedly |
+| [ ] PLAN-010 | IMP-003 | In development | Compatibility detection for MP4, MOV, MKV, WebM, AVI, M4V, and TS |
+| [ ] PLAN-011 | IMP-009 | Not started | Read multiple audio tracks, channel layouts, and embedded subtitles |
+| [ ] PLAN-012 | IMP-013 | Ready for owner review (partial slice) · R57–R59 | Check media corruption, missing frames, silent tracks, and incomplete files |
+| [ ] PLAN-013 | IMP-022 | In development | Random-access loading without decoding an entire long video into RAM |
+| [ ] PLAN-014 | ASR-008 | In development | Transcribe long files in bounded, overlapping windows |
+| [ ] PLAN-015 | ASR-009 | In development | Reconcile repeated words at chunk boundaries |
+| [ ] PLAN-016 | ASR-010 | Ready for owner review (partial slice) · R96–R97 | Detect untranscribed opening, ending, and internal gaps |
+| [ ] PLAN-017 | ASR-011 | In development | Show speech-coverage map including silence and uncertainty |
+| [ ] PLAN-018 | ASR-012 | In development | Retry all failed or suspicious gaps without restarting completed work |
+| [ ] PLAN-019 | ASR-013 | In development | Save incremental transcription checkpoints across sessions |
+| [ ] PLAN-020 | SEC-002 | In development | Show which files, frames, audio chunks, or transcripts leave the device |
+| [ ] PLAN-021 | SEC-013 | In development | Avoid exposing API tokens in logs or exported project files |
+| [ ] PLAN-022 | QA-010 | In development | Detect black frames, frozen frames, and missing video |
+| [ ] PLAN-023 | QA-020 | In development | Block misleading success states if verification did not actually run |
+| [ ] PLAN-024 | TEST-001 | In development | Test basic import/playback/trim/export without any AI service |
+| [ ] PLAN-025 | TEST-025 | In development | Test regression cases for all previously reported broken features |
+| [ ] PLAN-026 | SHORT-001 | Ready for owner review (partial slice) · R66 | Identify comedy, action, learning, insights, interview, podcast, and gaming highlights |
+| [ ] PLAN-027 | SHORT-002 | Ready for owner review (partial slice) · R67 | Require setup and payoff when generating story-based clips |
+| [ ] PLAN-028 | SHORT-003 | Ready for owner review (partial slice) · R68 | Allow natural clip length when the complete story requires it |
+| [ ] PLAN-029 | SHORT-004 | Ready for owner review (partial slice) · R69 | Search distant source segments when meaningfully connected |
+| [ ] PLAN-030 | SHORT-007 | Ready for owner review (partial slice) · R70 | Detect duplicate stories across proposed outputs |
+| [ ] PLAN-031 | SHORT-009 | Ready for owner review (partial slice) · R71 | Rank candidates with evidence and transparent rationale |
+| [ ] PLAN-032 | SHORT-010 | Ready for owner review (partial slice) · R72 | Allow manual selection, deletion, and revision of candidates |
+| [ ] PLAN-033 | SHORT-012 | Ready for owner review (partial slice) · R73 | Create long-form compilations of approved stories |
+| [ ] PLAN-034 | DIR-004 | Ready for owner review (partial slice) · R74 | Set adaptive duration targets, hard limits, and story-completeness preference |
+| [ ] PLAN-035 | DIR-008 | Ready for owner review (partial slice) · R75 | Identify story candidates from actual indexed evidence |
+| [ ] PLAN-036 | DIR-009 | Ready for owner review (partial slice) · R76 | Identify hook, setup, development, key moment, reaction, and payoff |
+| [ ] PLAN-037 | DIR-010 | Ready for owner review (partial slice) · R77 | Assemble complete coherent stories across distant source intervals |
+| [ ] PLAN-038 | DIR-011 | Ready for owner review (partial slice) · R78 | Preserve chronology unless explicitly approved to alter it |
+| [ ] PLAN-039 | DIR-012 | Ready for owner review (partial slice) · R79 | Avoid unrelated, fabricated, or repetitively recycled clips |
+| [ ] PLAN-040 | DIR-013 | Ready for owner review (partial slice) · R80 | Prefer quality over artificially meeting an output count |
+| [ ] PLAN-041 | DIR-017 | Ready for owner review (partial slice) · R81 | Generate an edit plan with source-referenced clip ranges |
+| [ ] PLAN-042 | DIR-024 | Ready for owner review (partial slice) · R82 | Avoid hardcoded sample stories, fixed timestamps, or placeholder videos |
+| [ ] PLAN-043 | DIR-028 | Ready for owner review (partial slice) · R83 | Save AI instructions, settings, and edit-rationale history |
+| [ ] PLAN-044 | QA-001 | Ready for owner review (partial slice) · R84 | Separate measurable technical validation from subjective quality opinions |
+| [ ] PLAN-045 | QA-002 | Ready for owner review (partial slice) · R85 | Show explanations and evidence for each quality score |
+| [ ] PLAN-046 | QA-003 | Ready for owner review (partial slice) · R86 | Evaluate story clarity, setup, payoff, and completeness |
+| [ ] PLAN-047 | QA-004 | Ready for owner review (partial slice) · R87 | Detect missing context and misleading reordering |
+| [ ] PLAN-048 | QA-006 | Ready for owner review (partial slice) · R88 | Check duplicate, recycled, and unrelated scene choices |
+| [ ] PLAN-049 | TEST-010 | Ready for owner review (partial slice) · R89 | Test story assembly contains the actual action and relevant reaction |
+| [ ] PLAN-050 | IDX-011 | Ready for owner review (partial slice) · R90 | Build event sequences rather than isolated keyword matches |
+| [ ] PLAN-051 | VIS-003 | In development | Track visible subjects, objects, and motion across frames |
+| [ ] PLAN-052 | VIS-004 | Not started | Detect relevant visual actions from multiple supporting frames |
+| [ ] PLAN-053 | VIS-006 | In development | Distinguish visually observable actions from inferred outcomes |
+| [ ] PLAN-054 | VIS-009 | In development | Connect action timestamps to corresponding original source frames |
+| [ ] PLAN-055 | VIS-010 | Not started | Show evidence thumbnails and original timestamps for AI conclusions |
+| [ ] PLAN-056 | VIS-013 | Not started | Use detailed analysis around high-interest event windows |
+| [ ] PLAN-057 | MC-005 | In development | Support user-created synchronization markers |
+| [ ] PLAN-058 | MC-006 | In development | Show and correct sync offset and drift over long recordings |
+| [ ] PLAN-059 | MC-009 | In development | Display which source intervals overlap in original event time |
+| [ ] PLAN-060 | MC-013 | Not started | Flag uncertain or conflicting cross-source event matches |
+| [ ] PLAN-061 | MC-017 | Not started | Switch only when an angle adds relevant story or visual evidence |
+| [ ] PLAN-062 | MC-025 | Not started | Detect unrelated camera shots and reject misleading switches |
+| [ ] PLAN-063 | CROP-004 | In development | Track moving subjects across the entire selected shot |
+| [ ] PLAN-064 | CROP-006 | Not started | Keep visible faces, captions, gameplay elements, and important text |
+| [ ] PLAN-065 | CROP-009 | In development | Keyframe and ease crop motion between positions |
+| [ ] PLAN-066 | CROP-010 | In development | Preview source-to-output crop side by side |
+| [ ] PLAN-067 | CROP-011 | In development | Provide manual focus point and tracking correction controls |
+| [ ] PLAN-068 | CAP-001 | In development | Editable dedicated caption tracks and caption regions |
+| [ ] PLAN-069 | CAP-004 | In development | Manual caption timing, splitting, merging, and retiming |
+| [ ] PLAN-070 | CAP-010 | Not started | Auto-adjust captions away from faces, HUD, and important objects |
+| [ ] PLAN-071 | CAP-012 | In development | Caption proofreading, punctuation, and speaker labels |
+| [ ] PLAN-072 | IDX-010 | In development | Connect visible events with corresponding audio and dialogue |
+| [ ] PLAN-073 | IDX-021 | In development | Use coarse scanning followed by targeted high-detail inspection |
+| [ ] PLAN-074 | TEST-023 | In development | Test different output ratios keep faces, HUD, and text in frame |
+| [ ] PLAN-075 | FX-008 | Not started | Keyframed pan, zoom, and subject-following camera motion |
+| [ ] PLAN-076 | UX-007 | Not started | Global command palette for actions and media search |
+| [ ] PLAN-077 | UX-012 | In development | Small-screen and Chromebook-friendly adaptive layouts |
+| [ ] PLAN-078 | UX-020 | In development | No inert buttons, simulated progress, or deceptive success messages |
+| [ ] PLAN-079 | PRJ-001 | Ready for owner review (partial slice) · R60–R61 | Create, rename, duplicate, archive, delete, and search projects |
+| [ ] PLAN-080 | PRJ-012 | In development | Named versions and comparison between original, AI draft, and manual final |
+| [ ] PLAN-081 | PRJ-021 | Ready for owner review (partial slice) · R98–R99 | Project-wide search across clips, assets, transcripts, and comments |
+| [ ] PLAN-082 | ASR-005 | In development | Support word-level timestamps when model capability permits |
+| [ ] PLAN-083 | ASR-026 | In development | Flag uncertain words for review rather than fabricating certainty |
+| [ ] PLAN-084 | EDIT-002 | Ready for owner review (partial slice) · R91 | Show frame-accurate source/program timecodes |
+| [ ] PLAN-085 | EDIT-003 | Ready for owner review (partial slice) · R92 | Insert, overwrite, lift, extract, and reorder clips |
+| [ ] PLAN-086 | EDIT-006 | Ready for owner review (partial slice) · R93 | Ripple edit and automatic gap closure |
+| [ ] PLAN-087 | EDIT-013 | Ready for owner review (partial slice) · R94 | Snapping to frames, clip edges, markers, words, and music beats |
+| [ ] PLAN-088 | EDIT-015 | In development | Adjustable zoom, track height, filmstrips, and waveform density |
+| [ ] PLAN-089 | EDIT-027 | Ready for owner review (partial slice) · R95 | Non-destructive AI adjustments exposed as regular editable controls |
+| [ ] PLAN-090 | FX-001 | In development | Clean cuts and standard audio/video crossfades |
+| [ ] PLAN-091 | AUD-001 | In development | Waveform-based audio clip editing and fades |
+| [ ] PLAN-092 | AUD-011 | Not started | Loudness measurement and LUFS normalization |
+| [ ] PLAN-093 | AUD-013 | In development | Music auto-ducking with adjustable threshold, attack, and release |
+| [ ] PLAN-094 | VO-007 | Not started | Preserve completed voice segments if later generation fails |
+| [ ] PLAN-095 | GEN-010 | Not started | Never substitute synthetic scenes for real-world evidence without disclosure |
+| [ ] PLAN-096 | EXP-002 | In development | Production-quality deterministic rendering through supported native backend |
+| [ ] PLAN-097 | EXP-003 | In development | Encode MP4/H.264/AAC where supported |
+| [ ] PLAN-098 | EXP-012 | In development | Choose hardware or software encoder, with real capability testing |
+| [ ] PLAN-099 | EXP-023 | In development | Never report export success based solely on progress reaching 100% |
+| [ ] PLAN-100 | MODEL-006 | Not started | Verify model loads and produces expected output on a test clip |
+
+#### New owner acceptance checks R96–R99 — 2026-11-09
+
+These are **implementation slices**, not the full master IDs. They remain unchecked, including after passing automated tests or review-branch deployment. To test the proposed changes, use the review branch or a merged deployment → **Production Tools** → expand **Source health & project-wide search**.
+
+- [ ] **R96** · PLAN-016 — Inspect real saved word timestamps and flag gaps at the opening, middle and end of each source, without falsely calling them silent. **Test:** Use a 2-hour recording with only a small imported SRT at 00:01 and verify that the rest is flagged as **no timed transcript**, not as silence or verified ASR failure.
+- [ ] **R97** · PLAN-016/PLAN-017 — Add review markers only for gaps that overlap **actual edited timeline cuts**. **Test:** Add part of an original recording containing a known untranscribed interval, click **Bookmark transcript gaps**, and confirm marker positions match those edited source intervals without inventing media or duplicating existing markers.
+- [ ] **R98** · PLAN-081 — Search across literal source filenames, actual original dialogue, clip notes, markers and Director proposal titles, then jump to source or edited cut. **Test:** Search for a spoken phrase and a clip title; check original timestamps in both destinations and confirm unrelated material is not fabricated.
+- [ ] **R99** · PLAN-016/PLAN-081 — Export coverage and literal-search reports as machine-readable JSON. **Test:** Download both reports, verify original source IDs and timecodes, and ensure they expressly say video and speech have not been independently verified.
+
+**Known limits:** Coverage is based on word timestamp spans, not actual audio or an ASR accuracy percentage. Sparse dialogue does not automatically mean missing audio. Search is literal, not full semantic video indexing. These additions do not fulfill professional visual QA, codec compatibility, all-source waveform scanning, or the entire existing 100-item plan. Chrome browser validation on your actual videos is still required.
+
+### New unstarted idea backlog — IDEA-001–IDEA-100
+
+The following are **100 newly brainstormed proposals**, intentionally separate from the already existing PLAN-001–PLAN-100 and the 494 master acceptance IDs. All start unchecked and **Not started**. They are *not* being counted as implemented, approved or scheduled. Duplicate/overlap assessment against existing master requirements will occur during planning; preserve IDs even if merged into a future master requirement.
+
+#### Humor and dialogue storytelling
+
+- [ ] **IDEA-001** Detect callback jokes referring to earlier conversations — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-002** Show evidence-linked setup-to-punchline timing — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-003** Identify interruption and overlapping speech as candidate comic beats — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-004** Compare retellings of the same joke without cloning cuts — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-005** Offer an alternate opener drawn from the same authentic exchange — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-006** Track speaker-to-speaker escalation across a single bit — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-007** Preserve awkward silence as an optional intentional comedic beat — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-008** Separate spontaneous laughter from AI-inferred humor in all labels — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-009** Identify a running gag across separate recording sessions — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-010** Detect a punchline cutoff and offer original-source context — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Visual claims and contextual proof
+
+- [ ] **IDEA-011** Attach user-verifiable frame receipts to Director claims — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-012** Require two temporally separated samples before claiming a visual action — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-013** Compare game HUD evidence and spoken claims without equating them — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-014** Find the actual first frame of a highlighted event — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-015** Find the actual final reaction frame of a highlighted event — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-016** Flag changes between facecam-only and gameplay-only layouts — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-017** List visual claims with no supporting decoded frame — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-018** Let reviewers pin contradictory frames to an edit — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-019** Keep frame-review thumbnails tied to source-file fingerprints — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-020** Render an uncertainty trail when visual verification fails — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Multi-POV review
+
+- [ ] **IDEA-021** Show an annotated graph of cross-camera sync anchor evidence — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-022** Visualize source-to-event time drift by recording hour — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-023** Compare shared audio peaks at one claimed match point — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-024** Preview two original POVs with one synchronized scrubber — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-025** Track per-camera event coverage without duplicating story moments — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-026** Flag POV switches where the alleged action is not visible — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-027** Keep an audit of user-corrected synchronization points — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-028** Allow preferred-camera overrides only for verified shared time spans — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-029** Warn when a camera's soundtrack describes a different moment — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-030** Export a per-cut source-camera provenance report — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Precision editing and revision
+
+- [ ] **IDEA-031** Preview ripple insert with a non-destructive before/after ghost — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-032** Show one-click restoration of a pre-AI original cut — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-033** Create labeled groups of linked reaction and setup clips — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-034** Lock an original-source reference against accidental replacement — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-035** Reveal transcript timing shifts before applying a speed change — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-036** Compare two saved edit versions using source cut differences — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-037** Display original and current framing at the same playhead time — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-038** Let keyboard users adjust a manual crop corner by one pixel — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-039** Support a reversible temporary edit sandbox before committing — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-040** Highlight where a cut may leave an audible word fragment — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Caption quality control
+
+- [ ] **IDEA-041** Proofread proper names using a project-specific vocabulary list — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-042** Group caption corrections by original speaker label — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-043** Show potential caption collision with real gameplay HUD boxes — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-044** Audit color contrast against sampled background frames — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-045** Flag captions that extend beyond export-safe regions — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-046** Review subtitle punctuation without changing word timestamps — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-047** Compare saved SRT dialogue to on-screen burnt-in text — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-048** Show uncertain Whisper token groups for human correction — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-049** Batch accept or reject only explicitly selected timing edits — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-050** Produce a caption correction provenance report — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Audio quality and storytelling
+
+- [ ] **IDEA-051** Detect possible audio clicks at proposed source cuts — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-052** Inspect left/right channel imbalances over selected intervals — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-053** Find missing or abruptly truncated audio tails in a render — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-054** Preview ducking envelopes against actual narration positions — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-055** Detect possible phase cancellation before mono conversion — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-056** Mark source-audio sample rate changes across cuts — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-057** Offer an audition-only loudness match between adjacent clips — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-058** Identify pauses before punchlines without assuming they are unwanted — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-059** Recover intact voice segments from an interrupted multi-chunk narration — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-060** Export a source-linked audio continuity review sheet — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Reliability on long recordings
+
+- [ ] **IDEA-061** Estimate source-media IndexedDB quota pressure before caching — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-062** Show Chrome file-handle permission expiry and relink consequences — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-063** Compare recorded processing checkpoints against new source identity — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-064** Log stalled decoder steps without resetting finished analysis — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-065** Safely retry a single failed source-time window — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-066** Provide a memory-friendly review schedule for multi-hour sources — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-067** Explain which analysis windows have never run — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-068** Export a privacy-safe diagnostics bundle with no media or secrets — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-069** Detect incomplete cache hydration before a saved project opens — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-070** Show the exact failed operation when final output verification stops — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Delivery and quality verification
+
+- [ ] **IDEA-071** Verify rendered duration against the selected source-cut plan — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-072** Verify output has a playable audio stream when one was requested — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-073** Sample actual output frames for unintended black intervals — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-074** Compare portrait/wide framing against a source reference grid — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-075** Generate a per-export checksum and validation receipt — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-076** Flag unsafely cropped text in platform-specific preview overlays — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-077** Compare caption-safe regions for several mobile platforms — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-078** Package review notes and source edit plan with an exported video — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-079** Keep a history of encoder fallback decisions for each export — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-080** Compare two exports by real codec, dimensions and duration — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Review workflow and usability
+
+- [ ] **IDEA-081** Add a jump-to-original-evidence keyboard command — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-082** Provide a reviewer queue grouped by unresolved source questions — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-083** Record why a proposed story was rejected without deleting evidence — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-084** Show reversible before/after previews for individual AI suggestions — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-085** Allow review annotations spanning a precise time interval — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-086** Filter a review queue to clips requiring an original-source relink — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-087** Support keyboard-only navigation of detected face targets — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-088** Show current offline dependencies and which are actually cached — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-089** Offer a no-AI-only functional readiness checklist — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-090** Save a named reviewer decision log separate from owner acceptance — **Not started · brainstorming; definition, implementation and real-media test pending.**
+
+#### Privacy and provenance
+
+- [ ] **IDEA-091** Preview exact transcript text that will be sent to a cloud provider — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-092** Warn when private names appear in captions before export — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-093** Add a project-specific rights/permission note per source — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-094** Track which generated visual insertions are synthetic versus recorded — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-095** Show local versus remote processing receipts per analysis window — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-096** Separate private internal notes from exported cut metadata — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-097** Require disclosure when generated narration is used over real footage — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-098** Save a source-consent metadata checklist without collecting identities — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-099** Allow a dry-run export that reveals every external dependency — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-100** Export a provenance manifest with no private media or credentials — **Not started · brainstorming; definition, implementation and real-media test pending.**
 
 ### Implementation batch — available for YOUR review (2026-11-08)
 
