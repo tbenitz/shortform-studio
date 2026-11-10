@@ -30,6 +30,8 @@ import {entireSourceCut,selectedSourceCut,shouldAutoInsertMedia,sourceSecondsVal
 import {projectAudit,cutSheetCSV,chaptersText,createSnapshot,sourceMatch,cleanMarkers,productionToolsHTML,toolSearchResultsHTML} from './production-tools.js';
 import {findLocalHumor,classifyHumorWithAI,transcriptTurns,rawDialogueOnly,makeCompilationSegments,DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
 import {findConnectedFunnyStories,storyMoments} from './humor-stories.js';
+import {addHumorRejection,restoreHumorRejection,viewableHumorMoments,rejectedMatch} from './humor-review.js';
+import {automaticRecoveryDue,buildAutomaticRecovery,staleAutomaticRecovery} from './recovery.js';
 import {humorStudioHTML} from './humor-ui.js';
 import {saveSnapshot,loadSnapshot,deleteSnapshot,listSnapshots} from './storage.js';
 const $=id=>document.getElementById(id),all=sel=>[...document.querySelectorAll(sel)],toast=(m,error=false)=>{const t=document.createElement('div');t.className='toast'+(error?' error':'');t.textContent=m;$('toastArea').append(t);setTimeout(()=>t.remove(),5000)};
@@ -54,6 +56,19 @@ async function save(notify=true){
   sessionActive=true;
   const disk={...p,assets:p.assets.map(({url,file,...rest})=>rest)};
   await saveProject(disk);
+  // A rolling metadata-only checkpoint can recover work before a bad edit/crash.
+  // Always save the current project first; checkpoint quota errors must not
+  // falsely report that this successfully saved project failed.
+  try{
+   const existing=await listSnapshots(disk.id);
+   if(automaticRecoveryDue(existing,disk.id)){
+    const point=buildAutomaticRecovery(disk,uid());
+    await saveSnapshot(point);
+    const after=await listSnapshots(disk.id);
+    for(const oldId of staleAutomaticRecovery(after))await deleteSnapshot(oldId);
+    if(tab==='tools'){snapshotRecords=await listSnapshots(disk.id);renderInspector()}
+   }
+  }catch(error){console.warn('Recovery checkpoint could not be stored; current project metadata was still saved',error)}
   lastSavedInfo={id:disk.id,name:disk.name,modifiedAt:disk.modifiedAt,assets:disk.assets.length};
   refreshLastProjectButton();$('saveStatus').textContent='Saved locally';
   if(notify)toast('Project metadata saved to IndexedDB');
@@ -905,7 +920,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('humorMore',()=>{humorShown+=70;renderInspector()});
  // Choosing a story selects only its actual, same-topic original clips.
  const chooseConnectedStory=storyId=>{
-  const stories=findConnectedFunnyStories((p.humorMoments||[]).filter(m=>humorScope==='all'||m.assetId===humorScope));
+  const stories=findConnectedFunnyStories(viewableHumorMoments(p,{scope:humorScope}));
   const story=stories.find(s=>s.id===storyId);
   if(!story)return false;
   let moments;try{moments=storyMoments(story,p.humorMoments||[])}catch(e){toast(e.message,true);return false}
@@ -920,9 +935,22 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   // The selection's new Editor build handler is wired during update().
   $('humorBuild')?.click();
  });
+ c.querySelectorAll('[data-humor-reject]').forEach(b=>b.onclick=()=>{
+  const moment=p.humorMoments?.find(m=>m.id===b.dataset.humorReject);
+  if(!moment)return;
+  commit('Rejected inaccurate humor suggestion');
+  addHumorRejection(p,moment);
+  update();toast('Hidden the bad suggestion from future scans. Restore it under Rejected funny moments.');
+ });
+ c.querySelectorAll('[data-humor-restore]').forEach(b=>b.onclick=()=>{
+  commit('Restored rejected humor suggestion');
+  const restored=restoreHumorRejection(p,b.dataset.humorRestore);
+  if(!restored){toast('That rejection was not found.',true);return}
+  update();toast('Restored the original source-linked suggestion.');
+ });
  c.querySelectorAll('[data-humor-toggle]').forEach(b=>b.onclick=()=>{
   const id=b.dataset.humorToggle,m=p.humorMoments?.find(m=>m.id===id);
-  if(!m)return;
+  if(!m||rejectedMatch(m,p.humorRejected))return toast('This suggestion was rejected. Restore it before selecting.',true);
   commit('Compilation selections');
   p.compilationOrder||=[];
   const index=p.compilationOrder.indexOf(id);
@@ -940,9 +968,9 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
    update();
   });
  }
- const chosenHumor=()=>{const m=new Map((p.humorMoments||[]).map(v=>[v.id,v]));return (p.compilationOrder||[]).map(id=>m.get(id)).filter(Boolean)};
+ const chosenHumor=()=>{const m=new Map(viewableHumorMoments(p).map(v=>[v.id,v]));return (p.compilationOrder||[]).map(id=>m.get(id)).filter(Boolean)};
  on('humorDownloadAll',()=>{
-  const text=rawDialogueOnly((p.humorMoments||[]).filter(m=>humorScope==='all'||m.assetId===humorScope));
+  const text=rawDialogueOnly(viewableHumorMoments(p,{scope:humorScope}));
   if(!text)return toast('No extracted dialogue to save',true);
   download(text+'\n',p.name+'-all-funny-dialogue.txt','text/plain;charset=utf-8');
  });
