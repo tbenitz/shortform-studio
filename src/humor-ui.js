@@ -2,16 +2,17 @@ import {escapeHTML as esc,fmt} from './model.js';
 import {DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
 import {findConnectedFunnyStories} from './humor-stories.js';
 import {viewableHumorMoments,humorEvidence,humorReviewCounts} from './humor-review.js';
+import {sourceStoryWorkbenchHTML,storyDiscoveryFiltersHTML,filterStorySuggestions} from './story-workbench-ui.js';
 
 /** One intent, two actions: user should not configure an AI pipeline. */
-export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,maxCalls=48,displayLimit=100,instructions=null,mode='clips',aiConfigured=false}={}){
+export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,maxCalls=48,displayLimit=100,instructions=null,mode='clips',aiConfigured=false,filters={},reviewOpen=false}={}){
  const sources=(p.assets||[]).filter(a=>a.type==='video'||a.type==='audio'),lookup=new Map(sources.map(a=>[a.id,a]));
  const all=viewableHumorMoments(p,{scope});
  const reviewCounts=humorReviewCounts(p);
  const order=Array.isArray(p.compilationOrder)?p.compilationOrder:[],byId=new Map((p.humorMoments||[]).map(m=>[m.id,m]));
  const visibleIds=new Set(all.map(x=>x.id));
  const selected=order.map(id=>byId.get(id)).filter(m=>m&&visibleIds.has(m.id)),selectedDuration=selected.reduce((n,m)=>n+m.end-m.start,0);
- const stories=findConnectedFunnyStories(all),shown=all.slice(0,displayLimit);
+ const stories=findConnectedFunnyStories(all),filtered=filterStorySuggestions(all,sources,filters),shown=filtered.slice(0,displayLimit);
  const sourceOptions=sources.map(a=>'<option value="'+esc(a.id)+'" '+(scope===a.id?'selected':'')+'>'+esc(a.name)+'</option>').join('');
  const cards=shown.map(m=>{
   const a=lookup.get(m.assetId),chosen=order.includes(m.id),evidence=humorEvidence(m,a);
@@ -46,12 +47,12 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
   '<div class="humor-choices"><button id="humorFindLocal" class="'+(mode==='clips'?'primary':'')+'" '+(busy?'disabled':'')+'>☺ Find Funny Clips<small>Separate jokes and funny conversations</small></button>'+
   '<button id="humorFindStory" class="'+(mode==='story'?'primary':'')+'" '+(busy?'disabled':'')+'>▥ Make a Funny Story<small>Connect related setup, banter and payoff</small></button></div>'+
   '<p class="tiny muted">SRT is the source of truth · '+(aiConfigured?'AI Director connected — contextual humor review':'No AI key detected — local transcript matching')+'. No random unrelated cuts.</p>'+
-  advanced+
+  advanced+storyDiscoveryFiltersHTML(all,sources,filters)+
   '<div id="humorStatus" class="tiny muted" role="status">'+esc(status||((p.humorScanInfo?.totalBatches)?'Reviewed '+p.humorScanInfo.processedBatches+'/'+p.humorScanInfo.totalBatches+' transcript batches'+(p.humorScanInfo.complete?'':' — PARTIAL'):'Ready. Import a video and its SRT, then choose a button.'))+'</div>'+
   (busy?'<button id="humorCancel" class="small danger full">Cancel analysis</button>':'');
- const clipsSection='<div class="separator"></div><div class="row between wrap"><h3>Funny clips ('+all.length+')</h3><button class="small" id="humorDownloadAll" '+(all.length?'':'disabled')+'>Dialogue TXT</button></div>'+
+ const clipsSection='<div class="separator"></div><div class="row between wrap"><h3>Funny clips ('+filtered.length+' shown / '+all.length+' found)</h3><button class="small" id="humorDownloadAll" '+(all.length?'':'disabled')+'>Dialogue TXT</button></div>'+
   '<div class="humor-list">'+cards+'</div>'+
-  (shown.length<all.length?'<button id="humorMore" class="full">Show more clips ('+(all.length-shown.length)+' left)</button>':'');
+  (shown.length<filtered.length?'<button id="humorMore" class="full">Show more clips ('+(filtered.length-shown.length)+' left)</button>':'');
  const storySection='<div class="separator"></div><h3>Related funny storylines ('+stories.length+')</h3>'+
   '<p class="tiny muted">Every proposed storyline requires two or more non-overlapping clips from the same original recording, linked by actual recurring conversation topics. Stories are suggestions, not proof that every punchline lands.</p>'+
   '<div class="humor-list">'+storyCards+'</div><details><summary>Or choose individual moments manually ('+all.length+')</summary><div class="humor-list">'+cards+'</div></details>';
@@ -61,5 +62,5 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
   '<div class="row wrap"><button id="humorDownloadSelected" class="small" '+(selected.length?'':'disabled')+'>Selected dialogue TXT</button>'+
   '<button id="humorBuild" class="primary" '+(selected.length&&!busy?'':'disabled')+'>Build selected '+(selected.length===1?'clip':'compilation')+' in Editor</button></div>'+
   '<p class="tiny muted">The final video uses the selected source footage, not AI-created visuals. Edit the timeline and export to MP4 when ready.</p>';
- return top+(mode==='story'?storySection:clipsSection)+footer+rejectionSection;
+ return top+(mode==='story'?storySection:clipsSection)+footer+sourceStoryWorkbenchHTML(p,selected,filters,{open:reviewOpen})+rejectionSection;
 }
