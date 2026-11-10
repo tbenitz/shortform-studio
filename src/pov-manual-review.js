@@ -46,7 +46,7 @@ export function povManualSyncHTML(project,referenceId,targetId){
  const overlap=manualPovOverlap(sync,a.duration,b.duration),pairKey=a.id+'|'+b.id;
  const marks=project.povManualMarkers?.[pairKey]||sync?.manualAnchors||[];
  const rows=marks.map((m,i)=>'<tr><td>'+r(m.referenceTime)+'s</td><td>'+r(m.targetTime)+'s</td><td>'+r(sync?.residuals?.[i]??0)+'s</td></tr>').join('');
- return '<details class="story-workbench"><summary>Manual event-pair alignment & overlap inspector</summary>'+
+ return '<details id="povManualDetails" class="story-workbench"><summary>Manual event-pair alignment & overlap inspector</summary>'+
   '<p class="tiny muted">Find the same gunshot, spoken phrase or real event in both ORIGINAL sources. Enter the timestamps twice (preferably near start and end). A fitted drift is accepted only within 0.5%; an inconsistent pair is refused. This does not identify people or events automatically.</p>'+
   '<div class="row wrap"><label class="field">POV A event (seconds)<input id="povMarkA" type="number" min="0" max="'+r(a.duration)+'" step="0.001" value="0"></label>'+
   '<label class="field">POV B SAME event (seconds)<input id="povMarkB" type="number" min="0" max="'+r(b.duration)+'" step="0.001" value="0"></label></div>'+
