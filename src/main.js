@@ -860,6 +860,69 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   try{await openJSON(file,{requireVerified:true})}
   catch(error){toast('Verified restore refused: '+error.message,true)}
  };
+ // Precision timeline functions operate only on actual original-source ranges.
+ const applyPrecision=(label,mutate)=>{
+  try{
+   const draft=clone();
+   const result=mutate(draft);
+   commit(label);p.segments=draft.segments;p.audio=draft.audio;p.markers=draft.markers;p.selectedSegment=draft.selectedSegment;
+   engine.pause();update();toast(label+(result?.shift?' · '+result.shift+' source seconds':''));
+  }catch(error){toast('Precision edit: '+error.message,true)}
+ };
+ const precisionSource=()=>{
+  const a=asset(p.selectedAsset);
+  if(!a||a.type!=='video'||!a.url)throw Error('Choose and reconnect a real source video in the Media library first.');
+  return selectedSourceCut(a,$('sourceIn')?.value,$('sourceOut')?.value);
+ };
+ on('precisionInsert',()=>applyPrecision('Inserted original source range at playhead',draft=>insertAtPlayhead(draft,precisionSource(),engine.time)));
+ on('precisionOverwrite',()=>{
+  let cut;try{cut=precisionSource()}catch(error){return toast(error.message,true)}
+  if(p.segments.length&&!confirm('Replace footage under the playhead with this real original-source excerpt? The current project edit can be undone.'))return;
+  applyPrecision('Overwrote source footage at playhead',draft=>overwriteAtPlayhead(draft,cut,engine.time));
+ });
+ on('precisionRippleDelete',()=>{
+  const id=p.selectedSegment;if(!id)return toast('Select a timeline clip first.',true);
+  applyPrecision('Ripple-deleted selected source cut',draft=>rippleDelete(draft,id));
+ });
+ for(const [id,delta] of [['precisionSlipBack',-1],['precisionSlipForward',1]]){
+  on(id,()=>{const selected=p.selectedSegment;if(!selected)return toast('Select a source clip to slip.',true);
+   applyPrecision('Slipped original source window by one frame',draft=>slipSelected(draft,selected,delta/Math.max(1,Number(p.settings.fps)||30),p.assets));
+  });
+ }
+ for(const [id,delta] of [['precisionRollBack',-1],['precisionRollForward',1]]){
+  on(id,()=>{const selected=p.selectedSegment;if(!selected)return toast('Select the clip before the cut you want to roll.',true);
+   applyPrecision('Rolled video cut by one frame',draft=>rollBoundary(draft,selected,delta/Math.max(1,Number(p.settings.fps)||30),p.assets));
+  });
+ }
+ on('precisionStoryRole',()=>{});
+ const role=$('precisionStoryRole');
+ if(role)role.onchange=()=>{
+  const clip=p.segments.find(x=>x.id===p.selectedSegment);if(!clip)return;
+  commit('Marked source cut story role');setStoryRole(clip,role.value);update();
+ };
+ on('precisionPrev',()=>engine.seek(nextBoundary(p.segments,engine.time,-1)));
+ on('precisionNext',()=>engine.seek(nextBoundary(p.segments,engine.time,1)));
+ on('precisionSnapFrame',()=>engine.seek(Math.round(engine.time*Math.max(1,Number(p.settings.fps)||30))/Math.max(1,Number(p.settings.fps)||30)));
+ on('precisionSnapMarker',()=>{
+  const result=nearestEditPoint(p,engine.time,{threshold:Math.max(1,duration(p)),includeClipEdges:false,includeMarkers:true});
+  if(result.kind!=='marker')return toast('No timeline markers available.',true);
+  engine.seek(result.time);
+ });
+ on('precisionSnapWord',()=>{
+  const result=nearestEditPoint(p,engine.time,{threshold:Math.max(1,duration(p)),includeClipEdges:false,includeMarkers:false,includeWords:true});
+  if(!result.kind.startsWith('word'))return toast('No aligned subtitle words in this edited timeline.',true);
+  engine.seek(result.time);
+ });
+ on('precisionGo',()=>{
+  try{const seconds=parseFrameTimecode($('precisionTimecode')?.value,p.settings.fps);
+   if(seconds<0||seconds>duration(p)+.01)throw Error('Timecode is outside the edited video runtime.');
+   engine.seek(seconds);
+  }catch(error){toast('Timecode: '+error.message,true)}
+ });
+ on('precisionExportCutList',()=>{
+  if(!p.segments.length)return toast('No edited source cuts to export.',true);
+  download(timecodeCutList(p),String(p.name||'project')+'-source-timecodes.txt','text/plain;charset=utf-8');
+ });
  // Production Tools: metadata reports and user-managed project checkpoints.
  const safeFile=()=>String(p.name||'project').replace(/[\\/:*?"<>|]/g,'-').slice(0,80)||'project';
  on('toolsExportCSV',()=>download(cutSheetCSV(p),safeFile()+'-cuts.csv','text/csv;charset=utf-8'));
