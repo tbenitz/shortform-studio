@@ -39,6 +39,7 @@ import {insertAtPlayhead,overwriteAtPlayhead,rippleDelete,slipSelected,rollBound
 import {extendSourceRange,completeExchangeRange,applyClipExtension,extendCandidateCut} from './clip-context.js';
 import {getCaptionTrack,captionStatus,importSrtAsDefault,beginWhisperCaptionRun,appendWhisperCaptionWords,finishWhisperCaptionRun,selectCaptionTrack,snapshotActiveTrack} from './subtitle-preference.js';
 import {studioGuideHTML} from './studio-guide.js';
+import {matchingCaptionSource,isCaptionSidecar} from './sidecar-match.js';
 import {orderClipSuggestions,suggestDiverseSelection,reviewClipStructure} from './clip-selection.js';
 import {timelineWorkbenchHTML} from './timeline-workbench-ui.js';
 import {saveSnapshot,loadSnapshot,deleteSnapshot,listSnapshots,saveLibraryProject,loadLibraryProject,listLibraryProjects,deleteLibraryProject,sharedMediaReferenced} from './storage.js';
@@ -1670,8 +1671,9 @@ async function importRememberedFiles(){
 }
 function syncSourceRange(){const a=asset(p.selectedAsset);$('sourceIn').value='0';$('sourceOut').value=sourceSecondsValue(a);}
 async function importFiles(files,handles=new Map()){
- const array=[...files].filter(x=>x.type.startsWith('video/')||x.type.startsWith('audio/')||x.type.startsWith('image/')||/\.(mkv|mov|mp4|webm|wav|mp3|m4a)$/i.test(x.name));
- if(!array.length)return toast('No supported media files selected',true);
+ const selected=[...files],captions=selected.filter(isCaptionSidecar);
+ const array=selected.filter(x=>!isCaptionSidecar(x)&&(x.type.startsWith('video/')||x.type.startsWith('audio/')||x.type.startsWith('image/')||/\.(mkv|mov|mp4|webm|wav|mp3|m4a)$/i.test(x.name)));
+ if(!array.length&&!captions.length)return toast('No supported media or SRT subtitle files selected',true);
  commit();let imported=0,inserted=0,relinked=0;
  for(const file of array){try{
   const missing=possibleMissingSourceRelink(p.assets,file,p.segments,p.words);
@@ -1687,8 +1689,20 @@ async function importFiles(files,handles=new Map()){
   }else if(a.type==='video'&&!a.duration)toast('Could not determine '+a.name+' duration. Try converting to MP4/H.264.',true);
  }catch(e){toast('Import '+file.name+': '+e.message,true)}
  }
+ let captioned=0;
+ for(const file of captions){
+  try{
+   const source=matchingCaptionSource(file.name,p.assets);
+   if(!source){toast('Cannot match '+file.name+' to exactly one original source. Select its video in Transcript and import this SRT manually.',true);continue}
+   const words=parseSRT(await file.text(),source.id);
+   if(!words.length){toast(file.name+' has no usable timed SRT/VTT captions.',true);continue}
+   importSrtAsDefault(p,source.id,words);captioned++;
+   p.selectedAsset=source.id;
+   toast('SRT default enabled for '+source.name+' · '+words.length+' original-timed words.');
+  }catch(error){toast('Subtitle '+file.name+': '+error.message,true)}
+ }
  syncSourceRange();update();
- toast('Imported '+imported+' source(s); relinked '+relinked+' existing recordings; added '+inserted+' new full-source cuts ('+fmt(duration(p))+').');
+ toast('Imported '+imported+' source(s), '+captioned+' SRT sidecar(s), relinked '+relinked+' and added '+inserted+' full-source cut(s) ('+fmt(duration(p))+').');
 }
 function refreshLastProjectButton(){
  const button=$('loadLastProject'),hint=$('lastProjectHint');
