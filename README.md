@@ -20,6 +20,8 @@
 - [First PLAN implementation batch (R57–R65)](#new-implementation-review-r57r65-first-wave-1-code-batch) — multi-project library, verified backups and media checks.
 - [30 additional master-linked implementation checks (R66–R95)](#new-implementation-review-r66r95-story-proof-and-precision-editing) — actual source-story review, safe cut operations and precise timecode tools.
 - [Engineering status board — all 100 existing planned milestones](#engineering-status-board--plan-001plan-100) — not started, in development, or owner review.
+- [Audit of 47 previously in-development milestones](#november-10-development-wave--audit-of-all-47-previously-in-development-items) — new review slices and remaining incomplete work.
+- [14 new owner-review checks R102–R115](#owner-acceptance-r102r115--code-added-acceptance-unchecked) — explicit manual tests.
 - [100 additional unstarted proposals](#new-unstarted-idea-backlog--idea-001idea-100) — IDEA-001–IDEA-100 for future planning.
 - [New owner-review checks R96–R101](#new-owner-acceptance-checks-r96r101--2026-11-09) — source gap review and project-wide evidence search.
 - [Current implementation progress ledger](#implementation-progress-ledger--first-planned-wave-1-batch) — PLAN IDs advanced, unfinished limitations and owner review.
@@ -71,30 +73,30 @@
 
 **Updated November 9, 2026.** This board tracks **engineering progress**, not owner approval. Existing IDs and every owner-acceptance checkbox remain unchanged. A code slice counts as **Ready for owner review** only when its stated narrow behavior is available to try; a broader master requirement may still be incomplete. **In development** means an identifiable partial implementation or supporting code, not a shipped feature. **Not started** means no implementation slice is being claimed here. Revisit statuses after each verified release.
 
-**Status snapshot:** 39 with specific reviewable slices · 47 in development · 14 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
+**Status snapshot:** 53 with specific reviewable slices · 33 in development · 14 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
 
 | Owner approval (never automatic) / PLAN ID | Master ID | Engineering status | Scope |
 | --- | --- | --- | --- |
 | [ ] PLAN-001 | PRJ-010 | In development | Periodic recovery snapshots with restore points |
-| [ ] PLAN-002 | PRJ-011 | In development | Persistent undo history or saved version checkpoints |
+| [ ] PLAN-002 | PRJ-011 | Ready for owner review (partial slice) · R102 | Persistent undo history or saved version checkpoints |
 | [ ] PLAN-003 | PRJ-016 | Ready for owner review (partial slice) · R57–R59 | Re-link missing media by identity, path, or verified metadata |
 | [ ] PLAN-004 | PRJ-022 | Ready for owner review (partial slice) · R62–R64 | Portable backup integrity check and restored-project verification |
 | [ ] PLAN-005 | REL-004 | In development | Save granular checkpoints after completed processing chunks |
 | [ ] PLAN-006 | REL-005 | In development | Resume safely after browser reload or server restart when persistent backend exists |
 | [ ] PLAN-007 | REL-009 | Ready for owner review (partial slice) · R57–R59 | Validate each checkpoint and its source/media identity before reuse |
-| [ ] PLAN-008 | REL-010 | In development | Provide clear queued, running, paused, complete, warning, failed states |
+| [ ] PLAN-008 | REL-010 | Ready for owner review (partial slice) · R103 | Provide clear queued, running, paused, complete, warning, failed states |
 | [ ] PLAN-009 | REL-023 | In development | Never fabricate task completion when a worker exits unexpectedly |
-| [ ] PLAN-010 | IMP-003 | In development | Compatibility detection for MP4, MOV, MKV, WebM, AVI, M4V, and TS |
+| [ ] PLAN-010 | IMP-003 | Ready for owner review (partial slice) · R104 | Compatibility detection for MP4, MOV, MKV, WebM, AVI, M4V, and TS |
 | [ ] PLAN-011 | IMP-009 | Not started | Read multiple audio tracks, channel layouts, and embedded subtitles |
 | [ ] PLAN-012 | IMP-013 | Ready for owner review (partial slice) · R57–R59 | Check media corruption, missing frames, silent tracks, and incomplete files |
-| [ ] PLAN-013 | IMP-022 | In development | Random-access loading without decoding an entire long video into RAM |
+| [ ] PLAN-013 | IMP-022 | Ready for owner review (partial slice) · R105 | Random-access loading without decoding an entire long video into RAM |
 | [ ] PLAN-014 | ASR-008 | In development | Transcribe long files in bounded, overlapping windows |
 | [ ] PLAN-015 | ASR-009 | In development | Reconcile repeated words at chunk boundaries |
 | [ ] PLAN-016 | ASR-010 | Ready for owner review (partial slice) · R96–R97 | Detect untranscribed opening, ending, and internal gaps |
-| [ ] PLAN-017 | ASR-011 | In development | Show speech-coverage map including silence and uncertainty |
+| [ ] PLAN-017 | ASR-011 | Ready for owner review (partial slice) · R106 | Show speech-coverage map including silence and uncertainty |
 | [ ] PLAN-018 | ASR-012 | In development | Retry all failed or suspicious gaps without restarting completed work |
 | [ ] PLAN-019 | ASR-013 | In development | Save incremental transcription checkpoints across sessions |
-| [ ] PLAN-020 | SEC-002 | In development | Show which files, frames, audio chunks, or transcripts leave the device |
+| [ ] PLAN-020 | SEC-002 | Ready for owner review (partial slice) · R107 | Show which files, frames, audio chunks, or transcripts leave the device |
 | [ ] PLAN-021 | SEC-013 | In development | Avoid exposing API tokens in logs or exported project files |
 | [ ] PLAN-022 | QA-010 | Ready for owner review (partial slice) · R100 | Detect black frames, frozen frames, and missing video |
 | [ ] PLAN-023 | QA-020 | In development | Block misleading success states if verification did not actually run |
@@ -131,9 +133,9 @@
 | [ ] PLAN-054 | VIS-009 | In development | Connect action timestamps to corresponding original source frames |
 | [ ] PLAN-055 | VIS-010 | Not started | Show evidence thumbnails and original timestamps for AI conclusions |
 | [ ] PLAN-056 | VIS-013 | Not started | Use detailed analysis around high-interest event windows |
-| [ ] PLAN-057 | MC-005 | In development | Support user-created synchronization markers |
-| [ ] PLAN-058 | MC-006 | In development | Show and correct sync offset and drift over long recordings |
-| [ ] PLAN-059 | MC-009 | In development | Display which source intervals overlap in original event time |
+| [ ] PLAN-057 | MC-005 | Ready for owner review (partial slice) · R108 | Support user-created synchronization markers |
+| [ ] PLAN-058 | MC-006 | Ready for owner review (partial slice) · R109 | Show and correct sync offset and drift over long recordings |
+| [ ] PLAN-059 | MC-009 | Ready for owner review (partial slice) · R110 | Display which source intervals overlap in original event time |
 | [ ] PLAN-060 | MC-013 | Not started | Flag uncertain or conflicting cross-source event matches |
 | [ ] PLAN-061 | MC-017 | Not started | Switch only when an angle adds relevant story or visual evidence |
 | [ ] PLAN-062 | MC-025 | Not started | Detect unrelated camera shots and reject misleading switches |
@@ -143,9 +145,9 @@
 | [ ] PLAN-066 | CROP-010 | In development | Preview source-to-output crop side by side |
 | [ ] PLAN-067 | CROP-011 | In development | Provide manual focus point and tracking correction controls |
 | [ ] PLAN-068 | CAP-001 | In development | Editable dedicated caption tracks and caption regions |
-| [ ] PLAN-069 | CAP-004 | In development | Manual caption timing, splitting, merging, and retiming |
+| [ ] PLAN-069 | CAP-004 | Ready for owner review (partial slice) · R111 | Manual caption timing, splitting, merging, and retiming |
 | [ ] PLAN-070 | CAP-010 | Not started | Auto-adjust captions away from faces, HUD, and important objects |
-| [ ] PLAN-071 | CAP-012 | In development | Caption proofreading, punctuation, and speaker labels |
+| [ ] PLAN-071 | CAP-012 | Ready for owner review (partial slice) · R112 | Caption proofreading, punctuation, and speaker labels |
 | [ ] PLAN-072 | IDX-010 | In development | Connect visible events with corresponding audio and dialogue |
 | [ ] PLAN-073 | IDX-021 | In development | Use coarse scanning followed by targeted high-detail inspection |
 | [ ] PLAN-074 | TEST-023 | In development | Test different output ratios keep faces, HUD, and text in frame |
@@ -154,10 +156,10 @@
 | [ ] PLAN-077 | UX-012 | In development | Small-screen and Chromebook-friendly adaptive layouts |
 | [ ] PLAN-078 | UX-020 | In development | No inert buttons, simulated progress, or deceptive success messages |
 | [ ] PLAN-079 | PRJ-001 | Ready for owner review (partial slice) · R60–R61 | Create, rename, duplicate, archive, delete, and search projects |
-| [ ] PLAN-080 | PRJ-012 | In development | Named versions and comparison between original, AI draft, and manual final |
+| [ ] PLAN-080 | PRJ-012 | Ready for owner review (partial slice) · R113 | Named versions and comparison between original, AI draft, and manual final |
 | [ ] PLAN-081 | PRJ-021 | Ready for owner review (partial slice) · R98–R99 | Project-wide search across clips, assets, transcripts, and comments |
-| [ ] PLAN-082 | ASR-005 | In development | Support word-level timestamps when model capability permits |
-| [ ] PLAN-083 | ASR-026 | In development | Flag uncertain words for review rather than fabricating certainty |
+| [ ] PLAN-082 | ASR-005 | Ready for owner review (partial slice) · R114 | Support word-level timestamps when model capability permits |
+| [ ] PLAN-083 | ASR-026 | Ready for owner review (partial slice) · R115 | Flag uncertain words for review rather than fabricating certainty |
 | [ ] PLAN-084 | EDIT-002 | Ready for owner review (partial slice) · R91 | Show frame-accurate source/program timecodes |
 | [ ] PLAN-085 | EDIT-003 | Ready for owner review (partial slice) · R92 | Insert, overwrite, lift, extract, and reorder clips |
 | [ ] PLAN-086 | EDIT-006 | Ready for owner review (partial slice) · R93 | Ripple edit and automatic gap closure |
@@ -189,6 +191,114 @@ These are **implementation slices**, not the full master IDs. They remain unchec
 - [ ] **R101** · PLAN-076 — Ctrl/Cmd+K opens a keyboard navigable search palette for all actual editor workspaces plus literal project/source evidence. **Test:** Press Ctrl+K, type "production" and Enter to open Production Tools; repeat to find an original transcript phrase, select it, and verify the source preview seeks to its true timestamp. Press Escape to close, and check that no cloud request or unrelated fabricated match occurs.
 
 **Known limits:** Coverage is based on word timestamp spans, not actual audio or an ASR accuracy percentage. Sampled visual frames are **not** an exhaustive source scan or final-render verification. Sparse dialogue does not automatically mean missing audio. Search is literal, not full semantic video indexing. These additions do not fulfill professional visual QA, codec compatibility, all-source waveform scanning, or the entire existing 100-item plan. Chrome browser validation on your actual videos is still required.
+
+### November 10 development wave — audit of all 47 previously in-development items
+
+**Scope reviewed:** All 47 original in-development PLAN IDs have been reconciled against the program. This release advances **14 to reviewable partial implementation slices**, while **33 remain in development** and **14 pre-existing not-started milestones remain unchanged**. Total 100 PLAN milestones: **53 partial-review slices / 33 in development / 14 not started**. The 100 IDEA milestones remain unstarted.
+
+Important: **Reviewable partial slice** is NOT fully implemented and is NOT checked or approved. A broad PLAN milestone stays open until its entire master acceptance criteria work on real footage.
+
+**Still in development (33):** PLAN-001, PLAN-005, PLAN-006, PLAN-009, PLAN-014, PLAN-015, PLAN-018, PLAN-019, PLAN-021, PLAN-023, PLAN-024, PLAN-025, PLAN-051, PLAN-053, PLAN-054, PLAN-063, PLAN-065, PLAN-066, PLAN-067, PLAN-068, PLAN-072, PLAN-073, PLAN-074, PLAN-077, PLAN-078, PLAN-088, PLAN-090, PLAN-091, PLAN-093, PLAN-096, PLAN-097, PLAN-098, PLAN-099. These require deeper work such as actual cross-session recovery, source-verified visual tracking, full caption track separation, multi-hour testing, real audio transitions/ducking and dependable native renderer validation.
+
+**No silent redesign:** All new controls live in expandable panels inside existing Media, Transcript, AI Director and Production Tools. Previously designed editor workspaces and modes are retained.
+
+**Current automated checks:** Source-time word edit and split/merge, fitted real pair sync, read-only snapshot diff, bounded file probes, and a real Chromium video/SRT browser test. Browser test passing is engineering evidence only.
+
+| Original PLAN ID | Engineering state | Evidence or remaining work |
+| --- | --- | --- |
+| PLAN-001 | In development | Requires real interruption, restore and regression validation at production scale |
+| PLAN-002 | Ready for *partial* owner review | R102 · new code available for specific owner test; broader requirement still open |
+| PLAN-005 | In development | Requires real interruption, restore and regression validation at production scale |
+| PLAN-006 | In development | Requires real interruption, restore and regression validation at production scale |
+| PLAN-008 | Ready for *partial* owner review | R103 · new code available for specific owner test; broader requirement still open |
+| PLAN-009 | In development | Requires real interruption, restore and regression validation at production scale |
+| PLAN-010 | Ready for *partial* owner review | R104 · new code available for specific owner test; broader requirement still open |
+| PLAN-013 | Ready for *partial* owner review | R105 · new code available for specific owner test; broader requirement still open |
+| PLAN-014 | In development | Needs real long-source accuracy, caption track or checkpoint validation |
+| PLAN-015 | In development | Needs real long-source accuracy, caption track or checkpoint validation |
+| PLAN-017 | Ready for *partial* owner review | R106 · new code available for specific owner test; broader requirement still open |
+| PLAN-018 | In development | Needs real long-source accuracy, caption track or checkpoint validation |
+| PLAN-019 | In development | Needs real long-source accuracy, caption track or checkpoint validation |
+| PLAN-020 | Ready for *partial* owner review | R107 · new code available for specific owner test; broader requirement still open |
+| PLAN-021 | In development | Requires additional end-to-end implementation and real-file validation |
+| PLAN-023 | In development | Requires additional end-to-end implementation and real-file validation |
+| PLAN-024 | In development | Requires real interruption, restore and regression validation at production scale |
+| PLAN-025 | In development | Requires real interruption, restore and regression validation at production scale |
+| PLAN-051 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-053 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-054 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-057 | Ready for *partial* owner review | R108 · new code available for specific owner test; broader requirement still open |
+| PLAN-058 | Ready for *partial* owner review | R109 · new code available for specific owner test; broader requirement still open |
+| PLAN-059 | Ready for *partial* owner review | R110 · new code available for specific owner test; broader requirement still open |
+| PLAN-063 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-065 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-066 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-067 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-068 | In development | Needs real long-source accuracy, caption track or checkpoint validation |
+| PLAN-069 | Ready for *partial* owner review | R111 · new code available for specific owner test; broader requirement still open |
+| PLAN-071 | Ready for *partial* owner review | R112 · new code available for specific owner test; broader requirement still open |
+| PLAN-072 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-073 | In development | Needs frame-level visual/event correctness and independent POV verification |
+| PLAN-074 | In development | Requires real interruption, restore and regression validation at production scale |
+| PLAN-077 | In development | Requires additional end-to-end implementation and real-file validation |
+| PLAN-078 | In development | Requires additional end-to-end implementation and real-file validation |
+| PLAN-080 | Ready for *partial* owner review | R113 · new code available for specific owner test; broader requirement still open |
+| PLAN-082 | Ready for *partial* owner review | R114 · new code available for specific owner test; broader requirement still open |
+| PLAN-083 | Ready for *partial* owner review | R115 · new code available for specific owner test; broader requirement still open |
+| PLAN-088 | In development | Needs end-to-end preview/render parity and control validation |
+| PLAN-090 | In development | Needs end-to-end preview/render parity and control validation |
+| PLAN-091 | In development | Needs end-to-end preview/render parity and control validation |
+| PLAN-093 | In development | Needs end-to-end preview/render parity and control validation |
+| PLAN-096 | In development | Needs actual codec/encoder and full output verification |
+| PLAN-097 | In development | Needs actual codec/encoder and full output verification |
+| PLAN-098 | In development | Needs actual codec/encoder and full output verification |
+| PLAN-099 | In development | Needs actual codec/encoder and full output verification |
+
+#### Owner acceptance R102–R115 — code added, acceptance unchecked
+
+**None of the 14 new review checkboxes are approved.** Passing tests or merging code is not an owner approval. These checks cover narrow functionality only and do not attest that the entire related master PLAN requirement is complete.
+
+- [ ] **R102** · **PLAN-002** · Compare current project to an existing real saved recovery snapshot
+  - **Owner test:** In Production Tools create a named snapshot, alter actual cut timing, then use Compare saved version. Confirm changes show source cut IDs; no restore or overwrite occurs.
+
+- [ ] **R103** · **PLAN-008** · Separate true paused/running/complete process states
+  - **Owner test:** Create a paused transcription checkpoint; in Production Tools check that saved source progress is paused, not complete. While transcription actually runs, only its active source may show running.
+
+- [ ] **R104** · **PLAN-010** · Identify common containers and test decoder support on original recording
+  - **Owner test:** Import MP4/MKV/WebM and a recognized unsupported format; open Media → Real source codec test. A known extension must never be treated as proven playable.
+
+- [ ] **R105** · **PLAN-013** · Random-access decode two original source positions
+  - **Owner test:** Use a playable long source, click Test original video decoder at start and middle. Both decoded frame timestamps must be real. No full video decoding may be required.
+
+- [ ] **R106** · **PLAN-017** · Visualize actual timestamp coverage and uncertainty
+  - **Owner test:** Import a partial original-timestamp SRT for a longer source, open Transcript → Transcript coverage & word proofreading. Confirm green intervals show timed words, gaps are NOT labeled silence.
+
+- [ ] **R107** · **PLAN-020** · Explain exact known local/cloud media payload pathways
+  - **Owner test:** In Production Tools read Where your content goes. Confirm real source frames are local by default, while remote Director frame/contact-sheet or diarization uploads are disclosed as optional.
+
+- [ ] **R108** · **PLAN-057** · Record manual paired timestamps for two original camera recordings
+  - **Owner test:** Import two original POV recordings, open AI Director → Manual event-pair alignment and add the same event time in each POV twice. Check first mark persists before a pair can be fitted.
+
+- [ ] **R109** · **PLAN-058** · Fit and validate drift from real paired markers
+  - **Owner test:** Provide accurate marks near beginning/end with under 0.5% clock drift; inspect offset, scale and residual. Intentionally wrong pair must be rejected with a clear error.
+
+- [ ] **R110** · **PLAN-059** · Expose actual shared event-time overlap
+  - **Owner test:** After validated event pairs, read overlap start and end. Confirm correct duration using original source timestamps, and that no match or outcome is claimed without checking footage.
+
+- [ ] **R111** · **PLAN-069** · Edit, retime, split and merge original caption words
+  - **Owner test:** Import an SRT, open Transcript → Word proofreading, edit a word and its start/end, split a two-word item, merge an adjacent same-speaker word, Undo, then save/load.
+
+- [ ] **R112** · **PLAN-071** · Proofread wording and speaker labels without rewriting media
+  - **Owner test:** Change a mistaken original transcript word and speaker, save, and verify the original recording unchanged and the corrected caption is retained after project save.
+
+- [ ] **R113** · **PLAN-080** · Compare a named saved version with the current manual edit
+  - **Owner test:** Save a named snapshot, duplicate/edit a timeline cut, compare and check added/removed/changed cut IDs and settings. Three-way AI draft comparison is NOT yet included.
+
+- [ ] **R114** · **PLAN-082** · Expose model-versus-estimated timestamp uncertainty for manual repair
+  - **Owner test:** With SRT or Whisper source words, confirm missing word alignment is labeled estimated. Manually repair a timestamp and verify it changes to manual-reviewed; not automatically model-verified.
+
+- [ ] **R115** · **PLAN-083** · Flag uncertain timings and clear individually reviewed items
+  - **Owner test:** Use the only-flagged filter; correct a word and confirm it leaves the unreviewed list. Confirm there is no invented confidence value where the model supplies none.
 
 ### New unstarted idea backlog — IDEA-001–IDEA-100
 
