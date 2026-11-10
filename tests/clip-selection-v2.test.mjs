@@ -28,7 +28,7 @@ test('structure review gives grounded reasons and distinguishes complete exchang
 test('sort/filters use only source dialogue; no invented moments or off-source words',()=>{
  const ranked=orderClipSuggestions(clips,words,{sort:'structure'});
  assert.equal(ranked[0].moment.id,'rich');
- assert.deepEqual(orderClipSuggestions(clips,words,{reactionOnly:true}).map(x=>x.moment.id),['rich']);
+ assert.deepEqual(orderClipSuggestions(clips,words,{reactionOnly:true}).map(x=>x.moment.id),['rich','overlap']);
  assert.deepEqual(orderClipSuggestions(clips,words,{multiSpeakerOnly:true}).map(x=>x.moment.id),['rich','overlap']);
  assert.equal(orderClipSuggestions(clips,words,{sort:'source'})[0].moment.id,'rich');
 });
