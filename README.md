@@ -21,6 +21,7 @@
 - [30 additional master-linked implementation checks (R66–R95)](#new-implementation-review-r66r95-story-proof-and-precision-editing) — actual source-story review, safe cut operations and precise timecode tools.
 - [Engineering status board — all 100 existing planned milestones](#engineering-status-board--plan-001plan-100) — not started, in development, or owner review.
 - [Audit of 47 previously in-development milestones](#november-10-development-wave--audit-of-all-47-previously-in-development-items) — new review slices and remaining incomplete work.
+- [Clip quality and simpler finder review R117–R122](#v190-owner-review-new-unchecked-acceptance-items) — real source expansion and coherent compilations.
 - [15 new owner-review checks R102–R116](#owner-acceptance-r102r116--code-added-acceptance-unchecked) — explicit manual tests.
 - [100 additional unstarted proposals](#new-unstarted-idea-backlog--idea-001idea-100) — IDEA-001–IDEA-100 for future planning.
 - [New owner-review checks R96–R101](#new-owner-acceptance-checks-r96r101--2026-11-09) — source gap review and project-wide evidence search.
@@ -47,6 +48,31 @@
 **Likely not present as full standalone tools yet:** Quick Create as a distinct workspace, Content Factory as a full batch-production workspace, desktop companion, professional multi-track node compositor, advanced collaborative editing, generative video/B-roll suite, and universal codec converter. Do **not** search the current site for these as if they were already completed.
 
 **Important distinction:** “Control present in the app” means you can try it; it is **not** an owner acceptance, a guarantee of correct output, or proof that all parts of a 494-item master requirement are finished.
+
+## v1.9.0 — Better real clips, complete conversations and simpler editing (owner review pending)
+
+**This release responds to reports that clips are cut too short, the finder can choose unrelated or weak moments, and the technical controls are confusing.** The earlier 47-item backlog has **not** been declared finished; this is a targeted editing improvement instead of another status-only update.
+
+**Try it (no coding, Python or complex settings required):**
+
+1. In **Media**, import your original video; select **Add transcript** to run local Whisper or import matching original-timestamp SRT. Return with **Find funny clips / stories**.
+2. Choose **Funny clips** (complete joke/reaction), **A funny story** (related setup to payoff), or **Themed compilation** (separate jokes about the same specific subject).
+3. Preview the original recording. If a suggestion starts too late or ends too early, click **+5s context** on its card. Choose moments you actually like and **Build selected clips in Editor**. Connected story cards can assemble them together in original chronological order.
+4. In **Editor**, click any video cut. The first panel has **+5s after**, **+5s before**, **+15s on both sides**, **Include full conversation**. Exact source In and Out remain editable below. Undo is available. Context buttons use the ORIGINAL recording and never fabricate new footage.
+5. Optional **AI Director** has plain choices: *Basic keyword matching (no AI understanding)*, *On-device topic similarity*, or *Contextual AI review (uses your API)*. The technical match-score, creativity and call-limit controls are under **Advanced search controls**. A score is **not** proof the clip is funny or likely to go viral.
+
+**What changed technically:** Local dialogue suggestions now preserve consecutive speech as one real source interval with nearby setup/reaction, rather than splitting at ordinary speaker pauses. The hosted language-model prompt asks for complete source-grounded setup → development → payoff/reaction, chronological integrity and concrete recurring subjects; it rejects unaligned cross-source mixes. Successful remote AI clip reviews no longer silently append locally generated keyword filler. Humor AI processing with a limited call budget samples different transcript hours and marks incomplete coverage. These are editing improvements, **not guarantees of semantic accuracy**. The automatic conversation extension stops at pauses and bounds its context scan; manual +5/+15 controls can continue until the source recording ends. No default 75-second cap.
+
+### v1.9.0 owner review: new, unchecked acceptance items
+
+- [ ] **R117** — **Extend real source footage:** Import a long video, trim a cut to a short excerpt, then in Editor use +5s before, +5s after and +15s both. Confirm it adds real source frames, clamps to media boundaries and does not change the original file.
+- [ ] **R118** — **Complete the conversation and undo:** Use a partial SRT clip missing its setup/reaction. Click Include full conversation, verify the whole source dialogue is present in the timeline and burned-in captions remain aligned; Undo restores the previous cut. Test later music/markers still align when clips grow.
+- [ ] **R119** — **Improve Director clip boundaries:** Search a real video for multiple spoken jokes and reactions. Check local proposals do not splice consecutive phrases into jump cuts and AI proposals include actual setup, payoff and reactions rather than an unsupported single quote.
+- [ ] **R120** — **Coherent stories and compilations:** Choose Themed compilation, check proposed parts share a specific original conversation topic, include separate funny moments in chronological order, and verify an unrelated scene is not silently inserted.
+- [ ] **R121** — **Simplified controls:** Find the Media shortcuts, three simple finder goals, clearly explained AI-vs-keyword mode and collapsed technical search settings on Chromebook and phone without losing the original editor tools.
+- [ ] **R122** — **Long-source and paid AI coverage:** With an hour-plus actual transcript, verify AI requests distribute across source hours when the paid call limit is small, incomplete coverage is shown accurately, and successful AI results are not mixed with unmarked keyword fallback.
+
+**Acceptance: all six are unchecked.** Test passes and a merged commit do not authorize marking them approved.
 
 ## Master feature checklist — OWNER APPROVAL REQUIRED
 
@@ -2813,7 +2839,9 @@ Report any feature as broken using its stable ID. A report goes here **and the i
 
 | Feature ID | Owner-reported problem | Reported date | Engineering notes / attempted fix | Owner re-approved? |
 | --- | --- | --- | --- | --- |
-| _None recorded against this new checklist yet_ | _Add reported problems here_ | — | — | No |
+| R117 / R118 / EDIT-clip-boundaries | Clip proposals sometimes stop before the full conversation, punchline or reaction; owner wants to expand individual timeline segments | 2026-11-10 | v1.9.0 adds real-media +5/+15, automatic SRT context, timeline-ripple and Undo; awaiting owner test on actual long recordings | **No** |
+| R119 / R120 / HUMOR-story-coherence | Weak clips and mismatched story/compilation topics; prompting must find complete, naturally related moments | 2026-11-10 | v1.9.0 strengthens source-grounded AI prompts, avoids mixing remote results with generic keyword matches and keeps connected local speech; effectiveness must be reviewed on real media | **No** |
+| R121 / UX-find-clips | Finder/Director controls are too complicated; labels such as heuristic and score lack useful explanation | 2026-11-10 | v1.9.0 adds guided three-goal clip finder, clear provider labels, contextual help and optional advanced controls; Chromebook UI review pending | **No** |
 
 ### Acceptance change record
 
