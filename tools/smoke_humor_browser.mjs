@@ -141,5 +141,33 @@ try{
  });
  if(savedProject.auto<1)throw Error('No real automatic recovery checkpoint was stored after saved project edits');
  console.log('PASS: automatic IndexedDB project recovery checkpoints exist after save '+JSON.stringify(savedProject));
+ // Project library, sampled original media identity and verified backups in real Chrome.
+ await page.locator('button[data-tab="tools"]').click();
+ await page.waitForFunction(()=>document.querySelector('#toolsSaveLibrary'),null,{timeout:8000});
+ await page.locator('#toolsVerifySources').click();
+ await page.waitForFunction(()=>document.querySelector('#toolsVerifyStatus')?.textContent?.includes('1/1 sampled fingerprints matched'),null,{timeout:12000});
+ await page.locator('#toolsSaveLibrary').click();
+ await page.waitForFunction(()=>document.querySelectorAll('[data-library-load]').length===1,null,{timeout:10000});
+ await page.locator('[data-library-copy]').first().click();
+ await page.waitForFunction(()=>document.querySelectorAll('[data-library-load]').length===2,null,{timeout:10000});
+ await page.locator('[data-library-load]').first().click();
+ await page.waitForFunction(async()=>{
+  const project=await (await import('./src/storage.js')).loadProject();
+  return project?.name?.includes('copy')&&project?.segments?.length>=2;
+ },null,{timeout:12000});
+ await page.locator('button[data-tab="tools"]').click();
+ const originalId=await page.evaluate(async()=>{const p=await (await import('./src/storage.js')).loadProject();return p?.id});
+ const dlBackup=page.waitForEvent('download',{timeout:10000});
+ await page.locator('#toolsExportBackup').click();
+ const downloaded=await dlBackup,backupStream=await downloaded.createReadStream();
+ const chunks=[];for await(const item of backupStream)chunks.push(item);
+ const backupText=Buffer.concat(chunks).toString('utf8'),actualBackup=JSON.parse(backupText);
+ if(actualBackup.format!=='shortform-studio-verified-backup'||!actualBackup.integrity?.value)throw Error('Verified project backup missing manifest');
+ const corrupted=structuredClone(actualBackup);corrupted.project.name='tampered name';
+ await page.locator('#toolsImportBackup').setInputFiles({name:'corrupted-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(corrupted))});
+ await page.waitForFunction(()=>document.querySelector('#toastArea')?.textContent?.includes('Verified restore refused'),null,{timeout:10000});
+ const unchanged=await page.evaluate(async()=>{const p=await (await import('./src/storage.js')).loadProject();return p?.id});
+ if(unchanged!==originalId)throw Error('Corrupt imported backup replaced saved project state');
+ console.log('PASS: real sampled original media identity, saved/duplicate project library, SHA-256 portable backup and fail-closed corrupt restore');
  console.log('PASS: local SRT humor candidates, raw TXT, source modal, chosen compilation, crop, fullscreen and persistence '+JSON.stringify(stored));
 }finally{await browser?.close();server.kill('SIGTERM')}
