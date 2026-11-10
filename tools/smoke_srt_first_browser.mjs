@@ -49,8 +49,8 @@ try{
  if((await page.evaluate(()=>document.body.classList.contains('simple-ui')))!==wasSimple)
   throw Error('Workspace layout toggle cannot restore the original mode');
  for(const tab of ['media','transcript','director','humor','editor','export','settings','tools']){
-  await page.locator('.studio-guide [data-guide-tab="'+(tab==='tools'?'editor':tab)+'"]').first().click();
-  if(tab==='tools')await page.locator('[data-tab="tools"]').click();
+  if(['director','settings','tools'].includes(tab))await page.locator('[data-tab="'+tab+'"]').click();
+  else await page.locator('.studio-guide .guide-stage[data-guide-tab="'+tab+'"]').click();
   const ready=await page.locator('#inspectorContent .studio-guide').count();
   if(!ready)throw Error('Missing guidance for tab '+tab);
   const current=await page.evaluate(()=>document.querySelector('.tab.active')?.dataset.tab);
