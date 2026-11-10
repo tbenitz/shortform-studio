@@ -21,6 +21,7 @@
 - [30 additional master-linked implementation checks (R66–R95)](#new-implementation-review-r66r95-story-proof-and-precision-editing) — actual source-story review, safe cut operations and precise timecode tools.
 - [Engineering status board — all 100 existing planned milestones](#engineering-status-board--plan-001plan-100) — not started, in development, or owner review.
 - [Audit of 47 previously in-development milestones](#november-10-development-wave--audit-of-all-47-previously-in-development-items) — new review slices and remaining incomplete work.
+- [New v2.0.0 review R123–R129](#v2000-owner-acceptance--all-unchecked) — default SRT, better clip selection and guided UI.
 - [Clip quality and simpler finder review R117–R122](#v190-owner-review-new-unchecked-acceptance-items) — real source expansion and coherent compilations.
 - [15 new owner-review checks R102–R116](#owner-acceptance-r102r116--code-added-acceptance-unchecked) — explicit manual tests.
 - [100 additional unstarted proposals](#new-unstarted-idea-backlog--idea-001idea-100) — IDEA-001–IDEA-100 for future planning.
@@ -48,6 +49,28 @@
 **Likely not present as full standalone tools yet:** Quick Create as a distinct workspace, Content Factory as a full batch-production workspace, desktop companion, professional multi-track node compositor, advanced collaborative editing, generative video/B-roll suite, and universal codec converter. Do **not** search the current site for these as if they were already completed.
 
 **Important distinction:** “Control present in the app” means you can try it; it is **not** an owner acceptance, a guarantee of correct output, or proof that all parts of a 494-item master requirement are finished.
+
+## v2.0.0 — Better real clips, SRT-first subtitles, simpler app (new code; owner review pending)
+
+**Start here:** Drag your original video and a same-named SRT file in together (for example gameplay.mp4 + gameplay.en.srt). The matching **SRT automatically becomes the default caption and timed transcript**. If you have no SRT, choose **Transcript → Run local Whisper**. If you do have one, Whisper can analyze audio separately without replacing your SRT; you can deliberately switch caption sources.
+
+**No need to understand editor internals:** Every workspace now opens with the same five-stage guide: **1. Add video → 2. Subtitles → 3. Find clips → 4. Edit → 5. Export**. The guide points to an actual next step and keeps all eight existing workspaces accessible. Spacious layout is the default; use the compact-layout toggle if preferred. Settings are organized into collapsible sections.
+
+**More useful clip selection:** In **Find Clips & Stories**, select **Most complete dialogue first**, **Written reactions first**, or **Longest original conversation first**; optionally require explicit reaction words or multiple speaker labels. It ranks ORIGINAL source-timed dialogue using readable evidence, not imagined visual events, comedy quality or virality predictions. **Add up to 5 different source moments to review** avoids overlapping duplicates, but never automatically pastes unrelated footage together. Each suggestion also has **Include full exchange** to add original source setup, reply and reaction.
+
+**Safeguards:** Filename-matched sidecars avoid attaching captions to unrelated cameras. Ambiguous multi-source files are not silently assigned. Switching SRT ↔ Whisper keeps alternative tracks and edits. The preview and export use the active source-timed captions. Verify subtitles after converting/relinking sources; timestamps alone cannot prove identity.
+
+### v2.0.0 owner acceptance — all unchecked
+
+- [ ] **R123 — SRT by default:** Import a matching video plus SRT/VTT together. Verify original timed captions appear without Whisper, and SRT is active and saved.
+- [ ] **R124 — Separate Whisper / SRT:** Run optional Whisper after importing SRT; verify subtitles do not change during transcription, pause/resume works and explicit switching keeps both sources and corrected text.
+- [ ] **R125 — Cross-camera subtitle safety:** Import two POV recordings with distinct subtitles, including an English-suffixed SRT. Check each matches by filename and ambiguous sidecars do not attach to the wrong POV.
+- [ ] **R126 — Clip review filters:** Rank actual original dialogue by context, reactions or length, filter by speaker changes and check that scores explain evidence without guaranteeing humor or visual recognition.
+- [ ] **R127 — Diverse shortlist and full exchange:** Add five distinct suggestions to review without repeating overlapping footage, extend the actual source conversation, inspect original frames and build only after choosing.
+- [ ] **R128 — All-tab guided UX:** On Chromebook and phone, navigate Media, Transcript, Director, Find Clips, Editor, Export, Production Tools and Settings. Verify spacious/compact layout and advanced tools remain available.
+- [ ] **R129 — Full regression review:** Check original importing, multi-POV, cropping, SRT export, rendered captions, undo, saves and actual long-video clip quality.
+
+**All existing and new owner-approval checkboxes remain unchecked.** Tests and commits never imply owner acceptance.
 
 ## v1.9.0 — Better real clips, complete conversations and simpler editing (owner review pending)
 
@@ -2841,6 +2864,9 @@ Report any feature as broken using its stable ID. A report goes here **and the i
 | --- | --- | --- | --- | --- |
 | R117 / R118 / EDIT-clip-boundaries | Clip proposals sometimes stop before the full conversation, punchline or reaction; owner wants to expand individual timeline segments | 2026-11-10 | v1.9.0 adds real-media +5/+15, automatic SRT context, timeline-ripple and Undo; awaiting owner test on actual long recordings | **No** |
 | R119 / R120 / HUMOR-story-coherence | Weak clips and mismatched story/compilation topics; prompting must find complete, naturally related moments | 2026-11-10 | v1.9.0 strengthens source-grounded AI prompts, avoids mixing remote results with generic keyword matches and keeps connected local speech; effectiveness must be reviewed on real media | **No** |
+| R123–R125 / SRT-caption-source | Owner requests SRT as default subtitle source and no accidental Whisper replacement | 2026-11-10 | v2.0.0 adds SRT-first import, filename-matched sidecars and separate saved tracks; manual review pending | **No** |
+| R126–R127 / CLIP-review-quality | Additional improvements requested for complete funny moments, real conversations and coherent compilations | 2026-11-10 | v2.0.0 adds dialogue evidence ranking, filters, distinct shortlist and full-exchange extension; no guaranteed semantic joke quality | **No** |
+| R128 / ALL-TABS-usability | Multiple tabs too complex with unfamiliar settings and unclear next steps | 2026-11-10 | v2.0.0 adds five-stage navigation, responsive layout and collapsible settings; manual review pending | **No** |
 | R121 / UX-find-clips | Finder/Director controls are too complicated; labels such as heuristic and score lack useful explanation | 2026-11-10 | v1.9.0 adds guided three-goal clip finder, clear provider labels, contextual help and optional advanced controls; Chromebook UI review pending | **No** |
 
 ### Acceptance change record
