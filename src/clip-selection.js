@@ -3,7 +3,7 @@
  * No invented event, unrelated source, or cut is ever introduced.
  */
 import {storyTopicWords} from './humor-stories.js';
-const reaction=/\b(?:haha+|hehe+|laugh(?:ing|ed|s)?|lol|lmao|wow|no way|are you serious|you kidding|that's crazy|that is crazy|oh my god|wtf|what the hell|gotcha|unbelievable)\b/i;
+const reaction=/\b(?:(?:ha){2,}|(?:he){2,}|laugh(?:ing|ed|s)?|lol|lmao|wow|no way|are you serious|you kidding|that's crazy|that is crazy|oh my god|wtf|what the hell|gotcha|unbelievable)\b/i;
 const max=(x,a,b)=>Math.max(a,Math.min(b,x));
 const match=(m,w)=>w.assetId===m.assetId&&Number.isFinite(w.start)&&Number.isFinite(w.end)&&w.end>m.start&&w.start<m.end;
 export function reviewClipStructure(moment,words=[]){
