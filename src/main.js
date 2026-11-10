@@ -1041,6 +1041,80 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
  on('humorFindAI',()=>runFunnySearch(humorView,{forceAI:true}));
  on('humorCancel',()=>{humorAbort?.abort();toast('AI humor scan cancellation requested')});
  on('humorMore',()=>{humorShown+=70;renderInspector()});
+ // Source-truth workbench: original SRT words only; no AI API calls.
+ const currentHumorSelection=()=>{
+  const byId=new Map(viewableHumorMoments(p).map(m=>[m.id,m]));
+  return (p.compilationOrder||[]).map(id=>byId.get(id)).filter(Boolean);
+ };
+ const changeHumorFilter=(id,key)=>{
+  const node=$(id);if(!node)return;
+  const apply=()=>{
+   humorFilters[key]=key==='onlyPlayable'?node.checked:node.value;
+   if(key==='search'){
+    const pos=node.selectionStart??node.value.length;
+    renderInspector();const next=$(id);if(next){next.focus();if(typeof next.setSelectionRange==='function')next.setSelectionRange(pos,pos)}
+   }else renderInspector();
+  };
+  if(key==='search')node.oninput=apply;else node.onchange=apply;
+ };
+ for(const [id,key] of [['humorSearch','search'],['humorSort','sort'],['humorSpeaker','speaker'],['humorOnlyPlayable','onlyPlayable']])
+  changeHumorFilter(id,key);
+ on('humorSelectVisible',()=>{
+  const visible=filterStorySuggestions(viewableHumorMoments(p,{scope:humorScope}),p.assets,humorFilters);
+  if(!visible.length)return toast('No original-source clips match your filters.',true);
+  commit('Selected filtered funny clips');
+  p.compilationOrder=[...new Set([...(p.compilationOrder||[]),...visible.map(m=>m.id)])];
+  update();toast('Selected '+visible.length+' matching original-source clip(s). Review order and context.');
+ });
+ on('humorClearSelection',()=>{
+  if(!(p.compilationOrder||[]).length)return;
+  commit('Cleared story selection');p.compilationOrder=[];update();
+ });
+ on('humorSortChronological',()=>{
+  const chosen=currentHumorSelection();if(chosen.length<2)return;
+  try{
+   const sorted=chronologicalCuts(chosen);
+   commit('Restored source chronology');p.compilationOrder=sorted.map(c=>c.id);update();
+   toast('Selected cuts restored to original source order; verify the edited story in preview.');
+  }catch(error){toast(error.message,true)}
+ });
+ on('humorRemoveDuplicates',()=>{
+  const chosen=currentHumorSelection();if(chosen.length<2)return;
+  const result=deduplicateSourceCuts(chosen);
+  if(!result.removed.length)return toast('No source-overlapping duplicate cuts found.');
+  commit('Excluded repeated source footage');p.compilationOrder=result.kept.map(c=>c.id);update();
+  toast('Excluded '+result.removed.length+' repeat cut(s) from the selection; original suggestions remain.');
+ });
+ const adjustSourceContext=mode=>{
+  const chosen=currentHumorSelection();if(!chosen.length)return;
+  const changed=[];
+  for(const clip of chosen){
+   try{
+    const next=mode==='before'?contextualCut(clip,p.words,p.assets,{before:8,after:0}):
+     mode==='after'?contextualCut(clip,p.words,p.assets,{before:0,after:8}):
+     trimToSpokenDialogue(clip,p.words,p.assets);
+    if(Math.abs(next.start-clip.start)>.001||Math.abs(next.end-clip.end)>.001)changed.push([clip.id,next]);
+   }catch(error){console.warn('Source transcript change unavailable',clip.id,error)}
+  }
+  if(!changed.length)return toast('No safe timed dialogue adjustments available for these source clips.',true);
+  commit('Actual source dialogue adjustment · '+mode);
+  for(const [id,next] of changed){
+   const stored=p.humorMoments.find(m=>m.id===id);
+   if(stored){stored.start=next.start;stored.end=next.end;stored.notes='Range changed '+mode+' using timed SRT dialogue';}
+  }
+  update();toast('Adjusted '+changed.length+' original source clip range(s) from real SRT words. Review before building.');
+ };
+ on('humorAddSetup',()=>adjustSourceContext('before'));
+ on('humorAddPayoff',()=>adjustSourceContext('after'));
+ on('humorTrimToWords',()=>adjustSourceContext('trim'));
+ on('humorExportEvidence',()=>{
+  const selected=currentHumorSelection();if(!selected.length)return toast('Select original-source clips first.',true);
+  download(JSON.stringify(inspectConnectedStory(selected,p.words,p.assets),null,2),String(p.name||'project')+'-story-evidence.json','application/json');
+ });
+ on('humorExportEditPlan',()=>{
+  const selected=currentHumorSelection();if(!selected.length)return toast('Select original-source clips first.',true);
+  download(JSON.stringify(storyEditPlan(p,selected,$('compilationMode')?.value||'replace'),null,2),String(p.name||'project')+'-story-edit-plan.json','application/json');
+ });
  // Choosing a story selects only its actual, same-topic original clips.
  const chooseConnectedStory=storyId=>{
   const stories=findConnectedFunnyStories(viewableHumorMoments(p,{scope:humorScope}));
