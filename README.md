@@ -8,7 +8,7 @@
 
 **Live application:** [Open ShortForm Studio](https://tbenitz.github.io/shortform-studio/) · [See recent GitHub test results](https://github.com/tbenitz/shortform-studio/actions)
 
-**Current development branch (not yet merged/deployed):** [Roadmap Wave pull request #3](https://github.com/tbenitz/shortform-studio/pull/3). New source-health, decoded-frame inspection and Ctrl+K features are available in the branch for code review. The public Pages site only includes them after successful merge/deployment.
+**Roadmap Wave v1.7.2 release:** [Implementation and tests — pull request #3](https://github.com/tbenitz/shortform-studio/pull/3). Source-health, decoded-frame inspection and Ctrl+K navigation become available on the public Pages site after the main-branch deployment succeeds. Always check the latest [deployment status](https://github.com/tbenitz/shortform-studio/actions/workflows/deploy-pages.yml); passing code tests alone does not confirm a public deployment.
 
 **Choose the right section:**
 - [Original 14 review items (R01–R14)](#implementation-batch--available-for-your-review-2026-11-08) — new controls from the latest code batch.
