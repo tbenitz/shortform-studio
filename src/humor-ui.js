@@ -37,7 +37,7 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
  const advanced='<details class="humor-advanced"><summary>Advanced options (optional)</summary>'+
   '<p class="tiny muted">The app automatically uses your configured AI Director key when available, otherwise it uses local transcript matching. Remote AI reads transcript text only and asks permission before sending it.</p>'+
   '<label class="field">Recordings<select id="humorScope"><option value="all" '+(scope==='all'?'selected':'')+'>All recordings</option>'+sourceOptions+'</select></label>'+
-  '<label class="field">Custom humor instructions<textarea id="humorInstructions" rows="3">'+esc(instructions===null?(p.humorInstructions||DEFAULT_HUMOR_INSTRUCTIONS):instructions)+'</textarea></label>'+
+  
   '<label class="field">Local search sensitivity (0 = more possible jokes, 100 = fewer)<input id="humorMinScore" type="number" min="0" max="100" value="'+Number(minScore)+'"></label>'+
   '<label class="field">Maximum paid AI transcript windows<input id="humorMaxCalls" type="number" min="1" max="150" value="'+Number(maxCalls)+'"></label>'+
   '<button id="humorRescan" class="small full" '+(busy?'disabled':'')+'>Rescan transcript (new footage / updated SRT)</button>'+
@@ -46,7 +46,7 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
   '<div class="separator"></div><h3>What do you want to make?</h3>'+
   '<div class="humor-choices"><button id="humorFindLocal" class="'+(mode==='clips'?'primary':'')+'" '+(busy?'disabled':'')+'>☺ Funny clips<small>Find the whole joke, comeback and reaction</small></button>'+
   '<button id="humorFindStory" class="'+(mode==='story'?'primary':'')+'" '+(busy?'disabled':'')+'>▥ A funny story<small>Keep the setup and payoff together</small></button><button id="humorFindCompilation" class="'+(mode==='compilation'?'primary':'')+'" '+(busy?'disabled':'')+'>✦ Themed compilation<small>Group different jokes about the SAME subject</small></button></div>'+
-  '<p class="tiny muted">Original timestamps are preserved · '+(aiConfigured?'AI Director connected — contextual humor review':'No AI key — keyword search only (not AI humor judgment)')+'. No random unrelated cuts.</p>'+
+  '<label class="field">What should the clips be about? (optional)<textarea id="humorInstructions" rows="2" placeholder="E.g. Funny helicopter conversations — keep the setup, comeback and reaction, and group jokes about that same incident">'+esc(instructions===null?(p.humorInstructions||DEFAULT_HUMOR_INSTRUCTIONS):instructions)+'</textarea></label>'+'<p class="tiny muted">Original timestamps are preserved · '+(aiConfigured?'AI Director connected — contextual humor review':'No AI key — keyword search only (not AI humor judgment)')+'. No random unrelated cuts.</p>'+
   advanced+storyDiscoveryFiltersHTML(all,sources,filters,{open:filterOpen})+
   '<div id="humorStatus" class="tiny muted" role="status">'+esc(status||((p.humorScanInfo?.totalBatches)?'Reviewed '+p.humorScanInfo.processedBatches+'/'+p.humorScanInfo.totalBatches+' transcript batches'+(p.humorScanInfo.complete?'':' — PARTIAL'):'Ready. Import a video and its SRT, then choose a button.'))+'</div>'+
   (busy?'<button id="humorCancel" class="small danger full">Cancel analysis</button>':'');
