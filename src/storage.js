@@ -25,3 +25,23 @@ export async function listSnapshots(projectId){
  const rows=await trans('projects','readonly',store=>store.getAll());
  return rows.filter(s=>s&&s.project&&s.projectId===projectId&&s.id).sort((a,b)=>b.createdAt-a.createdAt);
 }
+
+/** Multiple locally named project versions, independent of projects.current.
+ * All source bytes remain in the shared media store. Deleting one metadata copy
+ * must not silently delete files still referenced by another project.
+ */
+export const saveLibraryProject=entry=>{
+ if(entry?.kind!=='library-project'||!entry?.id||!entry?.project)throw Error('A named project entry needs valid metadata.');
+ return trans('projects','readwrite',store=>store.put(entry,'library:'+entry.id));
+};
+export const loadLibraryProject=id=>trans('projects','readonly',store=>store.get('library:'+id));
+export const deleteLibraryProject=id=>trans('projects','readwrite',store=>store.delete('library:'+id));
+export async function listLibraryProjects(){
+ const rows=await trans('projects','readonly',store=>store.getAll());
+ return rows.filter(x=>x?.kind==='library-project'&&x.id&&x.project)
+   .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+}
+export async function sharedMediaReferenced(assetId){
+ const rows=await trans('projects','readonly',store=>store.getAll());
+ return rows.some(x=>Array.isArray(x?.project?.assets)&&x.project.assets.some(a=>a.id===assetId));
+}
