@@ -13,6 +13,7 @@
 - [Newest feature review (R15–R25)](#new-implementation-review-r15r25-favorites-mp4-and-recoverable-projects) — favorites, MP4 output, fresh startup and media reconnection.
 - [Humor, compilation and cropping review (R26–R40)](#new-implementation-review-r26r40-humor-compilations-and-cropping) — what to click and how to approve.
 - [All 40 prioritized future updates](#full-future-update-tracking-queue-next-001next-040) — planned items, plus every existing master requirement.
+- [Next 100 steps from your master requirements (PLAN-001–PLAN-100)](#planned-next-100-master-linked-development-steps-plan-001plan-100) — phased priorities and exact owner acceptance tests.
 - [Simple humor UI and MP4 recovery checks (R41–R46)](#new-implementation-review-r41r46-simple-humor-ai-and-mp4-recovery) — two-mode humor workflow and encoder deployment fix.
 - [Exact click-by-click tests for R01–R14](#hands-on-walkthroughs-for-r01r14) — what to click, how to know it worked, and what to report.
 - [Plain-English video editing and AI glossary](#plain-english-glossary--video-and-ai-terms) — explains the unfamiliar words.
@@ -541,6 +542,530 @@ The **complete original 494-feature master checklist remains below**, including 
 - [ ] **NEXT-040** Advanced compositing, masking and grading — Add professional multi-track effects with verified native-quality output
 
 **Approval policy:** No assistant may check off ANY R, NEXT, or master ID without your explicit approval. Previously approved features get unchecked again if you report breakage.
+
+### Planned next 100 master-linked development steps (PLAN-001–PLAN-100)
+
+**100 unique, traceable additions to the execution queue, not 100 new claims of implementation.** Every PLAN item points to exactly one of the untouched **494 original master IDs**, quotes its master's concrete user-test guidance, and stays unchecked until you expressly approve the completed behavior. These steps add implementation-level tracking *alongside* NEXT-001–NEXT-040, not in place of it. Each is a future work milestone; partially implemented existing controls are not marked complete. Build the next wave only after tests and owner review of preceding dependencies.
+
+**Execution order:** W1 reliability and recovery → W2 real funny stories → W3 source-verified visual/multi-POV and reframing → W4 polished editing, audio and export. The order can be revised without renumbering PLAN IDs or changing owner approvals.
+
+#### Wave 1 — Reliable projects, source integrity and recovery
+
+Make long-video work resilient before expanding AI automation. **25 master-linked steps, each still unchecked.**
+
+- [ ] **PLAN-001** — **Master PRJ-010**: Periodic recovery snapshots with restore points
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Verify recovery snapshots are made automatically at the specified interval, then restore an earlier snapshot. Manual 'Save named snapshot' alone does not satisfy periodic automatic snapshots.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-002** — **Master PRJ-011**: Persistent undo history or saved version checkpoints
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Save an earlier edit, change the timeline, restore it and compare the restored clips, metadata and media references.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-003** — **Master PRJ-016**: Re-link missing media by identity, path, or verified metadata
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Make the specified project or organization change, save it, refresh the site, and verify the same project metadata and edits return without accidentally changing the original source.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-004** — **Master PRJ-022**: Portable backup integrity check and restored-project verification
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Export a portable backup, corrupt a disposable copy, verify integrity checks detect the problem, then restore the valid copy.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-005** — **Master REL-004**: Save granular checkpoints after completed processing chunks
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Start a long disposable processing job, interrupt it, reopen and verify previously completed chunks and edits remain intact.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-006** — **Master REL-005**: Resume safely after browser reload or server restart when persistent backend exists
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Interrupt an actual backed-up analysis job, restart the backend and verify the next run resumes from a saved verified checkpoint. Browser-only work may stop when the tab closes.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-007** — **Master REL-009**: Validate each checkpoint and its source/media identity before reuse
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Start a long disposable processing job, interrupt it, reopen and verify previously completed chunks and edits remain intact.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-008** — **Master REL-010**: Provide clear queued, running, paused, complete, warning, failed states
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Test a supported and an unsupported execution backend and verify the error/fallback label matches what actually ran.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-009** — **Master REL-023**: Never fabricate task completion when a worker exits unexpectedly
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use a long source and monitor memory/storage use or cache behavior; the app must warn and retain projects instead of crashing silently.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-010** — **Master IMP-003**: Compatibility detection for MP4, MOV, MKV, WebM, AVI, M4V, and TS
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Import small real files in every claimed format/codec and verify actual preview decoding or a working conversion path.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-011** — **Master IMP-009**: Read multiple audio tracks, channel layouts, and embedded subtitles
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Import a source with multiple audio/subtitle tracks and confirm each track is detected and selectable.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-012** — **Master IMP-013**: Check media corruption, missing frames, silent tracks, and incomplete files
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use a disposable unsupported or intentionally damaged file and confirm a clear failure with no invented preview.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-013** — **Master IMP-022**: Random-access loading without decoding an entire long video into RAM
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Open a long source at multiple distant timestamps, then save/reopen and relink the original; existing cuts must stay aligned.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-014** — **Master ASR-008**: Transcribe long files in bounded, overlapping windows
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Transcribe a long, disposable recording while observing chunk-by-chunk progress and memory use. Compare words on both sides of window boundaries to ensure no dropped or doubled speech.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-015** — **Master ASR-009**: Reconcile repeated words at chunk boundaries
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Transcribe or import a recording with known words and timings, then compare the named output against actual speech and original timestamps. Watch especially the beginning and end.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-016** — **Master ASR-010**: Detect untranscribed opening, ending, and internal gaps
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use speech near the very start, around a gap and near the end. The coverage display must flag any omitted speech intervals.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-017** — **Master ASR-011**: Show speech-coverage map including silence and uncertainty
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** After transcribing a file with speech, silence and an uncertain interval, open the speech-coverage display. Confirm the full original duration is represented and the silence/uncertain/skipped intervals can be distinguished. Retrying gaps is a separate requirement.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-018** — **Master ASR-012**: Retry all failed or suspicious gaps without restarting completed work
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use a recording with speech before and after silence; check coverage and retry deliberately missing windows without replacing correct words.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-019** — **Master ASR-013**: Save incremental transcription checkpoints across sessions
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Partway through a long disposable transcription, cancel, save, reload and resume at a previously saved time rather than starting over.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-020** — **Master SEC-002**: Show which files, frames, audio chunks, or transcripts leave the device
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Before an authorized cloud analysis, inspect a clear disclosure listing the exact source files, sampled frames, audio or transcript chunks being uploaded; check it matches actual requests.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-021** — **Master SEC-013**: Avoid exposing API tokens in logs or exported project files
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Export project metadata and logs, and confirm full API credentials are not present.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-022** — **Master QA-010**: Detect black frames, frozen frames, and missing video
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use a safe known fault such as no captions or missing source and verify the inspector flags it at the correct position.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-023** — **Master QA-020**: Block misleading success states if verification did not actually run
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-024** — **Master TEST-001**: Test basic import/playback/trim/export without any AI service
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-025** — **Master TEST-025**: Test regression cases for all previously reported broken features
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+#### Wave 2 — Funny clips, real conversations and coherent stories
+
+Stop fabricated/random highlights and make clips useful before adding more effects. **25 master-linked steps, each still unchecked.**
+
+- [ ] **PLAN-026** — **Master SHORT-001**: Identify comedy, action, learning, insights, interview, podcast, and gaming highlights
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-027** — **Master SHORT-002**: Require setup and payoff when generating story-based clips
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Generate from a source with a complete real event and verify setup, action and resolution are visible in the edited candidate.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-028** — **Master SHORT-003**: Allow natural clip length when the complete story requires it
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Generate from a source with a complete real event and verify setup, action and resolution are visible in the edited candidate.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-029** — **Master SHORT-004**: Search distant source segments when meaningfully connected
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-030** — **Master SHORT-007**: Detect duplicate stories across proposed outputs
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Generate several candidates from overlapping footage and verify unnecessary identical stories are flagged.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-031** — **Master SHORT-009**: Rank candidates with evidence and transparent rationale
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-032** — **Master SHORT-010**: Allow manual selection, deletion, and revision of candidates
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-033** — **Master SHORT-012**: Create long-form compilations of approved stories
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Request the stated output, watch each proposed video from beginning to end and compare its shots with the original sources. Reject missing setups, repeated filler or invented continuity.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-034** — **Master DIR-004**: Set adaptive duration targets, hard limits, and story-completeness preference
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-035** — **Master DIR-008**: Identify story candidates from actual indexed evidence
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-036** — **Master DIR-009**: Identify hook, setup, development, key moment, reaction, and payoff
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Select a real event with setup, action and ending. Watch the AI candidate completely and confirm it forms a coherent story.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-037** — **Master DIR-010**: Assemble complete coherent stories across distant source intervals
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-038** — **Master DIR-011**: Preserve chronology unless explicitly approved to alter it
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-039** — **Master DIR-012**: Avoid unrelated, fabricated, or repetitively recycled clips
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Create a known event surrounded by unrelated footage. Compare the AI draft to source video and verify no unrelated, imaginary or repeatedly reused shots were added.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-040** — **Master DIR-013**: Prefer quality over artificially meeting an output count
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Set an explicit creative brief, run a real analysis, open its source-linked result in the Editor and verify the action genuinely occurred. A label, script or demo card is not enough.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-041** — **Master DIR-017**: Generate an edit plan with source-referenced clip ranges
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Ask the Director to perform an edit, then open the normal timeline and verify real editable clips changed.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-042** — **Master DIR-024**: Avoid hardcoded sample stories, fixed timestamps, or placeholder videos
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Run the same request twice and check no fabricated timestamps, unrelated cuts or mislabeled duplicate results are produced.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-043** — **Master DIR-028**: Save AI instructions, settings, and edit-rationale history
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Enter a clear request and an explicit exclusion; regenerate and verify selected source footage follows both.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-044** — **Master QA-001**: Separate measurable technical validation from subjective quality opinions
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use both a coherent and a visibly flawed edit; verify quality notes explain specific real differences, not arbitrary impressive numbers.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-045** — **Master QA-002**: Show explanations and evidence for each quality score
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use both a coherent and a visibly flawed edit; verify quality notes explain specific real differences, not arbitrary impressive numbers.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-046** — **Master QA-003**: Evaluate story clarity, setup, payoff, and completeness
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use both a coherent and a visibly flawed edit; verify quality notes explain specific real differences, not arbitrary impressive numbers.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-047** — **Master QA-004**: Detect missing context and misleading reordering
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-048** — **Master QA-006**: Check duplicate, recycled, and unrelated scene choices
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Introduce or identify a known defect; verify the reviewer reports the correct issue at the right time with evidence, and check that a clean case does not trigger the same warning.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-049** — **Master TEST-010**: Test story assembly contains the actual action and relevant reaction
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-050** — **Master IDX-011**: Build event sequences rather than isolated keyword matches
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+#### Wave 3 — Visual evidence, synchronized POV and person-focused framing
+
+Only use visible evidence and verifiable cross-source relationships, then improve subject tracking and captions. **25 master-linked steps, each still unchecked.**
+
+- [ ] **PLAN-051** — **Master VIS-003**: Track visible subjects, objects, and motion across frames
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Inspect sampled frames with a known visual action and a known absent action; verify the model's labels and timestamps match real video.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-052** — **Master VIS-004**: Detect relevant visual actions from multiple supporting frames
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Inspect sampled frames with a known visual action and a known absent action; verify the model's labels and timestamps match real video.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-053** — **Master VIS-006**: Distinguish visually observable actions from inferred outcomes
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-054** — **Master VIS-009**: Connect action timestamps to corresponding original source frames
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-055** — **Master VIS-010**: Show evidence thumbnails and original timestamps for AI conclusions
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Open the original frames behind a claim and confirm whether the event is actually visible; uncertain claims should remain labeled uncertain.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-056** — **Master VIS-013**: Use detailed analysis around high-interest event windows
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Run the relevant visual analysis on a known moment and compare its claim with the actual decoded video frames. Inspect evidence timestamps and uncertainty, not merely a confidence score.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-057** — **Master MC-005**: Support user-created synchronization markers
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Choose a shared sound/phrase in both files, align it, then verify another shared event near the end of the recordings.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-058** — **Master MC-006**: Show and correct sync offset and drift over long recordings
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Align a shared event at both the start and end of two long recordings. Verify any clock drift is handled rather than an offset only.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-059** — **Master MC-009**: Display which source intervals overlap in original event time
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Show the two files' true shared recording-time interval; disjoint sections must not be treated as overlapping.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-060** — **Master MC-013**: Flag uncertain or conflicting cross-source event matches
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-061** — **Master MC-017**: Switch only when an angle adds relevant story or visual evidence
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Request an encounter where only POV A shows the fight. The final edit must not switch to POV B simply to alternate angles.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-062** — **Master MC-025**: Detect unrelated camera shots and reject misleading switches
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Watch the relevant action in each original camera, then verify every angle switch in the edited story shows meaningful footage.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-063** — **Master CROP-004**: Track moving subjects across the entire selected shot
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use an obvious moving subject; watch the crop follow it correctly through several different positions.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-064** — **Master CROP-006**: Keep visible faces, captions, gameplay elements, and important text
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Inspect every relevant point in a vertical cut and confirm faces, important text and HUD elements remain inside safe margins.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-065** — **Master CROP-009**: Keyframe and ease crop motion between positions
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Correct the crop at two moments and verify interpolated motion is smooth in preview and export.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-066** — **Master CROP-010**: Preview source-to-output crop side by side
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Preview several points in the shot and export the vertical cut. Important subjects and text must remain in frame, with smooth and manually correctable movement when promised.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-067** — **Master CROP-011**: Provide manual focus point and tracking correction controls
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use an obvious moving subject; watch the crop follow it correctly through several different positions.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-068** — **Master CAP-001**: Editable dedicated caption tracks and caption regions
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Apply the specified text/caption behavior, check a representative preview frame and then inspect the downloaded video or text file. Text must be readable, accurate and editable where promised.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-069** — **Master CAP-004**: Manual caption timing, splitting, merging, and retiming
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-070** — **Master CAP-010**: Auto-adjust captions away from faces, HUD, and important objects
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use footage with a face or HUD behind captions and verify legibility and non-obstruction in 9:16 output.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-071** — **Master CAP-012**: Caption proofreading, punctuation, and speaker labels
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Import a known SRT, play at multiple positions, adjust one subtitle and verify text stays correct on the rendered output.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-072** — **Master IDX-010**: Connect visible events with corresponding audio and dialogue
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-073** — **Master IDX-021**: Use coarse scanning followed by targeted high-detail inspection
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Search or inspect a known event in the recording; verify the result points to the correct source and moment. An unrelated, invented or empty match is a failure.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-074** — **Master TEST-023**: Test different output ratios keep faces, HUD, and text in frame
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Open the relevant GitHub Actions run and test file; verify it really exercises the named real scenario and passes.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-075** — **Master FX-008**: Keyframed pan, zoom, and subject-following camera motion
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Apply the effect at a real cut between two different shots, vary its duration, then inspect the actual exported transition.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+#### Wave 4 — Editing controls, accessibility, professional audio and exports
+
+Expand the pro editor after the core source-truth and reliability requirements have proven stable. **25 master-linked steps, each still unchecked.**
+
+- [ ] **PLAN-076** — **Master UX-007**: Global command palette for actions and media search
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Try typing an action such as 'split clip' in a global command field. Choosing the result must perform that action, not just display search text.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-077** — **Master UX-012**: Small-screen and Chromebook-friendly adaptive layouts
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-078** — **Master UX-020**: No inert buttons, simulated progress, or deceptive success messages
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Look for the named interface control; try it with your open project, then navigate away and back. Verify state remains correct and the control performs the named action.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-079** — **Master PRJ-001**: Create, rename, duplicate, archive, delete, and search projects
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Create a second project without destroying the first; rename, duplicate, find, archive and delete a disposable project. Every operation in the item must be present.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-080** — **Master PRJ-012**: Named versions and comparison between original, AI draft, and manual final
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Create named Original, AI Draft and Manual Final versions. Compare their edits side by side; simple snapshot restore alone does not meet full comparison requirement.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-081** — **Master PRJ-021**: Project-wide search across clips, assets, transcripts, and comments
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Organize three test assets into distinct groups and use the named filter/search control; check accurate results after reopening.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-082** — **Master ASR-005**: Support word-level timestamps when model capability permits
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Play several words at the start, middle and end and verify subtitle word times follow the original audio.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-083** — **Master ASR-026**: Flag uncertain words for review rather than fabricating certainty
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Give a few speech words low-confidence status; ensure they can be reviewed and corrected without silently altering unrelated captions.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-084** — **Master EDIT-002**: Show frame-accurate source/program timecodes
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-085** — **Master EDIT-003**: Insert, overwrite, lift, extract, and reorder clips
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-086** — **Master EDIT-006**: Ripple edit and automatic gap closure
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Adjust clip boundaries with two neighboring clips and verify the named timing behavior, total duration and source range are correct.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-087** — **Master EDIT-013**: Snapping to frames, clip edges, markers, words, and music beats
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Enable snapping, then move a clip edge near another clip, a frame, a chapter marker, a word and a music beat. Verify it locks to each promised target within tolerance.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-088** — **Master EDIT-015**: Adjustable zoom, track height, filmstrips, and waveform density
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Use at least two audio/video tracks, change each named control and confirm it affects only the intended items.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-089** — **Master EDIT-027**: Non-destructive AI adjustments exposed as regular editable controls
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Perform the edit on a selected clip, play through the result, undo/redo it, and save/reopen. Confirm the source file itself remains intact.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-090** — **Master FX-001**: Clean cuts and standard audio/video crossfades
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Apply the effect at a real cut between two different shots, vary its duration, then inspect the actual exported transition.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-091** — **Master AUD-001**: Waveform-based audio clip editing and fades
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Build two audio layers with different levels, automate or route them and listen to the final rendered mix.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-092** — **Master AUD-011**: Loudness measurement and LUFS normalization
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Measure known audio before/after output and compare the reported loudness or peak against the selected target.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-093** — **Master AUD-013**: Music auto-ducking with adjustable threshold, attack, and release
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Place music under intermittent dialogue, enable auto-ducking, and adjust threshold, attack and release. Listen to verify music lowers during speech and rises smoothly between speech sections.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-094** — **Master VO-007**: Preserve completed voice segments if later generation fails
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Enter a short script, generate or preview a real voice, adjust a phrase and inspect the audio overlay and final output.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-095** — **Master GEN-010**: Never substitute synthetic scenes for real-world evidence without disclosure
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Insert synthetic illustrative footage into a documentary-style project, then inspect preview, timeline and project metadata. The synthetic scene must be visibly disclosed and never passed off as original event evidence.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-096** — **Master EXP-002**: Production-quality deterministic rendering through supported native backend
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Set a nondefault value, export, and inspect the real resulting file properties rather than the UI dropdown.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-097** — **Master EXP-003**: Encode MP4/H.264/AAC where supported
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-098** — **Master EXP-012**: Choose hardware or software encoder, with real capability testing
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Choose each claimed codec/format and render a short sample; inspect the playable file's actual media streams.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-099** — **Master EXP-023**: Never report export success based solely on progress reaching 100%
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Cause a harmless export failure (such as unavailable output codec) and verify the app shows FAILED rather than 'Exported successfully'.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+- [ ] **PLAN-100** — **Master MODEL-006**: Verify model loads and produces expected output on a test clip
+  - **Delivery:** Implement and verify the *entire* linked master requirement, not just an interface stub. Keep original media and source timestamps intact where applicable.
+  - **Owner acceptance test:** Choose a named compatible model/backend, run known input and verify it actually initializes and returns the expected output.
+  - **Status:** Planned / may have partial existing code; no owner sign-off.
+
+**Tracker integrity:** 100 PLAN IDs; 100 distinct linked master IDs; original 494 master checkboxes and NEXT-001–NEXT-040 unchanged. Checking a PLAN item (or its master ID) requires your explicit confirmation after hands-on verification. Code commits and CI are technical evidence only.
 
 ### Plain-English glossary — video and AI terms
 
