@@ -44,6 +44,14 @@ try{
  await page.locator('#fileUpload').setInputFiles({name:'second-original.webm',mimeType:'video/webm',buffer:secondBytes});
  await page.waitForFunction(()=>document.querySelectorAll('#assetsList [data-asset]').length>=2,null,{timeout:15000});
  await page.locator('[data-tab="director"]').click();
+ const detail=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  return {assets:p?.assets?.map(a=>({id:a.id,type:a.type,name:a.name})),
+   directorPanelText:document.querySelector('#inspectorContent')?.textContent?.slice(0,900),
+   visiblePanelId:document.querySelector('#povManualDetails')?.id||null,
+   currentTab:document.querySelector('.tab.active')?.dataset.tab};
+ });
+ if(!detail.visiblePanelId)throw Error('POV inspector absent after switching to Director: '+JSON.stringify(detail)+' JS errors: '+JSON.stringify(errors));
  await page.locator('#povManualDetails summary').click();
  await page.locator('#povMarkA').fill('2.00');
  await page.locator('#povMarkB').fill('3.00');
