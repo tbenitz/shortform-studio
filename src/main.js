@@ -558,7 +558,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
    }});
    if(projectId!==p.id||!p.assets.some(x=>x.id===id))throw Error('Project or original source changed; probe results were not applied.');
    commit('Saved real source codec probe result');
-   const item=p.assets.find(x=>x.id===id);item.sourceDecodeReport=result;
+   const item=p.assets.find(x=>x.id===id);item.sourceDecodeReport=result;a.sourceDecodeReport=result;
    mediaProbeStatus=result.status==='sampled-decoder-ready'?'Two actual original video positions decoded. Audio and other frames NOT verified.':
     'Source decoder test: '+(result.reason||result.status);
    update();toast(mediaProbeStatus,result.status!=='sampled-decoder-ready');
