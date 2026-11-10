@@ -1,4 +1,5 @@
 import {duration} from './model.js';
+import {reliabilityToolsHTML} from './reliability-ui.js';
 
 /**
  * Pure project analysis and export utilities. No AI calls and no media uploads.
@@ -158,7 +159,7 @@ export function toolSearchResultsHTML(project,query) {
  if(!matches.length)return '<p class="tiny muted">No matching transcript words. This is not visual search.</p>';
  return matches.map(m=>`<button class="small full" data-tool-result="${htmlEscape(m.assetId)}" data-tool-start="${m.start}" data-tool-end="${m.end}" style="white-space:normal;justify-content:flex-start;text-align:left"><span><b>${htmlEscape(m.sourceName)}</b> · ${markerTime(m.start)} · ${htmlEscape(m.speaker)}<br>${htmlEscape(m.text)}</span></button>`).join('');
 }
-export function productionToolsHTML(project,snapshots=[],search='',atTime=0) {
+export function productionToolsHTML(project,snapshots=[],search='',atTime=0,libraryRows=[],libraryQuery='',showArchived=false,sourceReport=null) {
  const audit=projectAudit(project),s=audit.stats,markers=cleanMarkers(project.markers,duration(project));
  const stats=[['Sources',s.sourceCount],['Video cuts',s.videoClips],['Audio tracks',s.audioOverlays],['Transcript words',s.transcriptWords],['Markers',s.markerCount],['ASR gaps',s.unresolvedGapCount]];
  const cards=stats.map(([label,n])=>`<div class="production-stat"><b>${Number(n).toLocaleString()}</b><small>${htmlEscape(label)}</small></div>`).join('');
@@ -167,6 +168,7 @@ export function productionToolsHTML(project,snapshots=[],search='',atTime=0) {
  const issues=audit.issues.length?audit.issues.map(i=>`<div class="production-issue tiny" data-severity="${htmlEscape(i.severity)}"><b>${htmlEscape(i.severity.toUpperCase())}: ${htmlEscape(i.title)}</b>${htmlEscape(i.detail)}</div>`).join(''):'<p class="tiny success">No metadata warnings. This does not verify rendered media.</p>';
  return `<div class="info"><b>Production Tools</b><br>Local source-aware reports, timeline markers and recoverable project metadata snapshots. This is not a visual AI quality inspection.</div><div class="separator"></div>
  <div class="production-summary">${cards}</div><div class="separator"></div>
+ ${reliabilityToolsHTML(project,libraryRows,libraryQuery,showArchived,sourceReport)}
  <h3>Project recovery snapshots</h3><p class="tiny muted">Automatic checkpoints are created after a successful save at most once per 5 minutes, keeping the last 8. Named snapshots are retained separately. Both preserve edits, tracks, transcripts and settings, not original media bytes. Restore one below if an edit goes wrong; source re-linking may be required.</p>
  <label class="field">Version name<input id="toolsSnapshotName" maxlength="100" value="Before next edit"></label>
  <button id="toolsCreateSnapshot" class="primary full">Save named snapshot</button><div class="production-list">${saved}</div><div class="separator"></div>
