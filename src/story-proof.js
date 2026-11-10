@@ -112,9 +112,9 @@ export function contextualCut(cut,words,assets,{before=0,after=0}={}){
  if(!source)throw Error('Original recording is missing.');
  const prior=sourceWords(words,cut.assetId,Math.max(0,cut.start-Math.max(0,before)),cut.start);
  const next=sourceWords(words,cut.assetId,cut.end,cut.end+Math.max(0,after));
- const start=prior.length?Math.min(cut.start,prior[0].start):cut.start;
- const end=next.length?Math.max(cut.end,next.at(-1).end):cut.end;
- return {...cut,start:round(Math.max(0,start-.15)),end:round(Math.min(Number(source.duration)||Infinity,end+.2))};
+ const start=prior.length?Math.max(0,Math.min(cut.start,prior[0].start-.15)):cut.start;
+ const end=next.length?Math.min(Number(source.duration)||Infinity,Math.max(cut.end,next.at(-1).end+.2)):cut.end;
+ return {...cut,start:round(start),end:round(end)};
 }
 export function trimToSpokenDialogue(cut,words,assets,{padding=.25}={}){
  const valid=verifySourceCut(cut,assets);if(!valid.ok)throw Error(valid.problem);
