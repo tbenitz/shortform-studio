@@ -41,11 +41,11 @@ export function beginWhisperCaptionRun(project,assetId,{resume=false}={}){
  if(!resume){entry.whisper=[];replaceActiveWords(project,assetId,[])}
  entry.active='whisper';return {keptSrt:false};
 }
-export function appendWhisperCaptionWords(project,assetId,words){
+export function appendWhisperCaptionWords(project,assetId,words,append=null){
  const entry=ensure(project,assetId);
  const incoming=filtered(words,assetId);
- if(entry.active==='srt')entry.whisper.push(...incoming);
- else{project.words.push(...incoming);entry.whisper=filtered(project.words,assetId)}
+ if(entry.active==='srt')entry.whisper=append?append(entry.whisper,incoming):[...entry.whisper,...incoming];
+ else{project.words=append?append(project.words,incoming):[...project.words,...incoming];entry.whisper=filtered(project.words,assetId)}
  return incoming.length;
 }
 export function finishWhisperCaptionRun(project,assetId,reconcile=x=>x){
