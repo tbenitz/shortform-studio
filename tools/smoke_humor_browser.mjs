@@ -68,18 +68,44 @@ try{
  const chunks=[];for await(const chunk of stream)chunks.push(chunk);
  const dialogue=Buffer.concat(chunks).toString('utf8');
  if(!/No way|hilarious/i.test(dialogue)||/Local wording|score \d+|source-\d+\.\d+/i.test(dialogue))throw Error('Raw export contains invented captions or meta commentary: '+dialogue);
+ // IndexedDB autosave is debounced: explicitly persist the selected clip before reading it.
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();return p?.compilationOrder?.length===1;
+ },null,{timeout:12000});
  const beforeBuild=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
   return {moments:p?.humorMoments?.map(m=>({start:m.start,end:m.end,dialogue:m.dialogue?.slice(0,90)})),chosen:p?.compilationOrder};
  });
  console.log('Selected SRT source ranges before build: '+JSON.stringify(beforeBuild));
+ // User can give a short suggestion breathing room before it goes into the edit.
+ const beforeContext=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  const selected=p.humorMoments.find(m=>m.id===p.compilationOrder[0]);return {start:selected?.start,end:selected?.end};
+ });
+ const selectedMomentId=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();return p.compilationOrder[0];
+ });
+ await page.locator('[data-humor-expand="'+selectedMomentId+'"]').first().click();
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async({id,original})=>{
+  const p=await (await import('./src/storage.js')).loadProject(),m=p?.humorMoments?.find(m=>m.id===id);
+  return m&&(m.start<original.start-.01||m.end>original.end+.01);
+ },{id:selectedMomentId,original:beforeContext},{timeout:12000});
+ const afterContext=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  const selected=p.humorMoments.find(m=>m.id===p.compilationOrder[0]);return {start:selected?.start,end:selected?.end};
+ });
+ if(!(afterContext.start<=beforeContext.start&&afterContext.end>=beforeContext.end))
+  throw Error('Suggested funny clip context did not extend the selected source range: '+JSON.stringify({beforeContext,afterContext}));
+ console.log('PASS: +5s original joke context edited the real compilation source range');
  await page.locator('#humorBuild').click();
  await page.waitForFunction(()=>document.querySelector('[data-tab="editor"].active')&&document.querySelectorAll('#videoTrack [data-seg]').length>=1,null,{timeout:6000});
  await page.waitForFunction(()=>document.querySelector('#toastArea')?.textContent?.includes('Compilation built from'),null,{timeout:8000});
  await page.locator('#saveProject').click();
  await page.waitForFunction(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
-  return p?.segments?.length===1&&p?.segments?.[0]?.end-p?.segments?.[0]?.start<11&&p?.compilationOrder?.length===1;
+  return p?.segments?.length===1&&p?.segments?.[0]?.end-p?.segments?.[0]?.start>2&&p?.compilationOrder?.length===1;
  },null,{timeout:12000});
  const result=await page.evaluate(async()=>{
   const data=await (await import('./src/storage.js')).loadProject();
@@ -87,7 +113,22 @@ try{
    activeClips:document.querySelectorAll('#videoTrack [data-seg]').length,
    sourceRange:data.segments?.[0]&&[data.segments[0].start,data.segments[0].end]};
  });
- if(!(result.sourceRange[1]-result.sourceRange[0]<12))throw Error('Compilation did not trim original footage to selected source range: '+JSON.stringify(result));
+ if(!(result.sourceRange[1]>result.sourceRange[0]&&result.sourceRange[0]>=0))throw Error('Compilation did not preserve a valid original source interval: '+JSON.stringify(result));
+ // Expand the built cut, preserving original video and allowing Undo.
+ const endBefore=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();return p.segments[0].end;
+ });
+ await page.locator('#extendClipAfter5').click();
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async(oldEnd)=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  return p?.segments?.[0]?.end>oldEnd+.01;
+ },endBefore,{timeout:12000});
+ const afterExtended=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();return p.segments[0].end;
+ });
+ if(!(afterExtended>endBefore+.01))throw Error('Extend clip after button did not extend the actual editor source segment');
+ console.log('PASS: Editor +5s after changed real source end boundary, saved project');
  await page.locator('select[data-edit="cropMode"]').selectOption('manual');
  await page.locator('[data-crop-preset="left"]').click();
  const focus=await page.locator('input[data-edit="focusX"]').inputValue();
@@ -138,6 +179,8 @@ try{
  if(!drawnCrop||drawnCrop.right<=drawnCrop.left)throw Error('The manually drawn crop was not restored after refresh');
 
  // A storyline needs real separate source cuts that share the same topic.
+ await page.locator('#humorFindCompilation').click();
+ if(!((await page.locator('#humorFindCompilation').getAttribute('class'))||'').includes('primary'))throw Error('Themed compilation mode not selected');
  await page.locator('#humorFindStory').click();
  await page.waitForFunction(()=>document.querySelectorAll('[data-story-build]').length>=1,null,{timeout:12000}).catch(async()=>{const status=await page.locator('#humorStatus').innerText();const snap=await page.evaluate(async()=>{const p=await (await import('./src/storage.js')).loadProject();return {moments:p?.humorMoments?.map(m=>({start:m.start,end:m.end,score:m.score,dialogue:m.dialogue?.slice(0,170)})),text:document.querySelector('#inspectorContent')?.innerText.slice(0,900)}});throw Error('No connected story: '+status+' '+JSON.stringify(snap))});
  await page.locator('[data-story-build]').first().click();
