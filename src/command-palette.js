@@ -90,7 +90,7 @@ export function installCommandPalette({getProject,onNavigate,onEvidence}){
  input.oninput=()=>{clearTimeout(timer);timer=setTimeout(perform,100)};
  input.onkeydown=e=>{
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!items.length)return;selected=(selected+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;highlight()}
-  if(e.key==='Enter'){e.preventDefault();activate(selected)}
+  if(e.key==='Enter'){e.preventDefault();if(timer){perform()}activate(selected)}
  };
  const shortcut=e=>{
   if((e.ctrlKey||e.metaKey)&&e.key.toLocaleLowerCase()==='k'){e.preventDefault();if(dialog.open)dialog.close();else open()}
