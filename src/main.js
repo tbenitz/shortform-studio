@@ -894,7 +894,6 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
    applyPrecision('Rolled video cut by one frame',draft=>rollBoundary(draft,selected,delta/Math.max(1,Number(p.settings.fps)||30),p.assets));
   });
  }
- on('precisionStoryRole',()=>{});
  const role=$('precisionStoryRole');
  if(role)role.onchange=()=>{
   const clip=p.segments.find(x=>x.id===p.selectedSegment);if(!clip)return;
