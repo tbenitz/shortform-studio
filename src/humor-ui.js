@@ -17,7 +17,7 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
  const cards=shown.map(m=>{
   const a=lookup.get(m.assetId),chosen=order.includes(m.id),evidence=humorEvidence(m,a);
   return '<article class="humor-card '+(chosen?'chosen':'')+'">'+
-   '<div class="row between wrap"><b>'+esc(a?.name||'Missing source')+' · '+fmt(m.start)+'–'+fmt(m.end)+'</b><small>'+Math.round(m.score||0)+'/100</small></div>'+
+   '<div class="row between wrap"><b>'+esc(a?.name||'Missing source')+' · '+fmt(m.start)+'–'+fmt(m.end)+'</b><small title="Local scores are keyword pattern matches, not humor quality ratings">'+(String(m.source||'').toLowerCase().includes('ai')?'AI suggestion':'Local match '+Math.round(m.score||0))+'</small></div>'+
    '<details><summary>Read actual dialogue and why it was suggested</summary><pre class="humor-dialogue">'+esc(m.dialogue||'')+'</pre><p class="tiny muted"><b>'+esc(evidence.mode)+'</b> · Original source '+fmt(m.start)+'–'+fmt(m.end)+'<br>'+esc(m.reason||'No reason supplied')+'<br>'+esc(evidence.warning)+'</p></details>'+
    '<div class="row wrap"><button class="small" data-humor-preview="'+esc(m.id)+'">▶ Preview original</button><button class="small" data-humor-expand="'+esc(m.id)+'" title="Add five seconds of actual footage before and after">+5s context</button>'+
    '<button class="small '+(chosen?'primary':'')+'" data-humor-toggle="'+esc(m.id)+'" aria-pressed="'+chosen+'">'+(chosen?'✓ Selected':'＋ Add clip')+'</button><button class="small danger" data-humor-reject="'+esc(m.id)+'" title="Hide this bad suggestion from later scans">Not funny ×</button></div>'+
