@@ -4,7 +4,7 @@ import {storyTopicWords} from './humor-stories.js';
 const FUNNY=/\b(laugh(?:ing|ed|s)?|hahaha?|hehe|lol|lmao|rofl|jok(?:e|es|ing)|funny|hilarious|ridiculous|roast|prank|troll|sarcasm|clown|bro what|no way|are you serious|you'?re kidding|you got me|oh my god|wtf|what the hell|imagine that|ain'?t no way|i can'?t believe|that'?s crazy|gotcha|shut up)\b/gi;
 const BANTER=/\b(bro|dude|buddy|mate|guys|you|your|we|us|everyone|who|why|what|really|seriously|no|yes|wait|how)\b/gi;
 const DRY=/\b(megabyte|gigabyte|installation|documentation|configuration|debugging|technical|tutorial|instructions|requirement|version|step one|typically|algorithm|parameter|procedure|settings|api key|server endpoint)\b/gi;
-export const DEFAULT_HUMOR_INSTRUCTIONS="Read through this transcript and extract every section featuring humorous banter, clever jokes, or funny group dynamics. Skip dry informational talk, technical explanations, or filler. Use only dialogue actually present in the source.";
+export const DEFAULT_HUMOR_INSTRUCTIONS="Find actual funny conversations, jokes, roasts, comebacks and reactions. Keep the setup AND the payoff. For compilations, connect only jokes about the same concrete topic or recurring situation; do not paste unrelated moments together. Use the original dialogue and source timestamps; do not invent laughter or outcomes.";
 function validWords(words,assetId){return (words||[]).filter(w=>w&&w.assetId===assetId&&Number.isFinite(w.start)&&Number.isFinite(w.end)&&w.end>=w.start&&String(w.text||'').trim()).sort((a,b)=>a.start-b.start)}
 export function transcriptTurns(words,assetId){
  const sorted=validWords(words,assetId),out=[];let group=[];
@@ -19,7 +19,7 @@ function score(turns){
  return {points,hits,dry};
 }
 function asMoment(asset,turns,why,points){
- const start=Math.max(0,turns[0].start-.5),end=Math.min(Number(asset.duration)||Number.MAX_SAFE_INTEGER,turns.at(-1).end+.6);
+ const start=Math.max(0,turns[0].start-1.5),end=Math.min(Number(asset.duration)||Number.MAX_SAFE_INTEGER,turns.at(-1).end+2);
  if(end-start<1)return null;
  return {id:'humor:'+asset.id+':'+Math.round(turns[0].start*10)+'-'+Math.round(turns.at(-1).end*10),assetId:asset.id,start:Number(start.toFixed(3)),end:Number(end.toFixed(3)),dialogue:turns.map(t=>(t.speaker&&t.speaker!=='Speaker 1'?t.speaker+': ':'')+t.text).join('\n'),score:points,reason:why,selected:false,source:'transcript'};
 }
@@ -97,25 +97,31 @@ export async function classifyHumorWithAI(words,assets,{endpoint,model,key,instr
  if(!key?.trim())throw Error('Enter the AI Director key first.');
  if(!/^https:\/\//i.test(endpoint||''))throw Error('AI endpoint must use HTTPS.');
  const batches=[];
- for(const a of assets||[]){const ts=transcriptTurns(words,a.id);for(let i=0;i<ts.length;i+=chunkSize){const part=ts.slice(i,i+chunkSize);if(part.length)batches.push({asset:a,turns:part})}}
+ for(const a of assets||[]){const ts=transcriptTurns(words,a.id);for(let i=0;i<ts.length;i+=chunkSize){
+   // Overlap turns at batch edges so a setup and its reaction aren't split between AI requests.
+   const part=ts.slice(Math.max(0,i-3),Math.min(ts.length,i+chunkSize+3));
+   if(part.length)batches.push({asset:a,turns:part});
+  }}
  const total=batches.length,limit=Math.min(total,Math.max(1,Math.min(150,Number(maxCalls)||16))),out=[];
- for(let n=0;n<limit;n++){
+ // A paid-call limit must sample across ALL hours instead of always stopping after hour one.
+ const chosenBatches=limit===total?batches:Array.from({length:limit},(_,i)=>batches[Math.min(total-1,Math.floor((i+.5)*total/limit))]);
+ for(let n=0;n<chosenBatches.length;n++){
   if(signal?.aborted)throw Error('Humor scan canceled');
-  const {asset,turns}=batches[n];
+  const {asset,turns}=chosenBatches[n];
   const dialogue=turns.map((t,i)=>({i,start:t.start,end:t.end,speaker:t.speaker,text:t.text}));
-  const system='Identify genuinely humorous banter, clever jokes, teasing, witty reactions and funny group dynamics from transcript ONLY. Return only JSON {"selections":[{"first":0,"last":1,"why":"brief reason","topic":"concrete repeated conversational subject"}]}. first and last are exact indices in the supplied transcript. A single funny exchange should have its own selection, including its setup and payoff. Only use real spoken text; exclude dry technical/informational sections. For related funny exchanges, reuse exactly the same SHORT, specific topic label (such as "helicopter crash") when grounded in their actual dialogue, even when speakers use different words for the subject. Do not assign generic topics such as "humor" or "conversation". Do not invent source dialogue, timings, events or faces. If nothing is funny, {"selections":[]}.';
+  const system='You edit complete funny conversations from ACTUAL transcript turns. Read the full window. Locate jokes, verbal setups, deliberate teasing, unexpected answers, ridiculous situations and genuine witty reactions. Select start/end turn indices that INCLUDE THE ENTIRE EXCHANGE: at least the setup, punchline/comeback, and any real answer or reaction. Do not select only the shortest quote. Start before the first useful setup and end after the actual reaction; do not truncate someone mid-sentence. NO automatic maximum video duration: choose actual conversational boundaries. Favor specific strong moments, skip filler, dry technical text, speculative jokes, unrelated talk or inferred visuals. If linking multiple moments, the shared subject must be a concrete person, object, running joke or event that actually appears in each source quote; label it consistently in topic. Preserve chronological order and same source. Never invent spoken words, laughter, facial expressions, enemy identity or outcomes. Never use generic topics like "funny", "conversation", "game" or "bro" as evidence. Return ONLY JSON {"selections":[{"first":0,"last":3,"why":"literal setup, joke and actual reaction","topic":"specific recurring real subject"}]}. first/last refer to supplied zero-based transcript turn indices; choose complete connected turns and avoid overlapping duplicate suggestions. An empty array is correct if nothing qualifies.';
   const user='User selection instructions: '+String(instructions).slice(0,1500)+'\nSource: '+asset.name+'\nTranscript:\n'+JSON.stringify(dialogue);
-  const response=await fetchAIWithRetry(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:user}],temperature:.1,max_tokens:2000})},{maxAttempts:3,fetcher:(url,options)=>globalThis.fetch(url,{...options,signal}),onRetry:info=>onProgress(n/Math.max(1,total),'Retrying batch '+(n+1)+' attempt '+info.attempt)});
+  const response=await fetchAIWithRetry(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:user}],temperature:.1,max_tokens:3500})},{maxAttempts:3,fetcher:(url,options)=>globalThis.fetch(url,{...options,signal}),onRetry:info=>onProgress(n/Math.max(1,total),'Retrying batch '+(n+1)+' attempt '+info.attempt)});
   if(!response.ok)throw Error('Humor AI HTTP '+response.status);
   const reply=await response.json(),items=decodeSelections(reply?.choices?.[0]?.message?.content);
   for(const item of items){
    const l=Number(item.first),r=Number(item.last);
-   if(!Number.isInteger(l)||!Number.isInteger(r)||l<0||r<l||r>=turns.length||r-l>15)continue;
+   if(!Number.isInteger(l)||!Number.isInteger(r)||l<0||r<l||r>=turns.length||r-l>65)continue;
    const found=asMoment(asset,turns.slice(l,r+1),String(item.why||'AI suggested — verify in original footage').slice(0,120),75);
    if(found)out.push({...found,topic:typeof item.topic==='string'?item.topic.slice(0,90):'',source:'AI transcript selection (not visually verified)'});
   }
   onProgress((n+1)/Math.max(1,total),'Scanned '+(n+1)+' of '+total+' transcript windows · '+out.length+' candidates');
  }
  const seen=new Set(),moments=out.filter(m=>{const key=m.assetId+':'+Math.round(m.start)+'-'+Math.round(m.end);if(seen.has(key))return false;seen.add(key);return true});
- return {moments,totalBatches:total,processedBatches:limit,complete:limit===total};
+ return {moments,totalBatches:total,processedBatches:limit,complete:limit===total,coverage:'Each paid AI batch samples real, time-ordered original transcript turns. Partial coverage means unreviewed windows remain.'};
 }
