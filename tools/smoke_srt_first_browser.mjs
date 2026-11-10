@@ -23,7 +23,7 @@ try{
   return p?.subtitleTracks?.[id]?.active==='srt'&&p?.words?.some(w=>w.text==='captions');
  },null,{timeout:15000});
  console.log('PASS: Import video + matching English SRT in one action automatically activates original captions.');
- await page.locator('.studio-guide [data-guide-tab="transcript"]').click();
+ await page.locator('.studio-guide .guide-stage[data-guide-tab="transcript"]').click();
  await page.waitForFunction(()=>document.querySelector('#srtUpload')&&document.querySelector('#captionTrackChoice'),null,{timeout:4000});
  await page.locator('#srtUpload').setInputFiles({name:'real-captions.srt',mimeType:'text/plain',buffer:Buffer.from(
   '1\n00:00:01,000 --> 00:00:03,500\nWhy did you crash the helicopter into that tree?\n\n'+
