@@ -898,8 +898,8 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
     const cached=assets.get(a.id);
     if(cached?.url&&cached.name===a.name&&cached.size===a.size){a.url=cached.url;continue}
     const file=await loadMedia(a.id);
-    if(file&&file.name===a.name&&file.size===a.size){
-     const url=URL.createObjectURL(file);a.url=url;assets.set(a.id,{...a,file,url});
+    if(file&&await attachStoredFile(a,file)){
+     // A restored snapshot reuses the original only when saved samples match.
     }
    }
    engine.pause();clearTimeout(saving);history.push(clone());future=[];p=next;update();
@@ -1145,13 +1145,21 @@ async function relinkSourceFile(assetId,file,handle=null){
   URL.revokeObjectURL(url);
   throw Error('Chrome could not read a playable video track in '+file.name+'. Convert to H.264/AAC MP4 or VP8/Opus WebM and try again.');
  }
+ const fingerprint=await safeSampleFingerprint(file);
+ const identity=compareMediaIdentity(original.sourceFingerprint,fingerprint);
+ if(identity.status==='mismatch'&&!confirm('WARNING: '+file.name+' DOES NOT MATCH the sampled fingerprint of the original recording. Existing subtitles and cuts may point to unrelated footage. Continue only if this replacement was intentional?')){
+  URL.revokeObjectURL(url);return false;
+ }
  const warning=relinkSynchronizationWarning(original,{name:file.name,size:file.size,duration:info.duration});
  if(warning&&!confirm(
   warning+'\n\nThe app will preserve all original transcript times and clip boundaries. After relinking, check captions near the beginning and end. Continue?'
  )){URL.revokeObjectURL(url);return false}
  const prev=assets.get(original.id);
  commit('Relinked source video');
- if(p.gameplayTracks)delete p.gameplayTracks[original.id];Object.assign(original,{name:file.name,size:file.size,lastModified:file.lastModified,mime:file.type||'',duration:info.duration,width:info.width,height:info.height,url});
+ if(p.gameplayTracks)delete p.gameplayTracks[original.id];
+ Object.assign(original,{name:file.name,size:file.size,lastModified:file.lastModified,mime:file.type||'',duration:info.duration,width:info.width,height:info.height,url,
+  sourceOriginalFingerprint:identity.status==='mismatch'?(original.sourceOriginalFingerprint||original.sourceFingerprint):original.sourceOriginalFingerprint,
+  sourceFingerprint:fingerprint||original.sourceFingerprint,relinkedDifferentSource:identity.status==='mismatch'});
  assets.set(original.id,{...original,file,url});
  p.selectedAsset=original.id;
  update();
@@ -1163,8 +1171,36 @@ async function relinkSourceFile(assetId,file,handle=null){
  return true;
 }
 
-async function addFile(file,handle=null){const existing=p.assets.find(a=>a.name===file.name&&a.size===file.size);if(existing){const prev=assets.get(existing.id);if(prev?.url)URL.revokeObjectURL(prev.url);const url=URL.createObjectURL(file);Object.assign(existing,{url});assets.set(existing.id,{...existing,file,url});p.selectedAsset=existing.id;if(handle)saveMediaHandle(existing.id,handle).then(()=>savedHandles.set(existing.id,handle)).catch(e=>toast('Could not remember file access: '+e.message,true));if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(existing.id,file).catch(()=>{});return existing}
-const type=file.type.startsWith('video')||/\.(mkv|mp4|mov|avi|webm)$/i.test(file.name)?'video':file.type.startsWith('image')?'image':'audio',id=uid(),url=URL.createObjectURL(file),info=await probe(file,url,type),data={id,name:file.name,type,mime:file.type||'',size:file.size,lastModified:file.lastModified,duration:info.duration|| (type==='image'?15:0),width:info.width||0,height:info.height||0,url};p.assets.push(data);assets.set(id,{...data,file});p.selectedAsset=id;if(handle)saveMediaHandle(id,handle).then(()=>savedHandles.set(id,handle)).catch(e=>toast('Could not remember source permission: '+e.message,true));if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(id,file).catch(e=>toast(`Media cache not saved: ${e.message}`,true));else if(p.settings.rememberMedia&&file.size>256*1024*1024&&!handle)toast('Large file is linked for now. For auto-reconnection next time, use Import & Remember or choose the file again.');return data}
+async function safeSampleFingerprint(file){
+ try{return await sampledMediaFingerprint(file)}
+ catch(error){console.warn('Could not fingerprint original source',file?.name,error);return null}
+}
+async function addFile(file,handle=null){
+ // Bounded sampled identity avoids loading multi-hour videos into memory.
+ // Never silently overwrite a known original when its sample hash differs.
+ const fingerprint=await safeSampleFingerprint(file);
+ const existing=p.assets.find(a=>a.name===file.name&&a.size===file.size&&
+  (!a.sourceFingerprint||(fingerprint&&compareMediaIdentity(a.sourceFingerprint,fingerprint).status==='match')));
+ if(existing){
+  const prev=assets.get(existing.id);if(prev?.url)URL.revokeObjectURL(prev.url);
+  const url=URL.createObjectURL(file);
+  Object.assign(existing,{url,sourceFingerprint:existing.sourceFingerprint||fingerprint});
+  assets.set(existing.id,{...existing,file,url});p.selectedAsset=existing.id;
+  if(handle)saveMediaHandle(existing.id,handle).then(()=>savedHandles.set(existing.id,handle)).catch(e=>toast('Could not remember file access: '+e.message,true));
+  if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(existing.id,file).catch(e=>toast('Media cache could not be saved: '+e.message,true));
+  return existing;
+ }
+ const type=file.type.startsWith('video')||/\.(mkv|mp4|mov|avi|webm)$/i.test(file.name)?'video':file.type.startsWith('image')?'image':'audio';
+ const id=uid(),url=URL.createObjectURL(file),info=await probe(file,url,type);
+ const data={id,name:file.name,type,mime:file.type||'',size:file.size,lastModified:file.lastModified,
+  duration:info.duration||(type==='image'?15:0),width:info.width||0,height:info.height||0,url,sourceFingerprint:fingerprint};
+ p.assets.push(data);assets.set(id,{...data,file});p.selectedAsset=id;
+ if(handle)saveMediaHandle(id,handle).then(()=>savedHandles.set(id,handle)).catch(e=>toast('Could not remember source permission: '+e.message,true));
+ if(p.settings.rememberMedia&&file.size<=256*1024*1024)saveMedia(id,file).catch(e=>toast('Media cache not saved: '+e.message,true));
+ else if(p.settings.rememberMedia&&file.size>256*1024*1024&&!handle)
+  toast('Large source is linked for now. Use Import & Remember for automatic reconnection, or relink after refreshing.');
+ return data;
+}
 async function importRememberedFiles(){
  if(typeof window.showOpenFilePicker!=='function')return toast('Chrome file handles are unavailable. Use Import; files under 256 MB can be cached. Large files must be relinked manually.',true);
  try{
@@ -1191,8 +1227,8 @@ async function importFiles(files,handles=new Map()){
    if(success){imported++;relinked++;continue}
    continue;
   }
-  const previous=p.assets.some(x=>x.name===file.name&&x.size===file.size);
-  const a=await addFile(file,handles.get(file)||null);imported++;if(previous)relinked++;
+  const existingIds=new Set(p.assets.map(x=>x.id));
+  const a=await addFile(file,handles.get(file)||null);imported++;if(existingIds.has(a.id))relinked++;
   if(shouldAutoInsertMedia(a,p.segments.some(s=>s.assetId===a.id),p.settings)){
    const cut=entireSourceCut(a);p.segments.push(cut);p.selectedSegment=cut.id;inserted++;
   }else if(a.type==='video'&&!a.duration)toast('Could not determine '+a.name+' duration. Try converting to MP4/H.264.',true);
@@ -1211,9 +1247,16 @@ function showMissingMedia(){
  if(button){button.hidden=!missing.length;button.textContent='Reconnect '+missing.length+' file'+(missing.length===1?'':'s');}
  return missing;
 }
-function attachStoredFile(a,file){
- if(!file||file.name!==a.name||file.size!==a.size) return false;
+async function attachStoredFile(a,file){
+ if(!file||file.name!==a.name||file.size!==a.size)return false;
  if(Number.isFinite(a.lastModified)&&a.lastModified&&file.lastModified&&a.lastModified!==file.lastModified)return false;
+ if(a.sourceFingerprint){
+  const probe=await safeSampleFingerprint(file),comparison=compareMediaIdentity(a.sourceFingerprint,probe);
+  if(comparison.status!=='match'){
+   console.warn('Refusing unverified/changed original source auto-reconnection',a.name,comparison.reason);
+   return false;
+  }
+ }
  const url=URL.createObjectURL(file);
  a.url=url;assets.set(a.id,{...a,file,url});
  return true;
@@ -1223,14 +1266,14 @@ async function linkSavedAssets(){
  for(const a of p.assets){
   try{
    const cached=await loadMedia(a.id);
-   if(cached&&attachStoredFile(a,cached)){reconnected++;continue}
+   if(cached&&await attachStoredFile(a,cached)){reconnected++;continue}
   }catch(e){console.warn('Media cache unavailable',a.name,e)}
   try{
    const handle=await loadMediaHandle(a.id);
    if(!handle||handle.kind!=='file')continue;
    savedHandles.set(a.id,handle);
    if((await handle.queryPermission({mode:'read'}))!=='granted')continue;
-   if(attachStoredFile(a,await handle.getFile()))reconnected++;
+   if(await attachStoredFile(a,await handle.getFile()))reconnected++;
   }catch(e){console.warn('Saved file permission unavailable',a.name,e)}
  }
  return reconnected;
@@ -1276,7 +1319,7 @@ async function reconnectMissingFiles(){
   let connected=0;
   for(const {a,handle,allowed} of granted){
    if(!allowed)continue;
-   try{if(attachStoredFile(a,await handle.getFile()))connected++}
+   try{if(await attachStoredFile(a,await handle.getFile()))connected++}
    catch(e){toast('Could not reconnect '+a.name+': '+e.message,true)}
   }
   update();const left=showMissingMedia();
