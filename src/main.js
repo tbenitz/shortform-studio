@@ -749,8 +749,12 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
     affected.get(w.assetId).push([w.start,w.end]);
    }
    commit('Imported edited-timeline SRT');
-   p.words=p.words.filter(w=>!(affected.get(w.assetId)||[]).some(([start,end])=>w.end>start&&w.start<end)).concat(mapped);
-   for(const id of sourceIds)importSrtAsDefault(p,id,p.words.filter(w=>w.assetId===id));
+   // Construct source-specific SRT tracks BEFORE replacing the active transcript.
+   // Otherwise the previous Whisper track would accidentally capture the new SRT.
+   for(const id of sourceIds){
+    const outside=p.words.filter(w=>w.assetId===id&&!(affected.get(id)||[]).some(([start,end])=>w.end>start&&w.start<end));
+    importSrtAsDefault(p,id,[...outside,...mapped.filter(w=>w.assetId===id)]);
+   }
    update();toast('Imported '+mapped.length+' edited-timeline SRT words as the preferred source subtitles.');
   }else{
    commit('Imported original-source SRT');
