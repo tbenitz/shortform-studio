@@ -160,8 +160,8 @@ try{
  const dlBackup=page.waitForEvent('download',{timeout:10000});
  await page.locator('#toolsExportBackup').click();
  const downloaded=await dlBackup,backupStream=await downloaded.createReadStream();
- const chunks=[];for await(const item of backupStream)chunks.push(item);
- const backupText=Buffer.concat(chunks).toString('utf8'),actualBackup=JSON.parse(backupText);
+ const backupChunks=[];for await(const item of backupStream)backupChunks.push(item);
+ const backupText=Buffer.concat(backupChunks).toString('utf8'),actualBackup=JSON.parse(backupText);
  if(actualBackup.format!=='shortform-studio-verified-backup'||!actualBackup.integrity?.value)throw Error('Verified project backup missing manifest');
  const corrupted=structuredClone(actualBackup);corrupted.project.name='tampered name';
  await page.locator('#toolsImportBackup').setInputFiles({name:'corrupted-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(corrupted))});
