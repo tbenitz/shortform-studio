@@ -559,11 +559,11 @@ async function runDirector(exhaustive=false){
 
 function wireInspector(){const c=$('inspectorContent');
  c.querySelectorAll('[data-guide-tab]').forEach(button=>button.onclick=()=>chooseTab(button.dataset.guideTab));
- on('toggleEasyUI',()=>{commit('Changed workspace layout');p.settings.easyUI=p.settings.easyUI===false;update();toast(p.settings.easyUI?'Spacious guided layout enabled':'Compact layout enabled')});
  const captionChoice=$('captionTrackChoice');if(captionChoice)captionChoice.onchange=()=>{const id=p.selectedAsset;if(!id)return;try{commit('Switched subtitle source');const n=selectCaptionTrack(p,id,captionChoice.value);selectedUtt=null;update();toast('Using '+captionChoice.value.toUpperCase()+' subtitles · '+n+' timed words')}catch(error){toast(error.message,true);renderInspector()}};
 c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const key=e.dataset.setting;let val=e.type==='checkbox'?e.checked:e.type==='number'||e.type==='range'?Number(e.value):e.value;if(key==='clipMin'||key==='clipMax'){val=clamp(val,0,21600)}if(key==='clipCount')val=clamp(val,0,MAX_DISCOVERY_CLIPS);if(key==='gameplayMinScore')val=clamp(val,25,90);if(key==='semanticSamples')val=clamp(val,40,450);if(key==='maxAICalls')val=clamp(val,1,96);if(key==='captionSize')val=clamp(val,12,120);if(key==='captionWords')val=clamp(val,1,12);if(key==='captionX'||key==='captionPosition')val=clamp(val,5,95);if(key==='captionOutlineWidth')val=clamp(val,0,12);if(key==='captionMaxLines')val=clamp(val,1,3);p.settings[key]=val;if(key==='aspect')$('aspectSelect').value=val;engine.setSize();update()});
  c.querySelectorAll('[data-edit]').forEach(e=>e.onchange=()=>{const key=e.dataset.edit,obj=p.segments.find(s=>s.id===p.selectedSegment)||p.audio.find(a=>a.id===p.selectedAudio);if(!obj)return;commit();const k=key==='audioStart'?'start':key==='audioDuration'?'duration':key==='audioVolume'?'volume':key==='audioRole'?'role':key;let v=e.type==='number'?Number(e.value):e.value;if(k==='speed')v=clamp(v,.25,3);if(k==='start')v=clamp(v,0,obj.end?obj.end-.1:duration(p));if(k==='end')v=clamp(v,(obj.start||0)+.1,asset(obj.assetId)?.duration||Number.MAX_SAFE_INTEGER);if(k==='volume')v=clamp(v,0,2);if(['focusX','focusY','focusEndX','focusEndY'].includes(k))v=clamp(v,0,1);if(k==='zoom'||k==='zoomEnd')v=clamp(v,.5,5);if(k==='cropFaceIndex')v=clamp(Number(v),-1,3);if(k==='faceStrength')v=clamp(Number(v),0,100);obj[k]=v;update()});
  const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
+ on('toggleEasyUI',()=>{commit('Changed workspace layout');p.settings.easyUI=p.settings.easyUI===false;update();toast(p.settings.easyUI?'Spacious guided layout enabled':'Compact layout enabled')});
  on('sourceProbeDecode',async()=>{
   if(mediaProbeBusy)return;
   const a=asset(p.selectedAsset);
@@ -684,7 +684,8 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
  p.transcriptProgress||={};p.transcriptGaps||={};
  const prev=p.transcriptProgress[a.id];
  const startAt=prev?.status!=='complete'&&Number(prev?.nextAt)>0?Math.min(Number(prev.nextAt),a.duration):0;
- if(!startAt){commit('Starting transcription');p.words=p.words.filter(w=>w.assetId!==a.id);p.transcriptGaps[a.id]=[]}
+ if(!startAt){commit('Starting transcription');p.transcriptGaps[a.id]=[]}
+ beginWhisperCaptionRun(p,a.id,{resume:!!startAt});
  p.transcriptProgress[a.id]={nextAt:startAt,total:a.duration,status:'working'};
  asrBusy=true;asrStop=false;renderInspector();
  try{
@@ -692,7 +693,7 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
    durationHint:a.duration,startAt,
    onPartial:async info=>{
     // Keep already completed words visible in CC immediately after every Whisper window.
-    p.words=appendLiveWords(p.words,info.words);
+    appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
     if(p.selectedAsset===a.id){
      const text=info.words.map(w=>w.text).join(' ');
      const live=$('liveCaptionPreview');if(live&&text)live.textContent=text;
@@ -712,11 +713,11 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
     asrProgress(cp.nextAt/cp.total,`Saved ${fmt(cp.nextAt)} / ${fmt(cp.total)} · ${p.words.filter(w=>w.assetId===a.id).length} words`);
    }
   });
-  const sourceWords=p.words.filter(w=>w.assetId===a.id);
-  p.words=p.words.filter(w=>w.assetId!==a.id).concat(reconcileWords(sourceWords));
+  const completed=finishWhisperCaptionRun(p,a.id,reconcileWords);
+  const sourceWords=p.subtitleTracks[a.id].whisper;
   p.transcriptProgress[a.id]={nextAt:result.total,total:result.total,status:'complete'};
   await save(false);update();
-  toast(`Completed ${fmt(result.total)} of audio. ${sourceWords.length} words saved. Review approximate subtitle timing.`);
+  toast(`Completed ${fmt(result.total)} of audio. ${sourceWords.length} words saved.`+(completed.keptSrt?' Original SRT subtitles stay active.':' Review Whisper subtitle timing.'));
  }catch(e){
   const progress=p.transcriptProgress[a.id];if(progress)progress.status='paused';
   await save(false);
@@ -743,11 +744,12 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
    }
    commit('Imported edited-timeline SRT');
    p.words=p.words.filter(w=>!(affected.get(w.assetId)||[]).some(([start,end])=>w.end>start&&w.start<end)).concat(mapped);
-   update();toast('Imported '+mapped.length+' edited-timeline words into original source time. Video and captions retain their alignment.');
+   for(const id of sourceIds)importSrtAsDefault(p,id,p.words.filter(w=>w.assetId===id));
+   update();toast('Imported '+mapped.length+' edited-timeline SRT words as the preferred source subtitles.');
   }else{
    commit('Imported original-source SRT');
-   p.words=p.words.filter(w=>w.assetId!==p.selectedAsset).concat(words);
-   update();toast('Imported '+words.length+' words in original-video time for '+(asset(p.selectedAsset)?.name||'selected source'));
+   const count=importSrtAsDefault(p,p.selectedAsset,words);
+   update();toast('SRT ACTIVE: '+count+' original-timestamp words for '+(asset(p.selectedAsset)?.name||'selected source'));
   }
  };
  const syncControl=$('subtitleOffsetInput');
