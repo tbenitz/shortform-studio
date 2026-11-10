@@ -11,7 +11,7 @@ const sourceWords=(p,id)=>(p?.words||[]).filter(w=>w?.assetId===id&&finite(w.sta
 export function reviewWordRows(project,assetId,{query='',onlyFlagged=true,limit=80}={}){
  const text=String(query||'').toLocaleLowerCase().trim(),list=sourceWords(project,assetId),asset=(project.assets||[]).find(a=>a.id===assetId);
  return list.filter(w=>{
-  const flagged=w.timing!=='model-word'||w.confidence!=null&&Number(w.confidence)<.6||w.reviewNeeded||
+  const flagged=!['model-word','manual-reviewed'].includes(w.timing)||w.confidence!=null&&Number(w.confidence)<.6||w.reviewNeeded||
    Number(w.start)<0||Number(w.end)<=Number(w.start)||!!(asset?.duration&&Number(w.end)>asset.duration+.1);
   return (!onlyFlagged||flagged)&&(!text||[w.text,w.speaker,w.timing].some(v=>String(v||'').toLocaleLowerCase().includes(text)));
  }).slice(0,Math.max(1,Math.min(200,limit))).map(w=>({...w,reviewNeeded:!!w.reviewNeeded}));
@@ -38,7 +38,7 @@ export function splitTimedWord(project,id){
  const split=round((Number(w.start)+Number(w.end))/2);
  if(!(split>w.start&&w.end>split))throw Error('Clip is too short to split at this timestamp.');
  const first={...w,text:tokens[0],end:split,timing:'manual-reviewed',reviewNeeded:false};
- const second={...w,id:'manual-'+globalThis.crypto?.randomUUID?.()||('manual-'+Date.now()),text:tokens[1],start:split,timing:'manual-reviewed',reviewNeeded:false};
+ const second={...w,id:'manual-'+(globalThis.crypto?.randomUUID?.()||(''+Date.now()+'-'+Math.round(Math.random()*1e9))),text:tokens[1],start:split,timing:'manual-reviewed',reviewNeeded:false};
  p.words.splice(at,1,first,second);
  return p;
 }
