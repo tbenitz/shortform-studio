@@ -194,7 +194,12 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
     if(list[callbackTo+1].start-list[callbackTo].end>4.5)break;
     callbackTo++;
    }
-   const hookStart=clip[0].start,hookEnd=clip[0].end;
+   const hookStart=clip[0].start;
+   // Under an EXPLICIT total length budget, allow room for the later callback.
+   // End the setup after a complete transcript utterance, never halfway through speech.
+   const hookBudget=Number.isFinite(max)?Math.max(8,max*.56):Infinity;
+   const completeSetupEnd=list.slice(from,j).map(u=>u.end).filter(t=>t-hookStart<=hookBudget-1).at(-1);
+   const hookEnd=Math.min(clip[0].end,Number.isFinite(max)&&completeSetupEnd?completeSetupEnd+.8:clip[0].end);
    const available=max-(hookEnd-hookStart);
    if(available<4)continue;
    const callbackStart=Math.max(0,list[callbackFrom].start-.8);
