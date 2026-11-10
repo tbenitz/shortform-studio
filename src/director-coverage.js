@@ -150,7 +150,7 @@ export function discoverFullRecording(utterances,assets=[],settings={},onProgres
    const sequential=[];
    while(j<list.length&&j<i+(autoDuration?800:24)){
     const u=list[j],gap=j>i?u.start-end:0;
-    if(gap>(autoDuration?5.5:32))break;
+    if(gap>(autoDuration?4.5:32))break; // Natural length follows connected speech; five-second silence ends an event, without a 75-second hard maximum.
     const uLength=Math.max(.01,u.end-u.start);
     if(length+uLength>max+.2)break;
     const previous=sequential.at(-1);
