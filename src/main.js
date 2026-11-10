@@ -1114,6 +1114,7 @@ function wireInspector(){const c=$('inspectorContent');c.querySelectorAll('[data
   const node=$(id);if(!node)return;
   const apply=()=>{
    humorFilters[key]=key==='onlyPlayable'?node.checked:node.value;
+   humorFilterOpen=true; // keep typed search accessible after rerender
    if(key==='search'){
     const pos=node.selectionStart??node.value.length;
     renderInspector();const next=$(id);if(next){next.focus();if(typeof next.setSelectionRange==='function')next.setSelectionRange(pos,pos)}
