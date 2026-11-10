@@ -21,7 +21,7 @@
 - [30 additional master-linked implementation checks (R66–R95)](#new-implementation-review-r66r95-story-proof-and-precision-editing) — actual source-story review, safe cut operations and precise timecode tools.
 - [Engineering status board — all 100 existing planned milestones](#engineering-status-board--plan-001plan-100) — not started, in development, or owner review.
 - [Audit of 47 previously in-development milestones](#november-10-development-wave--audit-of-all-47-previously-in-development-items) — new review slices and remaining incomplete work.
-- [14 new owner-review checks R102–R115](#owner-acceptance-r102r115--code-added-acceptance-unchecked) — explicit manual tests.
+- [15 new owner-review checks R102–R116](#owner-acceptance-r102r116--code-added-acceptance-unchecked) — explicit manual tests.
 - [100 additional unstarted proposals](#new-unstarted-idea-backlog--idea-001idea-100) — IDEA-001–IDEA-100 for future planning.
 - [New owner-review checks R96–R101](#new-owner-acceptance-checks-r96r101--2026-11-09) — source gap review and project-wide evidence search.
 - [Current implementation progress ledger](#implementation-progress-ledger--first-planned-wave-1-batch) — PLAN IDs advanced, unfinished limitations and owner review.
@@ -73,7 +73,7 @@
 
 **Updated November 9, 2026.** This board tracks **engineering progress**, not owner approval. Existing IDs and every owner-acceptance checkbox remain unchanged. A code slice counts as **Ready for owner review** only when its stated narrow behavior is available to try; a broader master requirement may still be incomplete. **In development** means an identifiable partial implementation or supporting code, not a shipped feature. **Not started** means no implementation slice is being claimed here. Revisit statuses after each verified release.
 
-**Status snapshot:** 53 with specific reviewable slices · 33 in development · 14 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
+**Status snapshot:** 54 with specific reviewable slices · 32 in development · 14 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
 
 | Owner approval (never automatic) / PLAN ID | Master ID | Engineering status | Scope |
 | --- | --- | --- | --- |
@@ -97,7 +97,7 @@
 | [ ] PLAN-018 | ASR-012 | In development | Retry all failed or suspicious gaps without restarting completed work |
 | [ ] PLAN-019 | ASR-013 | In development | Save incremental transcription checkpoints across sessions |
 | [ ] PLAN-020 | SEC-002 | Ready for owner review (partial slice) · R107 | Show which files, frames, audio chunks, or transcripts leave the device |
-| [ ] PLAN-021 | SEC-013 | In development | Avoid exposing API tokens in logs or exported project files |
+| [ ] PLAN-021 | SEC-013 | Ready for owner review (partial slice) · R116 | Avoid exposing API tokens in logs or exported project files |
 | [ ] PLAN-022 | QA-010 | Ready for owner review (partial slice) · R100 | Detect black frames, frozen frames, and missing video |
 | [ ] PLAN-023 | QA-020 | In development | Block misleading success states if verification did not actually run |
 | [ ] PLAN-024 | TEST-001 | In development | Test basic import/playback/trim/export without any AI service |
@@ -194,11 +194,11 @@ These are **implementation slices**, not the full master IDs. They remain unchec
 
 ### November 10 development wave — audit of all 47 previously in-development items
 
-**Scope reviewed:** All 47 original in-development PLAN IDs have been reconciled against the program. This release advances **14 to reviewable partial implementation slices**, while **33 remain in development** and **14 pre-existing not-started milestones remain unchanged**. Total 100 PLAN milestones: **53 partial-review slices / 33 in development / 14 not started**. The 100 IDEA milestones remain unstarted.
+**Scope reviewed:** All 47 original in-development PLAN IDs have been reconciled against the program. This release advances **15 to reviewable partial implementation slices**, while **32 remain in development** and **14 pre-existing not-started milestones remain unchanged**. Total 100 PLAN milestones: **54 partial-review slices / 32 in development / 14 not started**. The 100 IDEA milestones remain unstarted.
 
 Important: **Reviewable partial slice** is NOT fully implemented and is NOT checked or approved. A broad PLAN milestone stays open until its entire master acceptance criteria work on real footage.
 
-**Still in development (33):** PLAN-001, PLAN-005, PLAN-006, PLAN-009, PLAN-014, PLAN-015, PLAN-018, PLAN-019, PLAN-021, PLAN-023, PLAN-024, PLAN-025, PLAN-051, PLAN-053, PLAN-054, PLAN-063, PLAN-065, PLAN-066, PLAN-067, PLAN-068, PLAN-072, PLAN-073, PLAN-074, PLAN-077, PLAN-078, PLAN-088, PLAN-090, PLAN-091, PLAN-093, PLAN-096, PLAN-097, PLAN-098, PLAN-099. These require deeper work such as actual cross-session recovery, source-verified visual tracking, full caption track separation, multi-hour testing, real audio transitions/ducking and dependable native renderer validation.
+**Still in development (32):** PLAN-001, PLAN-005, PLAN-006, PLAN-009, PLAN-014, PLAN-015, PLAN-018, PLAN-019, PLAN-023, PLAN-024, PLAN-025, PLAN-051, PLAN-053, PLAN-054, PLAN-063, PLAN-065, PLAN-066, PLAN-067, PLAN-068, PLAN-072, PLAN-073, PLAN-074, PLAN-077, PLAN-078, PLAN-088, PLAN-090, PLAN-091, PLAN-093, PLAN-096, PLAN-097, PLAN-098, PLAN-099. These require deeper work such as actual cross-session recovery, source-verified visual tracking, full caption track separation, multi-hour testing, real audio transitions/ducking and dependable native renderer validation.
 
 **No silent redesign:** All new controls live in expandable panels inside existing Media, Transcript, AI Director and Production Tools. Previously designed editor workspaces and modes are retained.
 
@@ -220,7 +220,7 @@ Important: **Reviewable partial slice** is NOT fully implemented and is NOT chec
 | PLAN-018 | In development | Needs real long-source accuracy, caption track or checkpoint validation |
 | PLAN-019 | In development | Needs real long-source accuracy, caption track or checkpoint validation |
 | PLAN-020 | Ready for *partial* owner review | R107 · new code available for specific owner test; broader requirement still open |
-| PLAN-021 | In development | Requires additional end-to-end implementation and real-file validation |
+| PLAN-021 | Ready for *partial* owner review | R116 · nested credential-name redaction in metadata exports; arbitrary secrets inside prose still need manual review |
 | PLAN-023 | In development | Requires additional end-to-end implementation and real-file validation |
 | PLAN-024 | In development | Requires real interruption, restore and regression validation at production scale |
 | PLAN-025 | In development | Requires real interruption, restore and regression validation at production scale |
@@ -254,9 +254,9 @@ Important: **Reviewable partial slice** is NOT fully implemented and is NOT chec
 | PLAN-098 | In development | Needs actual codec/encoder and full output verification |
 | PLAN-099 | In development | Needs actual codec/encoder and full output verification |
 
-#### Owner acceptance R102–R115 — code added, acceptance unchecked
+#### Owner acceptance R102–R116 — code added, acceptance unchecked
 
-**None of the 14 new review checkboxes are approved.** Passing tests or merging code is not an owner approval. These checks cover narrow functionality only and do not attest that the entire related master PLAN requirement is complete.
+**None of the 15 new review checkboxes are approved.** Passing tests or merging code is not an owner approval. These checks cover narrow functionality only and do not attest that the entire related master PLAN requirement is complete.
 
 - [ ] **R102** · **PLAN-002** · Compare current project to an existing real saved recovery snapshot
   - **Owner test:** In Production Tools create a named snapshot, alter actual cut timing, then use Compare saved version. Confirm changes show source cut IDs; no restore or overwrite occurs.
@@ -299,6 +299,9 @@ Important: **Reviewable partial slice** is NOT fully implemented and is NOT chec
 
 - [ ] **R115** · **PLAN-083** · Flag uncertain timings and clear individually reviewed items
   - **Owner test:** Use the only-flagged filter; correct a word and confirm it leaves the unreviewed list. Confirm there is no invented confidence value where the model supplies none.
+
+- [ ] **R116** · **PLAN-021** · Scrub credential-named metadata keys recursively from editable project JSON, cut-list JSON and integrity-checked backups
+  - **Owner test:** Save a project with explicitly named nested fields such as `apiKey`, `accessToken` and `authorization` and ordinary transcript words. Export the project, EDL and verified backup. Confirm credential fields are absent, original captions remain intact, and no original files were overwritten. Arbitrary secrets typed into dialogue or notes cannot be automatically recognized and must be reviewed manually.
 
 ### New unstarted idea backlog — IDEA-001–IDEA-100
 
