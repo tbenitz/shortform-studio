@@ -68,6 +68,11 @@ try{
  const chunks=[];for await(const chunk of stream)chunks.push(chunk);
  const dialogue=Buffer.concat(chunks).toString('utf8');
  if(!/No way|hilarious/i.test(dialogue)||/Local wording|score \d+|source-\d+\.\d+/i.test(dialogue))throw Error('Raw export contains invented captions or meta commentary: '+dialogue);
+ // IndexedDB autosave is debounced: explicitly persist the selected clip before reading it.
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();return p?.compilationOrder?.length===1;
+ },null,{timeout:12000});
  const beforeBuild=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
   return {moments:p?.humorMoments?.map(m=>({start:m.start,end:m.end,dialogue:m.dialogue?.slice(0,90)})),chosen:p?.compilationOrder};
@@ -78,7 +83,15 @@ try{
   const p=await (await import('./src/storage.js')).loadProject();
   const selected=p.humorMoments.find(m=>m.id===p.compilationOrder[0]);return {start:selected?.start,end:selected?.end};
  });
- await page.locator('[data-humor-expand]').first().click();
+ const selectedMomentId=await page.evaluate(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();return p.compilationOrder[0];
+ });
+ await page.locator('[data-humor-expand="'+selectedMomentId+'"]').first().click();
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async({id,original})=>{
+  const p=await (await import('./src/storage.js')).loadProject(),m=p?.humorMoments?.find(m=>m.id===id);
+  return m&&(m.start<original.start-.01||m.end>original.end+.01);
+ },{id:selectedMomentId,original:beforeContext},{timeout:12000});
  const afterContext=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();
   const selected=p.humorMoments.find(m=>m.id===p.compilationOrder[0]);return {start:selected?.start,end:selected?.end};
@@ -107,6 +120,10 @@ try{
  });
  await page.locator('#extendClipAfter5').click();
  await page.locator('#saveProject').click();
+ await page.waitForFunction(async(oldEnd)=>{
+  const p=await (await import('./src/storage.js')).loadProject();
+  return p?.segments?.[0]?.end>oldEnd+.01;
+ },endBefore,{timeout:12000});
  const afterExtended=await page.evaluate(async()=>{
   const p=await (await import('./src/storage.js')).loadProject();return p.segments[0].end;
  });
