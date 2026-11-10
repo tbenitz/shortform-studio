@@ -41,6 +41,25 @@ try{
  console.log('PASS: manual Not Funny rejection, reversible recovery UI and source-linked original candidates retained');
  await page.locator('[data-humor-toggle]').first().click();
  await page.waitForFunction(()=>document.querySelectorAll('[data-compilation-up]').length>=1,null,{timeout:5000});
+ // Transcript-grounded filtering, persisting open controls and real evidence export.
+ await page.locator('#humorFiltersPanel > summary').click();
+ await page.locator('#humorSearch').fill('helicopter');
+ await page.waitForFunction(()=>document.querySelectorAll('[data-humor-preview]').length>=1,null,{timeout:6000});
+ if((await page.locator('#humorFiltersPanel').getAttribute('open'))===null)throw Error('Filter pane unexpectedly collapsed while typing');
+ await page.locator('#humorSort').selectOption('score');
+ await page.locator('#humorSearch').fill('');
+ await page.locator('#storyWorkbench > summary').click();
+ await page.waitForFunction(()=>document.querySelector('#storyWorkbench')?.open&&document.querySelector('#humorExportEditPlan'),null,{timeout:6000});
+ const planEvent=page.waitForEvent('download',{timeout:10000});
+ await page.locator('#humorExportEditPlan').click();
+ const sourcePlan=await planEvent,planStream=await sourcePlan.createReadStream(),planParts=[];
+ for await(const chunk of planStream)planParts.push(chunk);
+ const sourcePlanData=JSON.parse(Buffer.concat(planParts).toString('utf8'));
+ if(sourcePlanData.format!=='shortform-source-story-plan'||sourcePlanData.selections.length!==1||
+    sourcePlanData.review.visualVerification!==false||!sourcePlanData.selections[0].assetId)
+  throw Error('Evidence-backed edit plan did not preserve actual source intervals / uncertainties');
+ console.log('PASS: optional spoken-dialogue search, score sort, preserved reviewer and real source evidence edit-plan download');
+
  const dialogueDownload=page.waitForEvent('download',{timeout:10000});
  await page.locator('#humorDownloadSelected').click();
  const dl=await dialogueDownload;
@@ -170,4 +189,30 @@ try{
  if(unchanged!==originalId)throw Error('Corrupt imported backup replaced saved project state');
  console.log('PASS: real sampled original media identity, saved/duplicate project library, SHA-256 portable backup and fail-closed corrupt restore');
  console.log('PASS: local SRT humor candidates, raw TXT, source modal, chosen compilation, crop, fullscreen and persistence '+JSON.stringify(stored));
+ // Precision editor regression: HH:MM:SS:FF, role, a true source insertion,
+ // ripple closure and a download of the original-source cut references.
+ await page.locator('button[data-tab="editor"]').click();
+ await page.locator('#precisionEditor > summary').click();
+ await page.waitForFunction(()=>document.querySelector('#precisionEditor')?.open&&document.querySelector('#precisionTimecode'),null,{timeout:7000});
+ await page.locator('#precisionTimecode').fill('00:00:00:00');
+ await page.locator('#precisionGo').click();
+ await page.locator('#precisionStoryRole').selectOption('reaction');
+ await page.locator('#sourceIn').fill('1');
+ await page.locator('#sourceOut').fill('2');
+ const countBefore=await page.locator('#videoTrack [data-seg]').count();
+ await page.locator('#precisionInsert').click();
+ await page.waitForFunction(n=>document.querySelectorAll('#videoTrack [data-seg]').length>=n+1,countBefore,{timeout:7000});
+ await page.locator('#precisionRippleDelete').click();
+ await page.waitForFunction(n=>document.querySelectorAll('#videoTrack [data-seg]').length===n,countBefore,{timeout:7000});
+ const cutlistEvent=page.waitForEvent('download',{timeout:10000});
+ await page.locator('#precisionExportCutList').click();
+ const cutlist=await cutlistEvent;
+ if(!cutlist.suggestedFilename().endsWith('source-timecodes.txt'))throw Error('Source timecode cutlist did not download');
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async()=>{
+  const project=await (await import('./src/storage.js')).loadProject();
+  return project?.segments?.length>=2&&project.segments.some(s=>s.storyRole==='reaction');
+ },null,{timeout:12000});
+ console.log('PASS: real HH:MM:SS:FF navigation, editorial roles, source insert, ripple-delete, metadata persistence and source timecode cut list');
+
 }finally{await browser?.close();server.kill('SIGTERM')}
