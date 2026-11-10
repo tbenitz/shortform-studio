@@ -77,7 +77,7 @@ test('saved versions explain source/cut/edit deltas without changing either',()=
  assert.equal(changes.mediaBytesCompared,false);
 });
 test('saved running-state view does not label paused work complete',()=>{
- const p=base(),statuses=actualProcessingStates(p);
+ const p=base();p.selectedAsset='a';const statuses=actualProcessingStates(p);
  assert.equal(statuses.find(x=>x.id==='a').status,'paused');
  assert.equal(statuses.find(x=>x.id==='b').status,'not-started');
  assert.equal(actualProcessingStates(p,{asrRunning:true}).find(x=>x.id==='a').status,'running');
