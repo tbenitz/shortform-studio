@@ -19,7 +19,11 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Install FFmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg
+          fi
+          ffmpeg -version | head -n 1
       - name: Prepare a real sample video
         run: |
           ffmpeg -hide_banner -loglevel error -y \
@@ -29,3 +33,5 @@ jobs:
             -b:v 180k -c:a libopus -b:a 48k -t 18 qa-wave-test.webm
       - name: Test source health, frame decode and Ctrl+K in actual Chromium
         run: node tools/smoke_wave_browser.mjs
+      - name: Test SRT correction, manual POV sync, source decode and version compare in Chromium
+        run: node tools/smoke_development_browser.mjs
