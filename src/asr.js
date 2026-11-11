@@ -51,11 +51,25 @@ export function wordsFromResult(result,assetId,offset,length,mode='word'){
  return words;
 }
 export function reconcileWords(words,eps=.12){
- const ordered=[...words].sort((a,b)=>a.start-b.start||a.end-b.end),out=[];
- for(const w of ordered){if(w.end<=w.start)continue;let identical=false;
-  for(let i=out.length-1;i>=0&&out[i].start>=w.start-eps;i--){if(Math.abs(out[i].start-w.start)<eps&&out[i].text.trim().toLowerCase()===w.text.trim().toLowerCase()){identical=true;break}}
-  if(!identical)out.push(w)
- }return out
+ const ordered=(words||[]).filter(w=>Number.isFinite(w?.start)&&Number.isFinite(w?.end)&&w.end>w.start).sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start||a.end-b.end),out=[];
+ const normalized=x=>String(x||'').toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g,'');
+ for(const w of ordered){
+  let duplicate=false;
+  for(let i=out.length-1;i>=0;i--){
+   const old=out[i];
+   if(old.assetId!==w.assetId)break;
+   if(w.start-old.start>.55)break;
+   if(normalized(w.text)!==normalized(old.text))continue;
+   const overlap=Math.min(w.end,old.end)-Math.max(w.start,old.start);
+   const smaller=Math.min(w.end-w.start,old.end-old.start);
+   if(Math.abs(w.start-old.start)<=eps&&Math.abs(w.end-old.end)<=Math.max(eps,.28)||
+      overlap>0&&overlap/Math.max(.03,smaller)>.75&&Math.abs(w.start-old.start)<.4&&Math.abs(w.end-old.end)<.4){
+    duplicate=true;break;
+   }
+  }
+  if(!duplicate)out.push(w);
+ }
+ return out;
 }
 /** Audits long low-word-density intervals with significant signal energy. Energy ≠ speech, so these are review flags. */
 export function auditGaps(pcm,words,{sampleRate=16000,minSeconds=1.8,windowSeconds=.6}={}){
@@ -76,7 +90,7 @@ export function mergeGapFlags(gaps){
  }
  return out;
 }
-export async function transcribeWithReader(reader,assetId,settings,whisper,onProgress=()=>{},shouldStop=()=>false,{startAt=0,onCheckpoint=null,onPartial=null}={}){
+export async function transcribeWithReader(reader,assetId,settings,whisper,onProgress=()=>{},shouldStop=()=>false,{startAt=0,onCheckpoint=null,onPartial=null,checkpointEvery=1}={}){
  const chunkSec=Math.max(8,Math.min(29,Number(settings.transcriptionChunk)||12)),overlap=1.5,total=reader.duration;
  if(!(total>0)||!Number.isFinite(total))throw Error('Could not determine the recording duration');
  if(!Number.isFinite(startAt)||startAt<0||startAt>total)throw Error('Invalid transcription resume time');
@@ -86,7 +100,7 @@ export async function transcribeWithReader(reader,assetId,settings,whisper,onPro
   if(!onCheckpoint)return;
   const w=reconcileWords(pendingWords),g=mergeGapFlags(pendingGaps);
   if(processedUntil<=lastCheckpointAt)return;
-  await onCheckpoint({words:w,gaps:g,nextAt:processedUntil,total});
+  await onCheckpoint({words:w,gaps:g,from:lastCheckpointAt,to:processedUntil,nextAt:processedUntil,total,processedWindows:processed});
   lastCheckpointAt=processedUntil;
   savedWords+=w.length;pendingWords=[];pendingGaps=[];
  };
@@ -112,14 +126,14 @@ export async function transcribeWithReader(reader,assetId,settings,whisper,onPro
    pendingGaps.push(...review);
    processedUntil=end;processed++;segments.push({from:start,to:end});
    onProgress(end/total,'Transcribed '+Math.round(end)+'s / '+Math.round(total)+'s · '+(savedWords+pendingWords.length)+' words');
-   if(onCheckpoint&&processed%3===0)await flush();
+   if(onCheckpoint&&processed%Math.max(1,Math.floor(checkpointEvery))===0)await flush();
    if(shouldStop()){await flush();throw Error('Transcription paused; completed sections have been retained')}
   }
   await flush();
   onProgress(1,'Transcription completed through '+Math.floor(total/60)+'m recording');
   return {words:onCheckpoint?[]:reconcileWords(pendingWords),gaps:onCheckpoint?[]:mergeGapFlags(pendingGaps),segments,total,nextAt:total};
  }catch(e){
-  if(onCheckpoint&&pendingWords.length||onCheckpoint&&pendingGaps.length)await flush();
+  if(onCheckpoint&&processedUntil>lastCheckpointAt)await flush();
   throw e;
  }
 }
@@ -135,25 +149,46 @@ export async function transcribe(file,assetId,settings,onProgress=()=>{},shouldS
  }finally{reader?.close()}
 }
 /** Re-analyze every flagged interval with short independent decoded windows. */
+/** Stable, source-bounded units; onCheckpoint receives ONE completed retry target,
+ * and must commit it before the next starts. Resume skips only committed target IDs. */
+export function gapRetryTargets(gaps){
+ const targets=[];
+ for(const [index,g] of (gaps||[]).entries()){
+  if(!Number.isFinite(g?.start)||!Number.isFinite(g?.end)||g.end<=g.start)continue;
+  for(let start=g.start;start<g.end-.001;start+=20)
+   targets.push({id:targets.length,index,start,end:Math.min(start+20,g.end)});
+ }
+ return targets;
+}
 export async function retryGaps(file,assetId,settings,gaps,onProgress=()=>{},shouldStop=()=>false,options={}){
- if(!gaps?.length)return [];
+ const targets=gapRetryTargets(gaps);if(!targets.length)return [];
+ const done=new Set(options.completedIndexes||[]);
  let reader;
  try{
   reader=await (options.readerFactory||openAudioReader)(file,{durationHint:options.durationHint});
   const whisper=options.whisper||await engine(settings,onProgress),out=[];
-  const targets=gaps.flatMap((g,i)=>{const x=[];for(let start=g.start;start<g.end;start+=20)x.push({index:i,start,end:Math.min(start+20,g.end)});return x});
   for(let i=0;i<targets.length;i++){
-   if(shouldStop())throw Error('Gap retry paused');
+   if(done.has(i))continue;
+   if(shouldStop())throw Error('Gap retry paused; saved retries are retained');
    const w=targets[i],a=Math.max(0,w.start-1.5),b=Math.min(reader.duration,w.end+1.5);
    onProgress(i/targets.length,'Retrying gap '+(w.index+1)+'/'+gaps.length);
    const pcm=await reader.readRange(a,b);
+   if(shouldStop())throw Error('Gap retry paused; saved retries are retained');
    const {result,mode}=await recognizeWindow(whisper,pcm,{
     modelKey:settings.whisperModel,preference:settings.transcriptionTiming||'auto',
     onFallback:msg=>onProgress(i/targets.length,msg)
    });
-   out.push(...wordsFromResult(result,assetId,a,b-a,mode).filter(word=>word.end>w.start&&word.start<w.end));
+   const recognized=wordsFromResult(result,assetId,a,b-a,mode).filter(word=>{
+    const mid=(word.start+word.end)/2;return mid>=w.start&&mid<w.end+.001;
+   });
+   if(options.onCheckpoint)await options.onCheckpoint({target:w,targetIndex:i,totalTargets:targets.length,words:recognized});
+   // Only a confirmed persistent callback makes a target completed. A failure
+   // keeps previously saved results, and the caller can resume at this index.
+   done.add(i);out.push(...recognized);
+   onProgress((i+1)/targets.length,'Saved gap retry '+(i+1)+'/'+targets.length+' · '+recognized.length+' candidate words');
+   if(shouldStop())throw Error('Gap retry paused; saved retries are retained');
   }
-  onProgress(1,'Retried all '+gaps.length+' flagged intervals');
+  onProgress(1,'Analyzed '+targets.length+' retry windows; audio flags still require listening');
   return reconcileWords(out);
  }finally{reader?.close()}
 }
