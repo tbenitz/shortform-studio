@@ -37,14 +37,15 @@ export function inspectMomentCutoff(moment,words){
  * For deliberate review we return the original timestamps and quoted evidence. */
 export function findCallbackThreads(moments,{minGap=25,minTopics=2,maxResults=30,maxSpan=7200}={}){
  const list=(moments||[]).filter(valid).slice().sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start),threads=[],seen=new Set();
+ const topics=new Map(list.map(m=>[m.id,new Set(storyTopicWords(m.dialogue||''))]));
  for(let i=0;i<list.length;i++){
-  const first=list[i],a=new Set(storyTopicWords(first.dialogue||''));
+  const first=list[i],a=topics.get(first.id);
   if(a.size<minTopics)continue;
   for(let j=i+1;j<list.length;j++){
    const later=list[j];if(later.assetId!==first.assetId)break;
    if(later.start-first.end>maxSpan)break;
    if(later.start-first.end<minGap)continue;
-   const common=[...new Set(storyTopicWords(later.dialogue||'').filter(w=>a.has(w)))].sort((x,y)=>y.length-x.length);
+   const common=[...topics.get(later.id)].filter(w=>a.has(w)).sort((x,y)=>y.length-x.length);
    if(common.length<minTopics)continue;
    const key=first.id+'|'+later.id;if(seen.has(key))continue;seen.add(key);
    threads.push({id:'callback:'+key,assetId:first.assetId,momentIds:[first.id,later.id],start:first.start,end:later.end,
