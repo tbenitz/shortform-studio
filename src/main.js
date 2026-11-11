@@ -30,6 +30,7 @@ import {entireSourceCut,selectedSourceCut,shouldAutoInsertMedia,sourceSecondsVal
 import {projectAudit,cutSheetCSV,chaptersText,createSnapshot,sourceMatch,cleanMarkers,productionToolsHTML,toolSearchResultsHTML} from './production-tools.js';
 import {findLocalHumor,classifyHumorWithAI,transcriptTurns,rawDialogueOnly,makeCompilationSegments,DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
 import {findConnectedFunnyStories,storyMoments} from './humor-stories.js';
+import {findCallbackThreads,sourceDialogueBeats,inspectMomentCutoff} from './humor-context.js';
 import {addHumorRejection,restoreHumorRejection,viewableHumorMoments,rejectedMatch} from './humor-review.js';
 import {automaticRecoveryDue,buildAutomaticRecovery,staleAutomaticRecovery} from './recovery.js';
 import {humorStudioHTML} from './humor-ui.js';
@@ -1475,6 +1476,16 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
   toast('Selected '+moments.length+' related original clips about '+story.topic+'. You can rearrange or remove them before export.');
   return true;
  };
+ c.querySelectorAll('[data-callback-select]').forEach(button=>button.onclick=()=>{
+  const thread=findCallbackThreads(viewableHumorMoments(p,{scope:humorScope}))
+   .find(t=>t.id===button.dataset.callbackSelect);
+  if(!thread)return toast('Original callback proposal is no longer available. Rescan the transcript.',true);
+  const selected=thread.momentIds.map(id=>(p.humorMoments||[]).find(m=>m.id===id));
+  if(selected.some(x=>!x||x.assetId!==thread.assetId||!Number.isFinite(x.start)||!Number.isFinite(x.end)))return toast('Source moment is missing; cannot select an invented callback.',true);
+  commit('Selected two original source callback moments');
+  p.compilationOrder=thread.momentIds.slice();
+  update();toast('Selected TWO separate moments about '+thread.terms.join(', ')+'. Preview each; this is only a possible joke callback.');
+ });
  c.querySelectorAll('[data-story-use]').forEach(b=>b.onclick=()=>chooseConnectedStory(b.dataset.storyUse));
  c.querySelectorAll('[data-story-build]').forEach(b=>b.onclick=()=>{
   if(!chooseConnectedStory(b.dataset.storyBuild))return;
