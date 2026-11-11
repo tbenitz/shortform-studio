@@ -29,7 +29,10 @@ test('100 new brainstorm proposals are individually numbered and unapproved by d
  assert.equal(hits.length,100);
  assert.deepEqual(hits.map(x=>Number(x[2])),Array.from({length:100},(_,i)=>i+1));
  assert.ok(hits.every(x=>x[1]===' '),'new ideas must begin unchecked');
- assert.ok(hits.every(x=>/Not started/.test(x[3])),'ideas must not pretend to be implemented');
+ const started=new Set(['001','002','010']);
+ for(const item of hits){
+  assert.ok(started.has(item[2])?/Ready for owner review \(partial slice\)/.test(item[3]):/Not started/.test(item[3]),'idea status requires real code, not just a proposal: IDEA-'+item[2]);
+ }
 });
 test('new release acceptance checks exist but implementation cannot auto-approve them',()=>{
  const block=range('#### New owner acceptance checks R96–R101','### New unstarted idea backlog');
