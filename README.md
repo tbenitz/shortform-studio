@@ -50,6 +50,26 @@
 
 **Important distinction:** “Control present in the app” means you can try it; it is **not** an owner acceptance, a guarantee of correct output, or proof that all parts of a 494-item master requirement are finished.
 
+## v2.2.0 — Reliable Whisper checkpoint/resume and gap review (owner review pending)
+
+**Implemented code, not owner-approved.** This wave advances eight previously in-development master milestones with working code, visible Transcript controls, per-original-file persistence and automated tests. No user acceptance box is checked.
+
+**Try it:** In **Transcript**, import your original SRT normally; it stays the active subtitle source. Optionally start local Whisper. The browser now commits a record **after every successfully recognized 8–29-second original-audio window**, including windows that return no words. If processing stops or the browser reloads, **Resume** starts at the last consecutive, committed source-time checkpoint and does not redo earlier hours. Before resuming, the app checks original filename, byte size, modified time, duration, and Whisper model against the saved ledger. This is a *metadata identity check, not a cryptographic full-file verification*. Old, mismatched or discontinuous checkpoints are blocked, and the user is offered explicit **Restart** from zero instead of silently skipping audio.
+
+**Retry suspected gaps:** The retry process now saves each separate gap window before advancing. An interrupted retry resumes remaining windows. Words are merged into the Whisper track without replacing imported SRT. **A recognized word is not proof that a gap was solved**: flagged intervals remain on-screen and unresolved until the user opens **Listen to original** and explicitly marks that interval reviewed. The review is recorded in saved project metadata. Repeated boundary words are reconciled only when source, text, and overlapping timings match; repeated real dialogue in different moments or different videos remains intact.
+
+### New owner review checks — all unchecked
+- [ ] **R138 / PLAN-014:** Check a multi-hour source transcribes in bounded original-time windows without loading the whole file into memory and that windows finish with consecutive time bounds.
+- [ ] **R139 / PLAN-015:** Check overlapping-window duplicate speech is deduplicated without removing real repeated speech or other POV dialogue.
+- [ ] **R140 / PLAN-005 / PLAN-019:** Interrupt after several Whisper windows, reload and confirm each earlier successfully committed window is retained, including silent windows.
+- [ ] **R141 / PLAN-006:** Resume with the original unchanged file and Whisper model; confirm different, replaced or legacy unverified sources refuse unsafe resume.
+- [ ] **R142 / PLAN-009 / PLAN-023:** Force a decoder/storage failure and confirm the app never reports an unsaved window or a failed entire Whisper run as completed.
+- [ ] **R143 / PLAN-018:** Interrupt gap retry processing; reopen the project and resume, without starting completed retry windows over.
+- [ ] **R144 / PLAN-018:** Listen to actual original media and confirm retry-generated text does not automatically dismiss an uncertain gap; the owner can explicitly mark it reviewed with a saved record.
+- [ ] **R145 / Regression:** Imported SRT remains default, edited transcript/SRT export work, the original video and audio previews are playable, and other tabs' editing/export behavior is unchanged.
+
+**Engineering status as of November 11, 2026:** 68 ready for owner review (**partial** slices), 23 in development, 9 not started, out of 100 PLAN milestones. Previous wave: 60 / 31 / 9. Actual production quality is not confirmed by unit/browser tests; owner approval remains pending.
+
 ## v2.1.0 — Real roadmap implementation wave (owner review pending)
 
 **Code implemented, not owner-approved:** This wave advances previously unstarted master milestones and in-development features with actual editor UI, source-linked computations, and automated tests. All acceptance checkboxes below and in the original master list remain **unchecked** until the owner approves specific IDs.
@@ -140,7 +160,7 @@
 
 **Updated November 11, 2026.** This board tracks **engineering progress**, not owner approval. Existing IDs and every owner-acceptance checkbox remain unchanged. A code slice counts as **Ready for owner review** only when its stated narrow behavior is available to try; a broader master requirement may still be incomplete. **In development** means an identifiable partial implementation or supporting code, not a shipped feature. **Not started** means no implementation slice is being claimed here. Revisit statuses after each verified release.
 
-**Status snapshot (November 11, 2026):** 60 with specific reviewable slices · 31 in development · 9 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
+**Status snapshot (November 11, 2026):** 68 with specific reviewable slices · 23 in development · 9 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
 
 | Owner approval (never automatic) / PLAN ID | Master ID | Engineering status | Scope |
 | --- | --- | --- | --- |
@@ -148,25 +168,25 @@
 | [ ] PLAN-002 | PRJ-011 | Ready for owner review (partial slice) · R102 | Persistent undo history or saved version checkpoints |
 | [ ] PLAN-003 | PRJ-016 | Ready for owner review (partial slice) · R57–R59 | Re-link missing media by identity, path, or verified metadata |
 | [ ] PLAN-004 | PRJ-022 | Ready for owner review (partial slice) · R62–R64 | Portable backup integrity check and restored-project verification |
-| [ ] PLAN-005 | REL-004 | In development | Save granular checkpoints after completed processing chunks |
-| [ ] PLAN-006 | REL-005 | In development | Resume safely after browser reload or server restart when persistent backend exists |
+| [ ] PLAN-005 | REL-004 | Ready for owner review (partial slice) · R140 | Save granular checkpoints after completed processing chunks |
+| [ ] PLAN-006 | REL-005 | Ready for owner review (partial slice) · R141 | Resume safely after browser reload or server restart when persistent backend exists |
 | [ ] PLAN-007 | REL-009 | Ready for owner review (partial slice) · R57–R59 | Validate each checkpoint and its source/media identity before reuse |
 | [ ] PLAN-008 | REL-010 | Ready for owner review (partial slice) · R103 | Provide clear queued, running, paused, complete, warning, failed states |
-| [ ] PLAN-009 | REL-023 | In development | Never fabricate task completion when a worker exits unexpectedly |
+| [ ] PLAN-009 | REL-023 | Ready for owner review (partial slice) · R142 | Never fabricate task completion when a worker exits unexpectedly |
 | [ ] PLAN-010 | IMP-003 | Ready for owner review (partial slice) · R104 | Compatibility detection for MP4, MOV, MKV, WebM, AVI, M4V, and TS |
 | [ ] PLAN-011 | IMP-009 | Not started | Read multiple audio tracks, channel layouts, and embedded subtitles |
 | [ ] PLAN-012 | IMP-013 | Ready for owner review (partial slice) · R57–R59 | Check media corruption, missing frames, silent tracks, and incomplete files |
 | [ ] PLAN-013 | IMP-022 | Ready for owner review (partial slice) · R105 | Random-access loading without decoding an entire long video into RAM |
-| [ ] PLAN-014 | ASR-008 | In development | Transcribe long files in bounded, overlapping windows |
-| [ ] PLAN-015 | ASR-009 | In development | Reconcile repeated words at chunk boundaries |
+| [ ] PLAN-014 | ASR-008 | Ready for owner review (partial slice) · R138 | Transcribe long files in bounded, overlapping windows |
+| [ ] PLAN-015 | ASR-009 | Ready for owner review (partial slice) · R139 | Reconcile repeated words at chunk boundaries |
 | [ ] PLAN-016 | ASR-010 | Ready for owner review (partial slice) · R96–R97 | Detect untranscribed opening, ending, and internal gaps |
 | [ ] PLAN-017 | ASR-011 | Ready for owner review (partial slice) · R106 | Show speech-coverage map including silence and uncertainty |
-| [ ] PLAN-018 | ASR-012 | In development | Retry all failed or suspicious gaps without restarting completed work |
-| [ ] PLAN-019 | ASR-013 | In development | Save incremental transcription checkpoints across sessions |
+| [ ] PLAN-018 | ASR-012 | Ready for owner review (partial slice) · R143–R144 | Retry all failed or suspicious gaps without restarting completed work |
+| [ ] PLAN-019 | ASR-013 | Ready for owner review (partial slice) · R140 | Save incremental transcription checkpoints across sessions |
 | [ ] PLAN-020 | SEC-002 | Ready for owner review (partial slice) · R107 | Show which files, frames, audio chunks, or transcripts leave the device |
 | [ ] PLAN-021 | SEC-013 | Ready for owner review (partial slice) · R116 | Avoid exposing API tokens in logs or exported project files |
 | [ ] PLAN-022 | QA-010 | Ready for owner review (partial slice) · R100 | Detect black frames, frozen frames, and missing video |
-| [ ] PLAN-023 | QA-020 | In development | Block misleading success states if verification did not actually run |
+| [ ] PLAN-023 | QA-020 | Ready for owner review (partial slice) · R142 | Block misleading success states if verification did not actually run |
 | [ ] PLAN-024 | TEST-001 | In development | Test basic import/playback/trim/export without any AI service |
 | [ ] PLAN-025 | TEST-025 | In development | Test regression cases for all previously reported broken features |
 | [ ] PLAN-026 | SHORT-001 | Ready for owner review (partial slice) · R66 | Identify comedy, action, learning, insights, interview, podcast, and gaming highlights |
@@ -2885,6 +2905,8 @@ Report any feature as broken using its stable ID. A report goes here **and the i
 | R123–R125 / SRT-caption-source | Owner requests SRT as default subtitle source and no accidental Whisper replacement | 2026-11-10 | v2.0.0 adds SRT-first import, filename-matched sidecars and separate saved tracks; manual review pending | **No** |
 | R126–R127 / CLIP-review-quality | Additional improvements requested for complete funny moments, real conversations and coherent compilations | 2026-11-10 | v2.0.0 adds dialogue evidence ranking, filters, distinct shortlist and full-exchange extension; no guaranteed semantic joke quality | **No** |
 | R128 / ALL-TABS-usability | Multiple tabs too complex with unfamiliar settings and unclear next steps | 2026-11-10 | v2.0.0 adds five-stage navigation, responsive layout and collapsible settings; manual review pending | **No** |
+| R138–R142 / ASR-resume-verification | Whisper long-file processing and reload must not lose or invent completed audio windows | 2026-11-11 | v2.2.0 saves a source-file signature, model name, consecutive source windows, and actual IndexedDB-committed checkpoints; resume refuses old or changed source metadata | **No** |
+| R143–R144 / GAP-retry-owner-review | Interrupted transcription gap retries must preserve successful work without dismissing actual unverified speech | 2026-11-11 | v2.2.0 adds durable retry window ledgers, source playback controls and explicit audio review; automatic flags are not cleared on a speculative Whisper result | **No** |
 | R130–R131 / CALLBACK-and-cutoff | Owner wants actual jokes, full setups and meaningful repeated-topic stories | 2026-11-11 | v2.1.0 adds grounded callback pairs, timed first/last SRT excerpts, cue cutoff review and explicit selection; listen to actual clips before approval | **No** |
 | R132–R133 / POV-visual-evidence | Avoid misleading multi-camera changes and invented/unsupported event claims | 2026-11-11 | v2.1.0 adds actual source-frame receipt viewer and per-switch audio/decoded-motion audit; visual action is not classified | **No** |
 | R134–R135 / CROP-comparison-motion | Crop settings need clearer visual proof and smoother camera motion | 2026-11-11 | v2.1.0 adds source-vs-rendered crop panes and shared preview/export easing curves; Chromebook review pending | **No** |
