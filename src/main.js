@@ -37,7 +37,7 @@ import {automaticRecoveryDue,buildAutomaticRecovery,staleAutomaticRecovery} from
 import {humorStudioHTML} from './humor-ui.js';
 import {filterStorySuggestions} from './story-workbench-ui.js';
 import {inspectConnectedStory,deduplicateSourceCuts,chronologicalCuts,contextualCut,trimToSpokenDialogue,storyEditPlan} from './story-proof.js';
-import {insertAtPlayhead,overwriteAtPlayhead,rippleDelete,slipSelected,rollBoundary,frameTimecode,parseFrameTimecode,nearestEditPoint,nextBoundary,setStoryRole,timecodeCutList} from './timeline-workbench.js';
+import {insertAtPlayhead,overwriteAtPlayhead,rippleDelete,slipSelected,rollBoundary,frameTimecode,parseFrameTimecode,nearestEditPoint,nextBoundary,setStoryRole,timecodeCutList,clipStartTime} from './timeline-workbench.js';
 import {extendSourceRange,completeExchangeRange,applyClipExtension,extendCandidateCut} from './clip-context.js';
 import {getCaptionTrack,captionStatus,importSrtAsDefault,beginWhisperCaptionRun,appendWhisperCaptionWords,finishWhisperCaptionRun,selectCaptionTrack,snapshotActiveTrack} from './subtitle-preference.js';
 import {studioGuideHTML} from './studio-guide.js';
