@@ -14,7 +14,7 @@ import {directorOutputMode,visibleDirectorCandidates as filterDirectorCandidates
 import {parseEditorialDirection} from './director-intent.js';
 import {planDirectorBatch,directorViewCandidates,assignDirectorBatch} from './director-batches.js';
 import {reviewPvPWithAI} from './gameplay-review.js';
-import {transcribe,retryGaps,reconcileWords,gapRetryTargets} from './asr.js';
+import {transcribe,retryGaps,reconcileWords,gapRetryTargets,mergeGapFlags} from './asr.js';
 import {transcriptionSourceSignature,checkTranscriptionResume,nextTranscriptionCheckpoint,gapRetryPlan,gapReviewKey} from './transcript-checkpoint.js';
 import {sourceToTimelineTime,appendLiveWords} from './live-captions.js';
 import {subtitleOffset,projectSubtitleWordsToSource,relinkSynchronizationWarning,sourceTimestampAtProjectTime} from './subtitle-sync.js';
@@ -707,53 +707,74 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
  on('generateVoice',async()=>{const script=$('narrationScript')?.value?.trim();if(!script)return toast('Enter narration text first',true);voiceKey=$('voiceApiKey')?.value||voiceKey;if(!confirm('Send this narration text to the configured speech-generation service?'))return;const button=$('generateVoice');button.disabled=true;try{const file=await synthesizeSpeech(script,{endpoint:p.settings.ttsEndpoint,model:p.settings.ttsModel,voice:p.settings.ttsVoice,speed:p.settings.ttsSpeed,apiKey:voiceKey});const at=engine.time;const a=await addFile(file);commit();p.audio.push({id:uid(),assetId:a.id,start:at,sourceStart:0,duration:Math.min(a.duration||duration(p)-at,Math.max(.2,duration(p)-at)),volume:1,role:'voice'});update();toast('Generated speech added as an editable audio overlay')}catch(e){toast(`Voice generation: ${e.message}`,true)}finally{if(button)button.disabled=false}});
  on('removeAsset',async()=>{if(!confirm('Remove source and all its timeline segments?'))return;const id=p.selectedAsset;commit();p.assets=p.assets.filter(x=>x.id!==id);p.words=p.words.filter(w=>w.assetId!==id);if(p.subtitleTracks)delete p.subtitleTracks[id];p.segments=p.segments.filter(s=>s.assetId!==id);p.audio=p.audio.filter(s=>s.assetId!==id);p.selectedAsset=p.assets[0]?.id||null;assets.get(id)?.url&&URL.revokeObjectURL(assets.get(id).url);assets.delete(id);savedHandles.delete(id);/* Source caches are shared by saved library project versions. Explicitly clear cached media in Settings when desired. */update()});
  on('insertTranscript',()=>{if(!p.selectedAsset)return toast('Select a source first',true);const value=$('pasteTranscript').value.trim();if(!value)return toast('Paste transcript text first',true);commit();const a=asset(p.selectedAsset);p.words.push(...timeWords(value,a.id,0,Math.max(10,a.duration)));update();toast('Transcript text added with approximate timestamps; review alignment')});
+ on('restartTranscription',()=>{
+  const a=asset(p.selectedAsset);
+  if(!a?.file||asrBusy)return toast('Relink original media or stop transcription first.',true);
+  if(!confirm('Restart Whisper from time zero for this source? Previous Whisper-only captions and checkpoints will be replaced. Imported SRT remains untouched.'))return;
+  commit('Restart Whisper from start');
+  if(p.transcriptProgress)delete p.transcriptProgress[a.id];
+  if(p.transcriptGaps)p.transcriptGaps[a.id]=[];
+  if(p.transcriptGapRetries)delete p.transcriptGapRetries[a.id];
+  beginWhisperCaptionRun(p,a.id,{resume:false});
+  update();$('transcribeBtn')?.click();
+ });
  on('transcribeBtn',async()=>{
- const a=asset(p.selectedAsset);
- if(!a?.file)return toast('Relink source media to transcribe',true);
- if(asrBusy)return;
- p.transcriptProgress||={};p.transcriptGaps||={};
- const prev=p.transcriptProgress[a.id];
- const startAt=prev?.status!=='complete'&&Number(prev?.nextAt)>0?Math.min(Number(prev.nextAt),a.duration):0;
- if(!startAt){commit('Starting transcription');p.transcriptGaps[a.id]=[]}
- beginWhisperCaptionRun(p,a.id,{resume:!!startAt});
- p.transcriptProgress[a.id]={nextAt:startAt,total:a.duration,status:'working'};
- asrBusy=true;asrStop=false;renderInspector();
- try{
-  const result=await transcribe(a.file,a.id,p.settings,asrProgress,()=>asrStop,{
-   durationHint:a.duration,startAt,
-   onPartial:async info=>{
-    // Keep already completed words visible in CC immediately after every Whisper window.
-    appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
-    if(p.selectedAsset===a.id){
-     const text=info.words.map(w=>w.text).join(' ');
-     const live=$('liveCaptionPreview');if(live&&text)live.textContent=text;
-     const status=$('liveTranscriptStream');if(status)status.textContent=`Recognized ${fmt(info.from)}–${fmt(info.to)} · ${info.words.length} new words`;
-     const last=info.words.at(-1);
-     if(followWhisperCaptions&&last&&!engine.playing){
-      const target=sourceToTimelineTime(p.segments,a.id,(last.start+last.end)/2);
-      if(target!==null)engine.seek(target).catch(()=>{});
-     }else engine.draw();
+  const a=asset(p.selectedAsset);
+  if(!a?.file)return toast('Relink original media to transcribe',true);
+  if(asrBusy)return;
+  p.transcriptProgress||={};p.transcriptGaps||={};
+  const prev=p.transcriptProgress[a.id];let startAt=0;
+  if(prev?.status!=='complete'&&Number(prev?.nextAt)>0){
+   const proof=checkTranscriptionResume(prev,a,a.file,{model:p.settings.whisperModel});
+   if(!proof.allowed)return toast('Resume blocked: '+proof.reason+' Choose Restart to reprocess safely from zero.',true);
+   startAt=proof.startAt;
+  }
+  const signature=transcriptionSourceSignature(a,a.file);
+  if(!startAt){commit('Starting local Whisper');p.transcriptGaps[a.id]=[]}
+  beginWhisperCaptionRun(p,a.id,{resume:!!startAt});
+  p.transcriptProgress[a.id]=startAt?{...prev,status:'working'}:{
+   status:'working',nextAt:0,total:a.duration,sourceSignature:signature,model:p.settings.whisperModel,windows:[]};
+  asrBusy=true;asrStop=false;renderInspector();
+  try{
+   const result=await transcribe(a.file,a.id,p.settings,asrProgress,()=>asrStop,{
+    durationHint:a.duration,startAt,checkpointEvery:1,
+    onPartial:async info=>{
+     appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
+     if(p.selectedAsset===a.id){
+      const text=info.words.map(w=>w.text).join(' ');
+      const live=$('liveCaptionPreview');if(live&&text)live.textContent=text;
+      const status=$('liveTranscriptStream');
+      if(status)status.textContent='Recognized '+fmt(info.from)+'–'+fmt(info.to)+' · '+info.words.length+' new words (not yet checkpointed)';
+      const last=info.words.at(-1);
+      if(followWhisperCaptions&&last&&!engine.playing){
+       const target=sourceToTimelineTime(p.segments,a.id,(last.start+last.end)/2);
+       if(target!==null)engine.seek(target).catch(()=>{});
+      }else engine.draw();
+     }
+    },
+    onCheckpoint:async cp=>{
+     const previous=p.transcriptProgress[a.id],priorGaps=p.transcriptGaps[a.id];
+     const next=nextTranscriptionCheckpoint(previous,cp,{signature,model:p.settings.whisperModel});
+     finishWhisperCaptionRun(p,a.id,reconcileWords);
+     p.transcriptGaps[a.id]=mergeGapFlags([...priorGaps,...cp.gaps]);
+     p.transcriptProgress[a.id]=next;
+     try{await saveProject({...p,assets:p.assets.map(({url,file,...rest})=>rest)})}
+     catch(e){p.transcriptProgress[a.id]=previous;p.transcriptGaps[a.id]=priorGaps;throw Error('Transcript checkpoint not saved: '+e.message)}
+     asrProgress(cp.to/cp.total,'Saved '+fmt(cp.to)+' / '+fmt(cp.total)+' · '+next.verifiedWindows+' consecutive windows');
     }
-   },
-   onCheckpoint:async cp=>{
-    // Words were already appended by onPartial; do not double-insert them at save time.
-    p.transcriptGaps[a.id].push(...cp.gaps);
-    p.transcriptProgress[a.id]={nextAt:cp.nextAt,total:cp.total,status:'paused'};
-    await saveProject({...p,assets:p.assets.map(({url,file,...rest})=>rest)});
-    asrProgress(cp.nextAt/cp.total,`Saved ${fmt(cp.nextAt)} / ${fmt(cp.total)} · ${p.words.filter(w=>w.assetId===a.id).length} words`);
-   }
-  });
-  const completed=finishWhisperCaptionRun(p,a.id,reconcileWords);
-  const sourceWords=p.subtitleTracks[a.id].whisper;
-  p.transcriptProgress[a.id]={nextAt:result.total,total:result.total,status:'complete'};
-  await save(false);update();
-  toast(`Completed ${fmt(result.total)} of audio. ${sourceWords.length} words saved.`+(completed.keptSrt?' Original SRT subtitles stay active.':' Review Whisper subtitle timing.'));
- }catch(e){
-  const progress=p.transcriptProgress[a.id];if(progress)progress.status='paused';
-  await save(false);
-  toast(`${asrStop?'Paused':'Transcription stopped'} at ${fmt(progress?.nextAt||0)}. ${e.message}. Use Resume to continue without restarting.`,!asrStop);
- }finally{asrBusy=false;asrStop=false;renderInspector()}
-});
+   });
+   const completed=finishWhisperCaptionRun(p,a.id,reconcileWords);
+   const prior=p.transcriptProgress[a.id];
+   p.transcriptProgress[a.id]={...prior,nextAt:result.total,total:result.total,status:'complete',completedAt:Date.now()};
+   if(!(await save(false))){p.transcriptProgress[a.id]=prior;throw Error('Final transcription status failed to save. Resume from the last verified checkpoint.')}
+   update();
+   toast('Completed and saved '+fmt(result.total)+' of real audio with '+p.subtitleTracks[a.id].whisper.length+' Whisper words.'+(completed.keptSrt?' SRT stays active.':' Review estimated times.'));
+  }catch(e){
+   const progress=p.transcriptProgress[a.id];if(progress)progress.status='paused';
+   const stored=await save(false);
+   toast('Whisper '+(asrStop?'paused':'stopped')+' at '+fmt(progress?.nextAt||0)+'. '+e.message+(stored?' Verified windows can be resumed.':' Save failed; newer audio has NOT been verified as stored.'),!asrStop);
+  }finally{asrBusy=false;asrStop=false;renderInspector()}
+ });
  on('retryAllGaps',async()=>{const a=asset(p.selectedAsset),gaps=p.transcriptGaps?.[a?.id]||[];if(!a?.file||!gaps.length)return toast('No gaps to retry or media file missing',true);asrBusy=true;asrStop=false;renderInspector();try{const extra=await retryGaps(a.file,a.id,p.settings,gaps,asrProgress,()=>asrStop,{durationHint:a.duration});commit();if(getCaptionTrack(p,a.id).active==='srt'){
    p.subtitleTracks[a.id].whisper=reconcileWords([...(p.subtitleTracks[a.id].whisper||[]),...extra]);
   }else{
