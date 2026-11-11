@@ -5,6 +5,7 @@
 import {makeSegment,clamp,fmt} from './model.js';
 import {alignedPovEvents,pointOfViewScore} from './pov-director.js';
 import {checkSynchronization,sourceAtAlignment} from './pov-sync.js';
+import {auditPovSwitches} from './pov-switch-audit.js';
 import {selectDiverseCandidates} from './director-coverage.js';
 import {parseEditorialDirection,matchEditorialDirection} from './director-intent.js';
 
@@ -269,6 +270,10 @@ export function buildMultiPovStories(words,assets,tracks,sync,settings={},onProg
     if(!match.eligible)continue;
     const story=composePovStory(events,sync,group,limits,settings);
     if(!story)continue;
+    const switchAudit=auditPovSwitches(story.segments,group.events,sync,{radius:12});
+    // Do not auto-publish a cross-camera angle without locally paired
+    // original audio and decoded-frame movement at its actual switch point.
+    if(!switchAudit.safeToAutoUse)continue;
     const kind=tags.has('revive')?'Possible rescue sequence':
       tags.has('clutch')?'Possible clutch sequence':
       tags.has('down')?'Down callout + engagement':'Possible combat encounter';
@@ -285,11 +290,11 @@ export function buildMultiPovStories(words,assets,tracks,sync,settings={},onProg
       pov:{referenceId:A.id,targetId:B.id,sourceCount:2,
         cutCount:story.segments.length,jumpCuts:story.jumpCuts,povSwitches:story.povSwitches,
         storyBeats:story.storyBeats,globalStart:story.globalStart,globalEnd:story.globalEnd,
-        actionEvidencePairs:story.pairCount,confidence:sync.confidence||'manual',directionMatch:match},
+        actionEvidencePairs:story.pairCount,confidence:sync.confidence||'manual',directionMatch:match,switchAudit},
       reason:'One synchronized encounter ('+fmt(story.globalStart)+'–'+fmt(story.globalEnd)+
         ') with '+story.pairCount+' nearby audio/decoded-frame activity pairs. Cut order: '+
         story.storyBeats.map(b=>b.order+'. '+b.role+' ('+(b.sourceId===A.id?'A':'B')+')').join(' → ')+
-        '. '+match.reason+'. The footage was not visually classified as a gunfight: a kill, gun, revive or player identity is NOT visually confirmed. Check the exact frames before export.'
+        '. '+match.reason+'. Switch review: '+switchAudit.status+' ('+switchAudit.supportedSwitches+' strongly supported, '+switchAudit.issues.length+' uncertain). The footage was not visually classified as a gunfight: a kill, gun, revive or player identity is NOT visually confirmed. Check the exact frames before export.'
     });
   }
   onProgress(1,'Found '+candidates.length+' coherent shared encounters from '+groups.length+

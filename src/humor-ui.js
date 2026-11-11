@@ -1,6 +1,7 @@
 import {escapeHTML as esc,fmt} from './model.js';
 import {DEFAULT_HUMOR_INSTRUCTIONS} from './humor-studio.js';
 import {findConnectedFunnyStories} from './humor-stories.js';
+import {findCallbackThreads,sourceDialogueBeats,inspectMomentCutoff} from './humor-context.js';
 import {orderClipSuggestions} from './clip-selection.js';
 import {getCaptionTrack} from './subtitle-preference.js';
 import {viewableHumorMoments,humorEvidence,humorReviewCounts} from './humor-review.js';
@@ -15,15 +16,18 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
  const order=Array.isArray(p.compilationOrder)?p.compilationOrder:[],byId=new Map((p.humorMoments||[]).map(m=>[m.id,m]));
  const visibleIds=new Set(all.map(x=>x.id));
  const selected=order.map(id=>byId.get(id)).filter(m=>m&&visibleIds.has(m.id)),selectedDuration=selected.reduce((n,m)=>n+m.end-m.start,0);
- const stories=findConnectedFunnyStories(all),filtered=filterStorySuggestions(all,sources,filters);
+ const stories=findConnectedFunnyStories(all),callbacks=findCallbackThreads(all),filtered=filterStorySuggestions(all,sources,filters);
  const ranked=orderClipSuggestions(filtered,p.words,{sort:reviewSort,reactionOnly,multiSpeakerOnly});
  const shown=ranked.slice(0,displayLimit).map(x=>x.moment),reviewById=new Map(ranked.map(x=>[x.moment.id,x.review]));
  const sourceOptions=sources.map(a=>'<option value="'+esc(a.id)+'" '+(scope===a.id?'selected':'')+'>'+esc(a.name)+'</option>').join('');
  const cards=shown.map(m=>{
-  const a=lookup.get(m.assetId),chosen=order.includes(m.id),evidence=humorEvidence(m,a),structure=reviewById.get(m.id);
+  const a=lookup.get(m.assetId),chosen=order.includes(m.id),evidence=humorEvidence(m,a),structure=reviewById.get(m.id),beats=sourceDialogueBeats(m,p.words),cutoff=inspectMomentCutoff(m,p.words);
   return '<article class="humor-card '+(chosen?'chosen':'')+'">'+
    '<div class="row between wrap"><b>'+esc(a?.name||'Missing source')+' · '+fmt(m.start)+'–'+fmt(m.end)+'</b><small title="Local scores are keyword pattern matches, not humor quality ratings">'+(String(m.source||'').toLowerCase().includes('ai')?'AI suggestion':'Local match '+Math.round(m.score||0))+'</small></div>'+
-   '<p class="tiny muted">Dialogue structure '+structure.score+'/100 · '+esc(structure.reason)+'. This checks transcript context, NOT whether a joke is genuinely funny.</p><details><summary>Read actual dialogue and why it was suggested</summary><pre class="humor-dialogue">'+esc(m.dialogue||'')+'</pre><p class="tiny muted"><b>'+esc(evidence.mode)+'</b> · Original source '+fmt(m.start)+'–'+fmt(m.end)+'<br>'+esc(m.reason||'No reason supplied')+'<br>'+esc(evidence.warning)+'</p></details>'+
+   '<p class="tiny muted">Dialogue structure '+structure.score+'/100 · '+esc(structure.reason)+'. This checks transcript context, NOT whether a joke is genuinely funny.</p>'+
+   (beats.opening?'<div class="humor-source-beats"><div><b>First source words · '+fmt(beats.opening.time)+'</b><span>'+esc(beats.opening.text)+'</span></div><div><b>Last source words · '+fmt(beats.ending.time)+'</b><span>'+esc(beats.ending.text)+'</span></div></div>':'')+
+   (cutoff.reasons.length?'<p class="humor-cutoff-warning"><b>Possible speech cutoff:</b> '+esc(cutoff.reasons.join(' · '))+' · Use Include full exchange, then verify the video.</p>':'')+
+   '<details><summary>Read actual dialogue and why it was suggested</summary><pre class="humor-dialogue">'+esc(m.dialogue||'')+'</pre><p class="tiny muted"><b>'+esc(evidence.mode)+'</b> · Original source '+fmt(m.start)+'–'+fmt(m.end)+'<br>'+esc(m.reason||'No reason supplied')+'<br>'+esc(evidence.warning)+'</p></details>'+
    '<div class="row wrap"><button class="small" data-humor-preview="'+esc(m.id)+'">▶ Preview original</button><button class="small" data-humor-expand="'+esc(m.id)+'" title="Add five seconds of actual footage before and after">+5s context</button><button class="small" data-humor-complete="'+esc(m.id)+'" title="Use the original SRT words to include setup, reply and reaction">Include full exchange</button>'+
    '<button class="small '+(chosen?'primary':'')+'" data-humor-toggle="'+esc(m.id)+'" aria-pressed="'+chosen+'">'+(chosen?'✓ Selected':'＋ Add clip')+'</button><button class="small danger" data-humor-reject="'+esc(m.id)+'" title="Hide this bad suggestion from later scans">Not funny ×</button></div>'+
    (!a?.url?'<small class="warning">Reconnect the original video to preview and export</small>':'')+'</article>';
@@ -37,6 +41,15 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
    (!asset?.url?'<small class="warning">Reconnect this source before playback or export</small>':'')+'</article>';
  }).join('')||'<p class="muted tiny">No verified connected storyline yet. We found '+all.length+' joke candidate(s), but not two distinct, non-overlapping exchanges sharing enough source-dialogue topic evidence. We will not paste unrelated jokes together and call them a story. Try a more complete SRT or review individual clips below.</p>';
  const selectedCards=selected.map((m,i)=>'<article><div class="row between wrap"><span><b>'+(i+1)+'.</b> '+esc(lookup.get(m.assetId)?.name||'Missing source')+' · '+fmt(m.start)+'–'+fmt(m.end)+'</span><span class="row tight"><button class="small" data-humor-expand="'+esc(m.id)+'">+5s</button><button class="small" data-compilation-up="'+esc(m.id)+'" '+(i===0?'disabled':'')+'>↑</button><button class="small" data-compilation-down="'+esc(m.id)+'" '+(i===selected.length-1?'disabled':'')+'>↓</button><button class="small danger" data-humor-toggle="'+esc(m.id)+'">×</button></span></div></article>').join('')||'<p class="tiny muted">Choose a funny clip or a connected storyline above. Only the selected cuts go into the final compilation.</p>';
+ const callbackCards=callbacks.slice(0,18).map(t=>
+  '<article class="humor-card callback-card"><div class="row between wrap"><b>Possible callback · '+fmt(t.earlier.start)+' → '+fmt(t.later.start)+'</b><span class="pill">'+esc(t.terms.join(' · '))+'</span></div>'+
+  '<p class="tiny muted">'+esc(t.reason)+'</p>'+
+  '<div class="humor-source-beats"><div><b>Earlier actual dialogue</b><span>'+esc(t.earlier.text)+'</span></div><div><b>Later actual dialogue</b><span>'+esc(t.later.text)+'</span></div></div>'+
+  '<div class="row wrap"><button class="small" data-humor-preview="'+esc(t.earlier.id)+'">▶ Earlier</button><button class="small" data-humor-preview="'+esc(t.later.id)+'">▶ Later</button>'+
+  '<button class="small primary" data-callback-select="'+esc(t.id)+'">Select both real moments</button></div></article>').join('');
+ const callbackSection='<details class="humor-advanced" id="humorCallbacksPanel" '+((mode==='story'||mode==='compilation')&&callbacks.length?'open':'')+'><summary>Possible running jokes / callbacks ('+callbacks.length+')</summary>'+
+  '<p class="tiny muted">New: source-grounded repeated subjects across distant conversations. These are POSSIBLE callbacks found from actual dialogue words, not AI-confirmed jokes. Both original moments must be previewed and selected before building.</p>'+
+  '<div class="humor-list">'+(callbackCards||'<p class="tiny muted">No two distant source moments repeat enough specific subject words. We will not invent a callback.</p>')+'</div></details>';
  const rejectionRows=(p.humorRejected||[]).slice().sort((a,b)=>(b.rejectedAt||0)-(a.rejectedAt||0)).slice(0,60).map(r=>'<article><div class="row between wrap"><span>'+esc(lookup.get(r.assetId)?.name||r.assetId)+' · '+fmt(r.start)+'–'+fmt(r.end)+'</span><button class="small" data-humor-restore="'+esc(r.id)+'">Restore suggestion</button></div><p class="tiny muted">'+esc(r.dialogue||'')+'</p></article>').join('');
  const rejectionSection='<details class="humor-advanced"><summary>Rejected funny moments ('+reviewCounts.storedRejections+') · undo rejections</summary><p class="tiny muted">Rejected moments remain recoverable in this project, but future scans will not bring back matching source intervals automatically.</p><div class="humor-list">'+(rejectionRows||'<p class="tiny muted">None rejected yet.</p>')+'</div></details>';
  const advanced='<details class="humor-advanced"><summary>Advanced options (optional)</summary>'+
@@ -73,5 +86,5 @@ export function humorStudioHTML(p,{status='',busy=false,scope='all',minScore=45,
   '<div class="row wrap"><button id="humorDownloadSelected" class="small" '+(selected.length?'':'disabled')+'>Selected dialogue TXT</button>'+
   '<button id="humorBuild" class="primary" '+(selected.length&&!busy?'':'disabled')+'>Build selected '+(selected.length===1?'clip':'compilation')+' in Editor</button></div>'+
   '<p class="tiny muted">The final video uses the selected source footage, not AI-created visuals. Edit the timeline and export to MP4 when ready.</p>';
- return top+(mode==='story'||mode==='compilation'?storySection:clipsSection)+footer+sourceStoryWorkbenchHTML(p,selected,filters,{open:reviewOpen})+rejectionSection;
+ return top+(mode==='story'||mode==='compilation'?storySection:clipsSection)+callbackSection+footer+sourceStoryWorkbenchHTML(p,selected,filters,{open:reviewOpen})+rejectionSection;
 }

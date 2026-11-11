@@ -3,6 +3,7 @@ import {focusAt,focusAtFace} from './faces.js';
 import {activeWordIndex,drawCaptions} from './captions.js';
 import {sourcePlaybackIssue,decodedVideoReady,sourceTimeToProjectTime,segmentTimeLength} from './playback-state.js';
 import {alignedVideoProjectTime} from './subtitle-sync.js';
+import {cropKeyframes} from './crop-motion.js';
 import {openMp4Capture} from './mp4-export.js';
 const el=id=>document.getElementById(id);
 export class Renderer{
@@ -198,11 +199,11 @@ export class Renderer{
   if(media){
     const mw=media.videoWidth||media.naturalWidth,mh=media.videoHeight||media.naturalHeight;
     if(mw&&mh){
-      const progress=clamp(curr.local/Math.max(.05,seg.end-seg.start),0,1),keyedZoom=(seg.zoom||1)*(1-progress)+(seg.zoomEnd??seg.zoom??1)*progress;
+      const progress=clamp(curr.local/Math.max(.05,seg.end-seg.start),0,1),keyframe=cropKeyframes(seg,progress),keyedZoom=keyframe.zoom;
       const zoom=clamp(keyedZoom*this.settings.zoom,.5,5),scale=Math.max(w/mw,h/mh)*zoom,dw=mw*scale,dh=mh*scale;
       const sourceTime=seg.start+curr.local,faceSamples=p.faceTracks?.[seg.assetId]||[];
       const cropMode=seg.cropMode|| (this.settings.autoFaceFraming?'auto':'manual');
-      const baseX=(seg.focusX??.5)*(1-progress)+(seg.focusEndX??seg.focusX??.5)*progress,baseY=(seg.focusY??.5)*(1-progress)+(seg.focusEndY??seg.focusY??.5)*progress;
+      const baseX=keyframe.x,baseY=keyframe.y;
       let detected=null;
       if(cropMode==='auto')detected=Number.isInteger(seg.cropFaceIndex)&&seg.cropFaceIndex>=0?focusAtFace(faceSamples,sourceTime,seg.cropFaceIndex):faceSamples.length?focusAt(faceSamples,sourceTime,baseX):null;
       if(cropMode==='speaker'){
