@@ -10,7 +10,8 @@ test('full three-hour transcription uses bounded windows and preserves duration'
  assert.ok(ranges.every(([a,b])=>b-a<=23&&a>=0&&b<=10800));
  assert.equal(checkpoints.at(-1).nextAt,10800);
  assert.ok(progress.at(-1)===1);
- assert.ok(checkpoints.length>=170&&checkpoints.length<=181);
+ assert.equal(checkpoints.length,540,'Every bounded original-source window must commit independently.');
+ assert.ok(checkpoints.every((c,i)=>i===0?c.from===0:c.from===checkpoints[i-1].to),'Saved windows must have consecutive source-time boundaries');
 });
 test('resume starts at last saved checkpoint, never decodes first hours again',async()=>{
  const windows=[],reader={duration:10800,async readRange(a,b){windows.push([a,b]);return new Float32Array(32)}};
@@ -25,6 +26,6 @@ test('failed/cancelled operation flushes prior completed work to callback',async
  await assert.rejects(transcribeWithReader(reader,'video',{transcriptionChunk:20,transcriptionTiming:'plain'},whisper,()=>{},()=>count>=2,{
   onCheckpoint:async info=>saved.push(info)
  }),/paused/);
- assert.ok(saved.length>=1);assert.ok(saved[0].nextAt>=40);
+ assert.equal(saved.length,2,'Each completed 20-second window must now save immediately.');assert.deepEqual(saved.map(x=>x.nextAt),[20,40]);
 });
 test('gap flags from neighboring windows merge safely',()=>{assert.equal(mergeGapFlags([{start:1,end:2},{start:2.1,end:3}]).length,1)});

@@ -14,7 +14,8 @@ import {directorOutputMode,visibleDirectorCandidates as filterDirectorCandidates
 import {parseEditorialDirection} from './director-intent.js';
 import {planDirectorBatch,directorViewCandidates,assignDirectorBatch} from './director-batches.js';
 import {reviewPvPWithAI} from './gameplay-review.js';
-import {transcribe,retryGaps,reconcileWords} from './asr.js';
+import {transcribe,retryGaps,reconcileWords,gapRetryTargets,mergeGapFlags} from './asr.js';
+import {transcriptionSourceSignature,checkTranscriptionResume,nextTranscriptionCheckpoint,gapRetryPlan,gapReviewKey} from './transcript-checkpoint.js';
 import {sourceToTimelineTime,appendLiveWords} from './live-captions.js';
 import {subtitleOffset,projectSubtitleWordsToSource,relinkSynchronizationWarning,sourceTimestampAtProjectTime} from './subtitle-sync.js';
 import {loadDirectorKey,saveDirectorKey,clearDirectorKey,directorKeyRemembered} from './credentials.js';
@@ -146,7 +147,8 @@ const opts=(...names)=>names.map(v=>[v,v]);
 function settingSection(heading,html){const expanded=['Video and reframing','Caption and branding','Storage and interface'].includes(heading);return `<details class="setting-section" ${expanded?'open':''}><summary>${esc(heading)}</summary><div class="setting-body">${html}</div></details>`}
 function renderInspector(){const target=$('inspectorContent');$('inspectorTitle').textContent=({media:'Media controls',transcript:'Transcription',director:'AI Director',editor:'Clip editor',export:'Export studio',settings:'Studio settings',tools:'Production Tools',humor:'Funny Clips & Compilations'})[tab];$('inspectorMode').textContent=tab.toUpperCase();let html='';
  if(tab==='media'){const a=asset(p.selectedAsset);html=`<div class="info">Import videos here. You can make clips locally; optional AI uses your own configured service. Start by importing a real recording, then add its dialogue in Transcript.</div><div class="row wrap" style="margin:10px 0"><button id="quickFindClips" class="primary small">Find funny clips / stories</button><button id="quickOpenTranscript" class="small">Add transcript</button></div><div class="separator"></div>`+(a?`<h3>${esc(a.name)}</h3><div class="metric"><span>Duration</span><b>${fmt(a.duration)}</b></div><div class="metric"><span>Dimensions</span><b>${a.width||'—'} × ${a.height||'—'}</b></div><div class="metric"><span>File size</span><b>${(a.size/1048576).toFixed(1)} MB</b></div><div class="metric"><span>Local availability</span><b>${a.url?'Ready':'Missing / relink'}</b></div><div class="separator"></div>${a.type==='video'&&a.url?`<label class="field">Source preview (scrub the entire recording)<video id="sourcePreview" controls playsinline preload="metadata" src="${esc(a.url)}" style="display:block;width:100%;max-height:200px;background:#090d13;margin-top:8px"></video></label><div class="row tight"><button id="markIn" class="small">Set In from preview</button><button id="markOut" class="small">Set Out from preview</button></div><p class="tiny muted" style="margin-top:8px">Mark any range, or add the whole source using the button beside the library.</p><div class="separator"></div>`:''}${a.type==='video'?`<button id="scanFaces" class="full" ${faceBusy?'disabled':''}>${faceBusy?'Scanning frames…':'◎ Analyze faces for smart crop'}</button><p class="tiny muted">${(p.faceTracks?.[a.id]||[]).length} source-frame detections stored. Faces stay on this device.</p><button id="cancelFaceScan" ${faceBusy?'':'disabled'}>Cancel face scan</button><button id="scanScenes" class="full" ${sceneBusy?'disabled':''}>${sceneBusy?'Scanning video…':'◫ Detect scene changes'}</button><p class="tiny muted">${(p.sceneTracks?.[a.id]||[]).length} detected scene boundaries. Select a boundary to set source In/Out.</p><div class="stack" style="max-height:150px;overflow:auto">${(p.sceneTracks?.[a.id]||[]).slice(0,120).map((shot,i,all)=>`<button class="small" data-scene-time="${shot.time}" data-scene-end="${(all[i+1]?.time??a.duration).toFixed(2)}">Shot ${i+1} · ${fmt(shot.time)}</button>`).join('')}</div><button id="cancelSceneScan" ${sceneBusy?'':'disabled'}>Cancel scene scan</button>`:''}<button id="removeAsset" class="danger full">Remove this source</button>`:'<p class="muted">Choose an imported source to inspect its properties.</p>')}
- if(tab==='transcript'){const a=asset(p.selectedAsset);const activeCaption=getCaptionTrack(p,p.selectedAsset);const u=utterances(p.words.filter(w=>w.assetId===p.selectedAsset));const filtered=searchTerm?u.filter(x=>x.text.toLowerCase().includes(searchTerm.toLowerCase())):u;const chosen=u.find(x=>selectedUtt&&x.assetId===selectedUtt.assetId&&Math.abs(x.start-selectedUtt.start)<.02)||u[0];const saved=p.transcriptProgress?.[p.selectedAsset];html=`<div class="info"><b>SRT subtitles are preferred.</b> Import the matching original-timestamp .srt/.vtt. Whisper is optional; it won't silently replace the original subtitles.</div>
+ if(tab==='transcript'){const a=asset(p.selectedAsset);const activeCaption=getCaptionTrack(p,p.selectedAsset);const u=utterances(p.words.filter(w=>w.assetId===p.selectedAsset));const filtered=searchTerm?u.filter(x=>x.text.toLowerCase().includes(searchTerm.toLowerCase())):u;const chosen=u.find(x=>selectedUtt&&x.assetId===selectedUtt.assetId&&Math.abs(x.start-selectedUtt.start)<.02)||u[0];const saved=p.transcriptProgress?.[p.selectedAsset],resumeCheck=saved?.nextAt>0&&saved?.status!=='complete'&&a?.file?checkTranscriptionResume(saved,a,a.file,{model:p.settings.whisperModel}):null;
+ const gapRows=(p.transcriptGaps?.[p.selectedAsset]||[]).slice(0,30),gapRetry=p.transcriptGapRetries?.[p.selectedAsset];html=`<div class="info"><b>SRT subtitles are preferred.</b> Import the matching original-timestamp .srt/.vtt. Whisper is optional; it won't silently replace the original subtitles.</div>
 <div class="srt-primary">
 <h3>Step 1 · Import SRT subtitles</h3>
 <label class="field">Original video for these SRT subtitles<select id="transcriptAsset">${p.assets.map(x=>`<option value="${x.id}" ${x.id===p.selectedAsset?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
@@ -158,7 +160,11 @@ function renderInspector(){const target=$('inspectorContent');$('inspectorTitle'
 <option value="whisper" ${activeCaption.active==='whisper'?'selected':''} ${!activeCaption.whisperCount?'disabled':''}>Whisper · ${activeCaption.whisperCount} words</option>
 ${activeCaption.active==='none'?'<option value="none" selected>No subtitle file yet</option>':''}
 </select></label><p id="captionTrackStatus" class="tiny muted">${esc(captionStatus(p,p.selectedAsset))}</p>
-</div><div class="separator"></div><h3>Step 2 · Optional Whisper transcription</h3><p class="tiny muted">Use this when no SRT exists or when comparing transcripts. An imported SRT stays active until you explicitly switch sources.</p><div class="row"><button id="transcribeBtn" class="primary" ${!a||asrBusy?'disabled':''}>${asrBusy?'Processing…':saved?.status!=='complete'&&saved?.nextAt>0?'Resume from '+fmt(saved.nextAt):'Run local Whisper'}</button><button id="cancelAsr" ${!asrBusy?'disabled':''}>Cancel</button></div><div id="asrStatus" class="tiny muted" style="padding:8px 0">${asrBusy?'Processing':saved?.nextAt?`${esc(saved.status||'Paused')} · ${fmt(saved.nextAt)} / ${fmt(saved.total||a?.duration||0)} processed and saved`:'Whisper runs locally; long videos are decoded in small windows, with resumable checkpoints.'}</div>${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length?`<div class="info">${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length} words have estimated timestamps (the model lacked attention-based alignment). Subtitle timing can be refined manually; wording is transcribed normally.</div>`:''}<div class="progress"><i id="asrProgress"></i></div><div class="info" style="margin-top:8px"><strong>Live Whisper subtitles</strong><div id="liveCaptionPreview" aria-live="polite" style="font-size:14px;margin:8px 0;min-height:24px">${esc(p.words.filter(w=>w.assetId===p.selectedAsset).slice(-12).map(w=>w.text).join(' ')||'Captions will appear as each Whisper chunk completes.')}</div><div class="tiny muted" id="liveTranscriptStream">Chunk-by-chunk recognition updates here while the model runs.</div><label class="checkrow"><input type="checkbox" id="followWhisperCaptions" ${followWhisperCaptions?'checked':''}>Follow newly recognized captions in video preview</label></div><div class="info">${(p.transcriptGaps?.[p.selectedAsset]||[]).length} possible untranscribed audio intervals. These may be speech, music, or other sounds.</div><button id="retryAllGaps" ${!(p.transcriptGaps?.[p.selectedAsset]||[]).length||asrBusy?'disabled':''}>Retry ALL suspected transcript gaps</button><div class="separator"></div><div class="info" id="subtitleSyncControls">
+</div><div class="separator"></div><h3>Step 2 · Optional Whisper transcription</h3><p class="tiny muted">Use this when no SRT exists or when comparing transcripts. An imported SRT stays active until you explicitly switch sources.</p><div class="row"><button id="transcribeBtn" class="primary" ${!a||asrBusy?'disabled':''}>${asrBusy?'Processing…':saved?.status!=='complete'&&saved?.nextAt>0?(resumeCheck?.allowed?'Resume from '+fmt(saved.nextAt):'Resume needs verification'):'Run local Whisper'}</button><button id="restartTranscription" ${!a||asrBusy?'disabled':''} title="Restart this file transcription from time zero; original SRT remains untouched">Restart</button><button id="cancelAsr" ${!asrBusy?'disabled':''}>Cancel</button></div><div id="asrStatus" class="tiny muted" style="padding:8px 0">${asrBusy?'Processing':saved?.nextAt?`${esc(saved.status==='working'?'Interrupted / resume required':saved.status||'Paused')} · ${fmt(saved.nextAt)} / ${fmt(saved.total||a?.duration||0)} saved · ${saved.windows?.length||0} verified window(s). ${resumeCheck&&!resumeCheck.allowed?esc(resumeCheck.reason):'You can resume from the last committed window.'}`:'Whisper processes local audio in small windows and saves after each completed window.'}</div>${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length?`<div class="info">${p.words.filter(w=>w.assetId===p.selectedAsset&&w.timing==='estimated').length} words have estimated timestamps (the model lacked attention-based alignment). Subtitle timing can be refined manually; wording is transcribed normally.</div>`:''}<div class="progress"><i id="asrProgress"></i></div><div class="info" style="margin-top:8px"><strong>Live Whisper subtitles</strong><div id="liveCaptionPreview" aria-live="polite" style="font-size:14px;margin:8px 0;min-height:24px">${esc(p.words.filter(w=>w.assetId===p.selectedAsset).slice(-12).map(w=>w.text).join(' ')||'Captions will appear as each Whisper chunk completes.')}</div><div class="tiny muted" id="liveTranscriptStream">Chunk-by-chunk recognition updates here while the model runs.</div><label class="checkrow"><input type="checkbox" id="followWhisperCaptions" ${followWhisperCaptions?'checked':''}>Follow newly recognized captions in video preview</label></div><div class="info">${(p.transcriptGaps?.[p.selectedAsset]||[]).length} possible untranscribed audio intervals. These may be speech, music, or other sounds, so retries alone do NOT verify or dismiss them.</div>
+ <button id="retryAllGaps" ${!gapRows.length||asrBusy?'disabled':''}>${gapRetry?.status==='paused'?'Resume saved gap retries':'Retry suspected transcript gaps'}</button>
+ <p class="tiny muted">${gapRetry?.completedIndexes?.length||0} gap windows saved in this retry plan. Only your explicit "Mark reviewed" action clears an audio flag.</p>
+ <details class="humor-advanced" id="transcriptGapReview"><summary>Review flagged source audio · ${gapRows.length} shown</summary>
+ <div class="stack">${gapRows.map((g,i)=>'<article class="tiny"><div class="row between wrap"><span><b>Flag '+(i+1)+'</b> · '+fmt(g.start)+'–'+fmt(g.end)+'</span><div class="row tight"><button class="small" data-gap-listen="'+i+'">Listen to original</button><button class="small" data-gap-confirm="'+i+'" title="Only after listening and checking original media">Mark reviewed</button></div></div><p class="muted tiny">Active audio was not covered by recognized words. It may be music, effects, or missing speech.</p></article>').join('')||'<p class="muted tiny">No flagged audio left for this source.</p>'}</div></details><div class="separator"></div><div class="info" id="subtitleSyncControls">
   <b>Subtitle synchronization · ${esc(a?.name||'Select original video')}</b>
   <p class="tiny muted">Subtitles use the original video timestamps. After relinking or converting a recording, verify a spoken phrase at the beginning AND near the end. These controls shift captions without rewriting your saved transcript or changing clip cuts.</p>
   <label class="field">Subtitle offset (seconds: positive = later; negative = earlier)
@@ -699,62 +705,138 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
  on('previewVoice',()=>{try{previewSpeech($('narrationScript')?.value||'',p.settings.browserVoiceName,p.settings.ttsSpeed)}catch(e){toast(e.message,true)}});
  on('stopVoice',stopSpeech);
  on('generateVoice',async()=>{const script=$('narrationScript')?.value?.trim();if(!script)return toast('Enter narration text first',true);voiceKey=$('voiceApiKey')?.value||voiceKey;if(!confirm('Send this narration text to the configured speech-generation service?'))return;const button=$('generateVoice');button.disabled=true;try{const file=await synthesizeSpeech(script,{endpoint:p.settings.ttsEndpoint,model:p.settings.ttsModel,voice:p.settings.ttsVoice,speed:p.settings.ttsSpeed,apiKey:voiceKey});const at=engine.time;const a=await addFile(file);commit();p.audio.push({id:uid(),assetId:a.id,start:at,sourceStart:0,duration:Math.min(a.duration||duration(p)-at,Math.max(.2,duration(p)-at)),volume:1,role:'voice'});update();toast('Generated speech added as an editable audio overlay')}catch(e){toast(`Voice generation: ${e.message}`,true)}finally{if(button)button.disabled=false}});
- on('removeAsset',async()=>{if(!confirm('Remove source and all its timeline segments?'))return;const id=p.selectedAsset;commit();p.assets=p.assets.filter(x=>x.id!==id);p.words=p.words.filter(w=>w.assetId!==id);if(p.subtitleTracks)delete p.subtitleTracks[id];p.segments=p.segments.filter(s=>s.assetId!==id);p.audio=p.audio.filter(s=>s.assetId!==id);p.selectedAsset=p.assets[0]?.id||null;assets.get(id)?.url&&URL.revokeObjectURL(assets.get(id).url);assets.delete(id);savedHandles.delete(id);/* Source caches are shared by saved library project versions. Explicitly clear cached media in Settings when desired. */update()});
+ on('removeAsset',async()=>{if(!confirm('Remove source and all its timeline segments?'))return;const id=p.selectedAsset;commit();p.assets=p.assets.filter(x=>x.id!==id);p.words=p.words.filter(w=>w.assetId!==id);if(p.subtitleTracks)delete p.subtitleTracks[id];for(const key of ['transcriptProgress','transcriptGaps','transcriptGapRetries','transcriptGapReviewed'])if(p[key])delete p[key][id];p.segments=p.segments.filter(s=>s.assetId!==id);p.audio=p.audio.filter(s=>s.assetId!==id);p.selectedAsset=p.assets[0]?.id||null;assets.get(id)?.url&&URL.revokeObjectURL(assets.get(id).url);assets.delete(id);savedHandles.delete(id);/* Source caches are shared by saved library project versions. Explicitly clear cached media in Settings when desired. */update()});
  on('insertTranscript',()=>{if(!p.selectedAsset)return toast('Select a source first',true);const value=$('pasteTranscript').value.trim();if(!value)return toast('Paste transcript text first',true);commit();const a=asset(p.selectedAsset);p.words.push(...timeWords(value,a.id,0,Math.max(10,a.duration)));update();toast('Transcript text added with approximate timestamps; review alignment')});
+ on('restartTranscription',()=>{
+  const a=asset(p.selectedAsset);
+  if(!a?.file||asrBusy)return toast('Relink original media or stop transcription first.',true);
+  if(!confirm('Restart Whisper from time zero for this source? Previous Whisper-only captions and checkpoints will be replaced. Imported SRT remains untouched.'))return;
+  commit('Restart Whisper from start');
+  if(p.transcriptProgress)delete p.transcriptProgress[a.id];
+  if(p.transcriptGaps)p.transcriptGaps[a.id]=[];
+  if(p.transcriptGapRetries)delete p.transcriptGapRetries[a.id];
+  beginWhisperCaptionRun(p,a.id,{resume:false});
+  update();$('transcribeBtn')?.click();
+ });
  on('transcribeBtn',async()=>{
- const a=asset(p.selectedAsset);
- if(!a?.file)return toast('Relink source media to transcribe',true);
- if(asrBusy)return;
- p.transcriptProgress||={};p.transcriptGaps||={};
- const prev=p.transcriptProgress[a.id];
- const startAt=prev?.status!=='complete'&&Number(prev?.nextAt)>0?Math.min(Number(prev.nextAt),a.duration):0;
- if(!startAt){commit('Starting transcription');p.transcriptGaps[a.id]=[]}
- beginWhisperCaptionRun(p,a.id,{resume:!!startAt});
- p.transcriptProgress[a.id]={nextAt:startAt,total:a.duration,status:'working'};
- asrBusy=true;asrStop=false;renderInspector();
- try{
-  const result=await transcribe(a.file,a.id,p.settings,asrProgress,()=>asrStop,{
-   durationHint:a.duration,startAt,
-   onPartial:async info=>{
-    // Keep already completed words visible in CC immediately after every Whisper window.
-    appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
-    if(p.selectedAsset===a.id){
-     const text=info.words.map(w=>w.text).join(' ');
-     const live=$('liveCaptionPreview');if(live&&text)live.textContent=text;
-     const status=$('liveTranscriptStream');if(status)status.textContent=`Recognized ${fmt(info.from)}–${fmt(info.to)} · ${info.words.length} new words`;
-     const last=info.words.at(-1);
-     if(followWhisperCaptions&&last&&!engine.playing){
-      const target=sourceToTimelineTime(p.segments,a.id,(last.start+last.end)/2);
-      if(target!==null)engine.seek(target).catch(()=>{});
-     }else engine.draw();
+  const a=asset(p.selectedAsset);
+  if(!a?.file)return toast('Relink original media to transcribe',true);
+  if(asrBusy)return;
+  p.transcriptProgress||={};p.transcriptGaps||={};
+  const prev=p.transcriptProgress[a.id];let startAt=0;
+  if(prev?.status!=='complete'&&Number(prev?.nextAt)>0){
+   const proof=checkTranscriptionResume(prev,a,a.file,{model:p.settings.whisperModel});
+   if(!proof.allowed)return toast('Resume blocked: '+proof.reason+' Choose Restart to reprocess safely from zero.',true);
+   startAt=proof.startAt;
+  }
+  const signature=transcriptionSourceSignature(a,a.file);
+  if(!startAt){commit('Starting local Whisper');p.transcriptGaps[a.id]=[]}
+  beginWhisperCaptionRun(p,a.id,{resume:!!startAt});
+  p.transcriptProgress[a.id]=startAt?{...prev,status:'working'}:{
+   status:'working',nextAt:0,total:a.duration,sourceSignature:signature,model:p.settings.whisperModel,windows:[]};
+  asrBusy=true;asrStop=false;renderInspector();
+  try{
+   const result=await transcribe(a.file,a.id,p.settings,asrProgress,()=>asrStop,{
+    durationHint:a.duration,startAt,checkpointEvery:1,
+    onPartial:async info=>{
+     appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
+     if(p.selectedAsset===a.id){
+      const text=info.words.map(w=>w.text).join(' ');
+      const live=$('liveCaptionPreview');if(live&&text)live.textContent=text;
+      const status=$('liveTranscriptStream');
+      if(status)status.textContent='Recognized '+fmt(info.from)+'–'+fmt(info.to)+' · '+info.words.length+' new words (not yet checkpointed)';
+      const last=info.words.at(-1);
+      if(followWhisperCaptions&&last&&!engine.playing){
+       const target=sourceToTimelineTime(p.segments,a.id,(last.start+last.end)/2);
+       if(target!==null)engine.seek(target).catch(()=>{});
+      }else engine.draw();
+     }
+    },
+    onCheckpoint:async cp=>{
+     const previous=p.transcriptProgress[a.id],priorGaps=p.transcriptGaps[a.id];
+     const next=nextTranscriptionCheckpoint(previous,cp,{signature,model:p.settings.whisperModel});
+     finishWhisperCaptionRun(p,a.id,reconcileWords);
+     p.transcriptGaps[a.id]=mergeGapFlags([...priorGaps,...cp.gaps]);
+     p.transcriptProgress[a.id]=next;
+     try{await saveProject({...p,assets:p.assets.map(({url,file,...rest})=>rest)})}
+     catch(e){p.transcriptProgress[a.id]=previous;p.transcriptGaps[a.id]=priorGaps;throw Error('Transcript checkpoint not saved: '+e.message)}
+     asrProgress(cp.to/cp.total,'Saved '+fmt(cp.to)+' / '+fmt(cp.total)+' · '+next.verifiedWindows+' consecutive windows');
     }
-   },
-   onCheckpoint:async cp=>{
-    // Words were already appended by onPartial; do not double-insert them at save time.
-    p.transcriptGaps[a.id].push(...cp.gaps);
-    p.transcriptProgress[a.id]={nextAt:cp.nextAt,total:cp.total,status:'paused'};
-    await saveProject({...p,assets:p.assets.map(({url,file,...rest})=>rest)});
-    asrProgress(cp.nextAt/cp.total,`Saved ${fmt(cp.nextAt)} / ${fmt(cp.total)} · ${p.words.filter(w=>w.assetId===a.id).length} words`);
-   }
-  });
-  const completed=finishWhisperCaptionRun(p,a.id,reconcileWords);
-  const sourceWords=p.subtitleTracks[a.id].whisper;
-  p.transcriptProgress[a.id]={nextAt:result.total,total:result.total,status:'complete'};
-  await save(false);update();
-  toast(`Completed ${fmt(result.total)} of audio. ${sourceWords.length} words saved.`+(completed.keptSrt?' Original SRT subtitles stay active.':' Review Whisper subtitle timing.'));
- }catch(e){
-  const progress=p.transcriptProgress[a.id];if(progress)progress.status='paused';
-  await save(false);
-  toast(`${asrStop?'Paused':'Transcription stopped'} at ${fmt(progress?.nextAt||0)}. ${e.message}. Use Resume to continue without restarting.`,!asrStop);
- }finally{asrBusy=false;asrStop=false;renderInspector()}
-});
- on('retryAllGaps',async()=>{const a=asset(p.selectedAsset),gaps=p.transcriptGaps?.[a?.id]||[];if(!a?.file||!gaps.length)return toast('No gaps to retry or media file missing',true);asrBusy=true;asrStop=false;renderInspector();try{const extra=await retryGaps(a.file,a.id,p.settings,gaps,asrProgress,()=>asrStop,{durationHint:a.duration});commit();if(getCaptionTrack(p,a.id).active==='srt'){
-   p.subtitleTracks[a.id].whisper=reconcileWords([...(p.subtitleTracks[a.id].whisper||[]),...extra]);
-  }else{
-   p.words=p.words.filter(w=>w.assetId!==a.id).concat(reconcileWords([...p.words.filter(w=>w.assetId===a.id),...extra]));
-   if(p.subtitleTracks?.[a.id])p.subtitleTracks[a.id].whisper=p.words.filter(w=>w.assetId===a.id);
-  }p.transcriptGaps[a.id]=gaps.filter(g=>!extra.some(w=>w.start<g.end&&w.end>g.start));update();toast(`Retried ${gaps.length} flagged intervals; ${p.transcriptGaps[a.id].length} still unresolved. Review every flagged span.`)}catch(e){toast(`Gap retry failed: ${e.message}`,true)}finally{asrBusy=false;renderInspector()}});
- on('cancelAsr',()=>{asrStop=true;toast('Stopping after the current recognition chunk')});
+   });
+   const completed=finishWhisperCaptionRun(p,a.id,reconcileWords);
+   const prior=p.transcriptProgress[a.id];
+   p.transcriptProgress[a.id]={...prior,nextAt:result.total,total:result.total,status:'complete',completedAt:Date.now()};
+   if(!(await save(false))){p.transcriptProgress[a.id]=prior;throw Error('Final transcription status failed to save. Resume from the last verified checkpoint.')}
+   update();
+   toast('Completed and saved '+fmt(result.total)+' of real audio with '+p.subtitleTracks[a.id].whisper.length+' Whisper words.'+(completed.keptSrt?' SRT stays active.':' Review estimated times.'));
+  }catch(e){
+   const progress=p.transcriptProgress[a.id];if(progress)progress.status='paused';
+   const stored=await save(false);
+   toast('Whisper '+(asrStop?'paused':'stopped')+' at '+fmt(progress?.nextAt||0)+'. '+e.message+(stored?' Verified windows can be resumed.':' Save failed; newer audio has NOT been verified as stored.'),!asrStop);
+  }finally{asrBusy=false;asrStop=false;renderInspector()}
+ });
+ on('retryAllGaps',async()=>{
+  const a=asset(p.selectedAsset),gaps=p.transcriptGaps?.[a?.id]||[];
+  if(!a?.file||!gaps.length)return toast('No flagged intervals, or original media is missing.',true);
+  if(asrBusy)return;
+  const plan=gapRetryPlan(gaps,a,a.file,p.settings.whisperModel),targets=gapRetryTargets(gaps);
+  p.transcriptGapRetries||={};
+  const saved=p.transcriptGapRetries[a.id];
+  if(saved?.key===plan.key&&saved.status==='complete'&&saved.completedIndexes?.length===targets.length)
+   return toast('Every window was retried. Listen to the original flagged audio and confirm it manually.');
+  const checkpoint=saved?.key===plan.key?saved:{key:plan.key,completedIndexes:[],status:'paused',startedAt:Date.now()};
+  commit('Start or resume saved gap retries');
+  p.transcriptGapRetries[a.id]=checkpoint;
+  beginWhisperCaptionRun(p,a.id,{resume:true});
+  asrBusy=true;asrStop=false;renderInspector();
+  try{
+   await retryGaps(a.file,a.id,p.settings,gaps,asrProgress,()=>asrStop,{
+    durationHint:a.duration,completedIndexes:checkpoint.completedIndexes,
+    onCheckpoint:async info=>{
+     const prior=p.transcriptGapRetries[a.id];
+     appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
+     finishWhisperCaptionRun(p,a.id,reconcileWords);
+     p.transcriptGapRetries[a.id]={...prior,completedIndexes:[...new Set([...prior.completedIndexes,info.targetIndex])].sort((x,y)=>x-y),
+      lastSavedAt:Date.now(),status:'paused'};
+     try{await saveProject({...p,assets:p.assets.map(({url,file,...rest})=>rest)})}
+     catch(e){p.transcriptGapRetries[a.id]=prior;throw Error('Gap-window checkpoint not saved: '+e.message)}
+    }
+   });
+   const before=p.transcriptGapRetries[a.id];
+   p.transcriptGapRetries[a.id]={...before,status:'complete',completedAt:Date.now()};
+   if(!(await save(false))){p.transcriptGapRetries[a.id]=before;throw Error('Final gap retry status did not save')}
+   update();
+   toast('Saved '+targets.length+' retried audio windows. All '+gaps.length+' original flags remain until you listen and verify them.');
+  }catch(e){
+   if(p.transcriptGapRetries?.[a.id])p.transcriptGapRetries[a.id].status='paused';
+   update();toast('Gap retry stopped: '+e.message+'. Previously committed windows are retained for resume.',!asrStop);
+  }finally{asrBusy=false;asrStop=false;renderInspector()}
+ });
+ c.querySelectorAll('[data-gap-listen]').forEach(button=>button.onclick=()=>{
+  const a=asset(p.selectedAsset),gap=p.transcriptGaps?.[a?.id]?.[Number(button.dataset.gapListen)];
+  if(!a?.url||!gap)return toast('Reconnect original audio/video before listening.',true);
+  const dialog=$('sourceEvidenceDialog'),video=$('sourceEvidenceVideo'),canvas=$('sourceEvidenceCanvas'),label=$('sourceEvidenceLabel');
+  if(!dialog||!video)return toast('Source audio player is missing.',true);
+  video.pause();video.onseeked=null;video.onloadeddata=null;video.muted=false;video.controls=true;
+  video.onloadedmetadata=()=>{video.currentTime=Math.min(Math.max(0,video.duration-.1),gap.start)};
+  video.src=a.url;video.load();
+  if(canvas){canvas.width=1;canvas.height=1}
+  if(label)label.textContent='ORIGINAL '+a.name+' · '+fmt(gap.start)+'–'+fmt(gap.end)+' · audio enabled. Press Play, then check whether speech is missing.';
+  dialog.showModal();
+ });
+ c.querySelectorAll('[data-gap-confirm]').forEach(button=>button.onclick=()=>{
+  if(asrBusy)return toast('Stop active Whisper processing before marking audio reviewed.',true);
+  const a=asset(p.selectedAsset),idx=Number(button.dataset.gapConfirm),gap=p.transcriptGaps?.[a?.id]?.[idx];
+  if(!gap)return;
+  if(!confirm('Have you listened to ORIGINAL '+a.name+' audio at '+fmt(gap.start)+'–'+fmt(gap.end)+' and confirmed no further transcription is required?'))return;
+  commit('Mark audio gap reviewed by owner');
+  p.transcriptGapReviewed||={};p.transcriptGapReviewed[a.id]||=[];
+  p.transcriptGapReviewed[a.id].push({start:gap.start,end:gap.end,reviewedAt:Date.now(),confirmation:'owner-audio-review'});
+  p.transcriptGaps[a.id].splice(idx,1);
+  if(p.transcriptGapRetries)delete p.transcriptGapRetries[a.id];
+  update();toast('Source interval marked reviewed and removed from unresolved flags. Review evidence remains stored.');
+ });
+ on('cancelAsr',()=>{asrStop=true;toast('Stopping after the current local audio window')});
  const srt=$('srtUpload');if(srt)srt.onchange=async()=>{
   if(!p.selectedAsset)return toast('Choose a source',true);
   const file=srt.files?.[0];srt.value='';if(!file)return;
@@ -901,7 +983,7 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
    if(!original?.url)throw Error('Relink the original '+receipt.name+' video before viewing source frames.');
    const dialog=$('sourceEvidenceDialog'),video=$('sourceEvidenceVideo'),canvas=$('sourceEvidenceCanvas'),label=$('sourceEvidenceLabel');
    if(!dialog||!video||!canvas)throw Error('Source frame viewer is unavailable.');
-   video.pause();video.onloadedmetadata=null;video.onseeked=null;video.onloadeddata=null;
+   video.pause();video.muted=true;video.onloadedmetadata=null;video.onseeked=null;video.onloadeddata=null;
    const draw=()=>{
     if(video.readyState<2||!video.videoWidth)return;
     const width=Math.min(480,video.videoWidth),height=Math.max(1,Math.round(width*video.videoHeight/video.videoWidth));
