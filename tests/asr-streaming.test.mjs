@@ -10,7 +10,8 @@ test('full three-hour transcription uses bounded windows and preserves duration'
  assert.ok(ranges.every(([a,b])=>b-a<=23&&a>=0&&b<=10800));
  assert.equal(checkpoints.at(-1).nextAt,10800);
  assert.ok(progress.at(-1)===1);
- assert.ok(checkpoints.length>=170&&checkpoints.length<=181);
+ assert.equal(checkpoints.length,540,'Every bounded original-source window must commit independently.');
+ assert.ok(checkpoints.every((c,i)=>i===0?c.from===0:c.from===checkpoints[i-1].to),'Saved windows must have consecutive source-time boundaries');
 });
 test('resume starts at last saved checkpoint, never decodes first hours again',async()=>{
  const windows=[],reader={duration:10800,async readRange(a,b){windows.push([a,b]);return new Float32Array(32)}};
