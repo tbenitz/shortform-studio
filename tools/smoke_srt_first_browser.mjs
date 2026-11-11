@@ -73,5 +73,23 @@ try{
   return p?.compilationOrder?.length>=1&&p?.subtitleTracks?.[p.assets?.[0]?.id]?.active==='srt';
  },null,{timeout:14000});
  console.log('PASS: Score-grounded source clip ranking, reaction filter, real diversified selection, unchanged SRT captions.');
+ if(!(await page.locator('#humorCallbacksPanel').count()))throw Error('New callback review UI unavailable');
+ if(!(await page.locator('.humor-source-beats').count()))throw Error('Actual SRT opening/ending receipts unavailable in clip suggestions');
+ await page.locator('[data-tab="editor"]').click();
+ await page.waitForFunction(()=>document.querySelector('#cropCompareToggle')&&document.querySelector('[data-edit="cropEasing"]'),null,{timeout:5000});
+ await page.locator('[data-edit="cropEasing"]').selectOption('ease-out');
+ await page.locator('#cropCompareToggle').click();
+ await page.waitForFunction(()=>document.querySelector('#cropCompareSource')?.width===260&&document.querySelector('#cropCompareHint')?.textContent?.includes('decoded source'),null,{timeout:14000});
+ const check=await page.evaluate(()=>{
+  const source=document.querySelector('#cropCompareSource'),final=document.querySelector('#cropCompareOutput');
+  return {sourceSize:[source.width,source.height],outputSize:[final.width,final.height],status:document.querySelector('#cropCompareHint').textContent};
+ });
+ if(!check.outputSize[0]||!check.outputSize[1])throw Error('Program output crop pane did not render: '+JSON.stringify(check));
+ await page.locator('#saveProject').click();
+ await page.waitForFunction(async()=>{
+  const p=await (await import('./src/storage.js')).loadProject();return p?.segments?.some(s=>s.cropEasing==='ease-out')
+ },null,{timeout:14000});
+ console.log('PASS: Browser source-frame comparison and easing control use the selected real video and save edited keyframes.');
+ if(!(await page.locator('#sourceEvidenceDialog').count()))throw Error('Original source frame evidence viewer missing');
  if(errors.length)throw Error('Unexpected JS errors: '+errors.join(' | '));
 }finally{await browser?.close();server.kill('SIGTERM')}
