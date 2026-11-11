@@ -155,3 +155,23 @@ body:not(.simple-ui) .workspace{grid-template-columns:minmax(222px,19%) minmax(4
 @media(max-width:1230px){.simple-ui .workspace{grid-template-columns:minmax(185px,18%) minmax(330px,1fr) minmax(280px,26%)}.guide-stages{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.simple-ui .workspace,body:not(.simple-ui) .workspace{display:flex;flex-direction:column;grid-template-columns:none}.studio-guide{padding:10px}.guide-stages{grid-template-columns:repeat(5,minmax(0,1fr))}.guide-bottom{flex-wrap:wrap}}
 @media(max-width:450px){.guide-stages{grid-template-columns:repeat(3,minmax(0,1fr))}.guide-message{flex-direction:column;align-items:stretch}.guide-message button{max-width:none}.inspector-content{padding:11px}.srt-primary,.clip-selection-controls{padding:10px}}
+
+
+/* v2.1 real-source callback evidence, POV frame receipts and crop review. */
+.humor-source-beats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:6px 0}
+.humor-source-beats>div{background:#101b2a;border-left:3px solid #4a9a92;border-radius:7px;padding:8px;min-width:0}
+.humor-source-beats b{display:block;color:#afdcd5;font-size:10px;margin-bottom:4px}
+.humor-source-beats span{display:block;color:#d2e1eb;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.humor-cutoff-warning{padding:9px;background:#342a20;color:#f8cda6;border:1px solid #876345;border-radius:8px;font-size:11px;line-height:1.5}
+.callback-card{border-color:#4b766f}
+.crop-compare{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:12px 0}
+.crop-compare>div{min-width:0;border:1px solid #39556a;background:#0c1624;border-radius:9px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.crop-compare b{font-size:10px;color:#bddae2;text-align:center}
+.crop-compare canvas{width:100%;height:auto;max-height:205px;object-fit:contain;border-radius:5px;background:#090d13}
+.source-evidence-dialog{border:1px solid #4e7b82;background:#121d2b;color:#deebf1;border-radius:13px;width:min(960px,95vw);max-height:95vh;overflow:auto;box-shadow:0 25px 100px #000a;padding:18px}
+.source-evidence-dialog::backdrop{background:rgba(0,0,0,.78)}
+.evidence-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:13px 0}
+.evidence-layout>div{min-width:0;display:grid;gap:7px}
+.evidence-layout video,.evidence-layout canvas{display:block;width:100%;height:auto;max-height:380px;object-fit:contain;border:1px solid #335064;border-radius:8px;background:#080d16}
+.evidence-layout small{color:#a4c7ce}
+@media(max-width:650px){.humor-source-beats,.crop-compare,.evidence-layout{grid-template-columns:1fr}.source-evidence-dialog{padding:10px}.source-evidence-dialog video{max-height:250px}}
