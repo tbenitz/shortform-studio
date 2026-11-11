@@ -26,6 +26,6 @@ test('failed/cancelled operation flushes prior completed work to callback',async
  await assert.rejects(transcribeWithReader(reader,'video',{transcriptionChunk:20,transcriptionTiming:'plain'},whisper,()=>{},()=>count>=2,{
   onCheckpoint:async info=>saved.push(info)
  }),/paused/);
- assert.ok(saved.length>=1);assert.ok(saved[0].nextAt>=40);
+ assert.equal(saved.length,2,'Each completed 20-second window must now save immediately.');assert.deepEqual(saved.map(x=>x.nextAt),[20,40]);
 });
 test('gap flags from neighboring windows merge safely',()=>{assert.equal(mergeGapFlags([{start:1,end:2},{start:2.1,end:3}]).length,1)});
