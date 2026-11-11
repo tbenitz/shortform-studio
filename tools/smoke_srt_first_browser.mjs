@@ -90,6 +90,12 @@ try{
   const p=await (await import('./src/storage.js')).loadProject();return p?.segments?.some(s=>s.cropEasing==='ease-out')
  },null,{timeout:14000});
  console.log('PASS: Browser source-frame comparison and easing control use the selected real video and save edited keyframes.');
+ await page.locator('[data-tab="transcript"]').click();
+ if(!(await page.locator('#restartTranscription').count()))throw Error('Explicit Whisper restart is missing');
+ if(!(await page.locator('#transcriptGapReview').count()))throw Error('Review-before-dismiss-original-audio interval UI is missing');
+ if((await page.locator('#captionTrackChoice').inputValue())!=='srt')throw Error('New checkpoint UI replaced the imported SRT default');
+ console.log('PASS: Whisper restart and original-audio retry review controls are available without replacing the active SRT.');
+
  if(!(await page.locator('#sourceEvidenceDialog').count()))throw Error('Original source frame evidence viewer missing');
  if(errors.length)throw Error('Unexpected JS errors: '+errors.join(' | '));
 }finally{await browser?.close();server.kill('SIGTERM')}
