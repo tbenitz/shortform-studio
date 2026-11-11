@@ -51,7 +51,7 @@ export function wordsFromResult(result,assetId,offset,length,mode='word'){
  return words;
 }
 export function reconcileWords(words,eps=.12){
- const ordered=(words||[]).filter(w=>Number.isFinite(w?.start)&&Number.isFinite(w?.end)&&w.end>w.start).sort((a,b)=>a.assetId.localeCompare(b.assetId)||a.start-b.start||a.end-b.end),out=[];
+ const ordered=(words||[]).filter(w=>Number.isFinite(w?.start)&&Number.isFinite(w?.end)&&w.end>w.start).sort((a,b)=>String(a.assetId||'').localeCompare(String(b.assetId||''))||a.start-b.start||a.end-b.end),out=[];
  const normalized=x=>String(x||'').toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g,'');
  for(const w of ordered){
   let duplicate=false;
