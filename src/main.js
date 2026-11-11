@@ -775,13 +775,68 @@ c.querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{commit();const k
    toast('Whisper '+(asrStop?'paused':'stopped')+' at '+fmt(progress?.nextAt||0)+'. '+e.message+(stored?' Verified windows can be resumed.':' Save failed; newer audio has NOT been verified as stored.'),!asrStop);
   }finally{asrBusy=false;asrStop=false;renderInspector()}
  });
- on('retryAllGaps',async()=>{const a=asset(p.selectedAsset),gaps=p.transcriptGaps?.[a?.id]||[];if(!a?.file||!gaps.length)return toast('No gaps to retry or media file missing',true);asrBusy=true;asrStop=false;renderInspector();try{const extra=await retryGaps(a.file,a.id,p.settings,gaps,asrProgress,()=>asrStop,{durationHint:a.duration});commit();if(getCaptionTrack(p,a.id).active==='srt'){
-   p.subtitleTracks[a.id].whisper=reconcileWords([...(p.subtitleTracks[a.id].whisper||[]),...extra]);
-  }else{
-   p.words=p.words.filter(w=>w.assetId!==a.id).concat(reconcileWords([...p.words.filter(w=>w.assetId===a.id),...extra]));
-   if(p.subtitleTracks?.[a.id])p.subtitleTracks[a.id].whisper=p.words.filter(w=>w.assetId===a.id);
-  }p.transcriptGaps[a.id]=gaps.filter(g=>!extra.some(w=>w.start<g.end&&w.end>g.start));update();toast(`Retried ${gaps.length} flagged intervals; ${p.transcriptGaps[a.id].length} still unresolved. Review every flagged span.`)}catch(e){toast(`Gap retry failed: ${e.message}`,true)}finally{asrBusy=false;renderInspector()}});
- on('cancelAsr',()=>{asrStop=true;toast('Stopping after the current recognition chunk')});
+ on('retryAllGaps',async()=>{
+  const a=asset(p.selectedAsset),gaps=p.transcriptGaps?.[a?.id]||[];
+  if(!a?.file||!gaps.length)return toast('No flagged intervals, or original media is missing.',true);
+  if(asrBusy)return;
+  const plan=gapRetryPlan(gaps,a,a.file,p.settings.whisperModel),targets=gapRetryTargets(gaps);
+  p.transcriptGapRetries||={};
+  const saved=p.transcriptGapRetries[a.id];
+  if(saved?.key===plan.key&&saved.status==='complete'&&saved.completedIndexes?.length===targets.length)
+   return toast('Every window was retried. Listen to the original flagged audio and confirm it manually.');
+  const checkpoint=saved?.key===plan.key?saved:{key:plan.key,completedIndexes:[],status:'paused',startedAt:Date.now()};
+  commit('Start or resume saved gap retries');
+  p.transcriptGapRetries[a.id]=checkpoint;
+  beginWhisperCaptionRun(p,a.id,{resume:true});
+  asrBusy=true;asrStop=false;renderInspector();
+  try{
+   await retryGaps(a.file,a.id,p.settings,gaps,asrProgress,()=>asrStop,{
+    durationHint:a.duration,completedIndexes:checkpoint.completedIndexes,
+    onCheckpoint:async info=>{
+     const prior=p.transcriptGapRetries[a.id];
+     appendWhisperCaptionWords(p,a.id,info.words,appendLiveWords);
+     finishWhisperCaptionRun(p,a.id,reconcileWords);
+     p.transcriptGapRetries[a.id]={...prior,completedIndexes:[...new Set([...prior.completedIndexes,info.targetIndex])].sort((x,y)=>x-y),
+      lastSavedAt:Date.now(),status:'paused'};
+     try{await saveProject({...p,assets:p.assets.map(({url,file,...rest})=>rest)})}
+     catch(e){p.transcriptGapRetries[a.id]=prior;throw Error('Gap-window checkpoint not saved: '+e.message)}
+    }
+   });
+   const before=p.transcriptGapRetries[a.id];
+   p.transcriptGapRetries[a.id]={...before,status:'complete',completedAt:Date.now()};
+   if(!(await save(false))){p.transcriptGapRetries[a.id]=before;throw Error('Final gap retry status did not save')}
+   update();
+   toast('Saved '+targets.length+' retried audio windows. All '+gaps.length+' original flags remain until you listen and verify them.');
+  }catch(e){
+   if(p.transcriptGapRetries?.[a.id])p.transcriptGapRetries[a.id].status='paused';
+   update();toast('Gap retry stopped: '+e.message+'. Previously committed windows are retained for resume.',!asrStop);
+  }finally{asrBusy=false;asrStop=false;renderInspector()}
+ });
+ c.querySelectorAll('[data-gap-listen]').forEach(button=>button.onclick=()=>{
+  const a=asset(p.selectedAsset),gap=p.transcriptGaps?.[a?.id]?.[Number(button.dataset.gapListen)];
+  if(!a?.url||!gap)return toast('Reconnect original audio/video before listening.',true);
+  const dialog=$('sourceEvidenceDialog'),video=$('sourceEvidenceVideo'),canvas=$('sourceEvidenceCanvas'),label=$('sourceEvidenceLabel');
+  if(!dialog||!video)return toast('Source audio player is missing.',true);
+  video.pause();video.onseeked=null;video.onloadeddata=null;video.muted=false;video.controls=true;
+  video.onloadedmetadata=()=>{video.currentTime=Math.min(Math.max(0,video.duration-.1),gap.start)};
+  video.src=a.url;video.load();
+  if(canvas){canvas.width=1;canvas.height=1}
+  if(label)label.textContent='ORIGINAL '+a.name+' · '+fmt(gap.start)+'–'+fmt(gap.end)+' · audio enabled. Press Play, then check whether speech is missing.';
+  dialog.showModal();
+ });
+ c.querySelectorAll('[data-gap-confirm]').forEach(button=>button.onclick=()=>{
+  if(asrBusy)return toast('Stop active Whisper processing before marking audio reviewed.',true);
+  const a=asset(p.selectedAsset),idx=Number(button.dataset.gapConfirm),gap=p.transcriptGaps?.[a?.id]?.[idx];
+  if(!gap)return;
+  if(!confirm('Have you listened to ORIGINAL '+a.name+' audio at '+fmt(gap.start)+'–'+fmt(gap.end)+' and confirmed no further transcription is required?'))return;
+  commit('Mark audio gap reviewed by owner');
+  p.transcriptGapReviewed||={};p.transcriptGapReviewed[a.id]||=[];
+  p.transcriptGapReviewed[a.id].push({start:gap.start,end:gap.end,reviewedAt:Date.now(),confirmation:'owner-audio-review'});
+  p.transcriptGaps[a.id].splice(idx,1);
+  if(p.transcriptGapRetries)delete p.transcriptGapRetries[a.id];
+  update();toast('Source interval marked reviewed and removed from unresolved flags. Review evidence remains stored.');
+ });
+ on('cancelAsr',()=>{asrStop=true;toast('Stopping after the current local audio window')});
  const srt=$('srtUpload');if(srt)srt.onchange=async()=>{
   if(!p.selectedAsset)return toast('Choose a source',true);
   const file=srt.files?.[0];srt.value='';if(!file)return;
