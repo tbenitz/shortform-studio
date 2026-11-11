@@ -50,6 +50,24 @@
 
 **Important distinction:** “Control present in the app” means you can try it; it is **not** an owner acceptance, a guarantee of correct output, or proof that all parts of a 494-item master requirement are finished.
 
+## v2.1.0 — Real roadmap implementation wave (owner review pending)
+
+**Code implemented, not owner-approved:** This wave advances previously unstarted master milestones and in-development features with actual editor UI, source-linked computations, and automated tests. All acceptance checkboxes below and in the original master list remain **unchecked** until the owner approves specific IDs.
+
+**What to try:** In **Find Clips & Stories**, look for **Possible running jokes / callbacks**; it finds separate conversations with at least two uncommon spoken subject words from the same recording. Each proposal shows real opening/ending dialogue with source timestamps and warns if an original SRT cue is cut in half. These are *possible* callbacks only, not AI-confirmed comedy. Selecting two callback moments uses the existing compilation workflow with Undo. In **AI Director**, each storyboard cut has **View real frame**, which decodes the user's actual video and shows the source timestamp; it is not a synthetic screenshot or a verified action classifier. Multi-POV story generation checks every automatic camera switch for aligned local audio + decoded-frame motion and exposes uncertain switches. Unsupported switches block automatic story output rather than forcing a second angle. In **Editor**, choose **Show original vs cropped preview side by side**, then adjust the new **Camera keyframe movement** selector for smooth, linear, ease-in, or ease-out motion. The final video renderer shares the exact same curve as the preview.
+
+### New v2.1 owner review — leave unchecked
+- [ ] **R130 · IDEA-001:** Source-grounded callback suggestions link distant, same-video conversations about at least two shared specific subjects. Listen to both before labeling a running joke.
+- [ ] **R131 · IDEA-002 / IDEA-010:** Visible original-timestamp first/last dialogue and missing-cue warnings. Verify suggested extension includes the actual missing setup or reaction.
+- [ ] **R132 · PLAN-055:** Click **View real frame** inside Director and confirm the screenshot is decoded from the actual source file at the displayed timestamp, not an AI reconstruction.
+- [ ] **R133 · PLAN-060–PLAN-062:** Two synchronized original POVs are needed; unsupported cuts are rejected and supported-but-conflicting camera switches disclose uncertainty. Verify on real fight footage.
+- [ ] **R134 · PLAN-065 / PLAN-075:** Zoom/focus transitions support smooth, straight, ease-in and ease-out, without exceeding source boundaries; old projects keep linear until changed.
+- [ ] **R135 · PLAN-066:** Editor shows the same selected decoded frame from the original and current exported crop, updating after seeking and changing crop.
+- [ ] **R136 · Regression safety:** Confirm SRT remains the subtitle default, transcript imports, playlists, favorites, source relinking, voice, Undo and the real MP4 output still work.
+- [ ] **R137 · Real-world quality:** Judge actual joke selection, running-gag false positives, POV evidence, and cropping on long recordings; automated tests cannot approve production quality.
+
+**Engineering progress as of November 11, 2026:** 60 partial slices ready for owner review, 31 in development and 9 not started across existing PLAN-001–PLAN-100. Before this wave: 54 / 32 / 14. No newly accepted items; the 100 IDEA brainstorm items also stay owner-unapproved.
+
 ## v2.0.0 — Better real clips, SRT-first subtitles, simpler app (new code; owner review pending)
 
 **Start here:** Drag your original video and a same-named SRT file in together (for example gameplay.mp4 + gameplay.en.srt). The matching **SRT automatically becomes the default caption and timed transcript**. If you have no SRT, choose **Transcript → Run local Whisper**. If you do have one, Whisper can analyze audio separately without replacing your SRT; you can deliberately switch caption sources.
@@ -120,9 +138,9 @@
 
 ### Engineering status board — PLAN-001–PLAN-100
 
-**Updated November 9, 2026.** This board tracks **engineering progress**, not owner approval. Existing IDs and every owner-acceptance checkbox remain unchanged. A code slice counts as **Ready for owner review** only when its stated narrow behavior is available to try; a broader master requirement may still be incomplete. **In development** means an identifiable partial implementation or supporting code, not a shipped feature. **Not started** means no implementation slice is being claimed here. Revisit statuses after each verified release.
+**Updated November 11, 2026.** This board tracks **engineering progress**, not owner approval. Existing IDs and every owner-acceptance checkbox remain unchanged. A code slice counts as **Ready for owner review** only when its stated narrow behavior is available to try; a broader master requirement may still be incomplete. **In development** means an identifiable partial implementation or supporting code, not a shipped feature. **Not started** means no implementation slice is being claimed here. Revisit statuses after each verified release.
 
-**Status snapshot:** 54 with specific reviewable slices · 32 in development · 14 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
+**Status snapshot (November 11, 2026):** 60 with specific reviewable slices · 31 in development · 9 not started = 100 existing PLAN milestones. **0 accepted through this status update.** R items are deliberately unchecked until explicit owner approval. Prior review slices listed here are based on repository documentation; they have **not** been independently reconfirmed on your footage this turn.
 
 | Owner approval (never automatic) / PLAN ID | Master ID | Engineering status | Scope |
 | --- | --- | --- | --- |
@@ -180,18 +198,18 @@
 | [ ] PLAN-052 | VIS-004 | Not started | Detect relevant visual actions from multiple supporting frames |
 | [ ] PLAN-053 | VIS-006 | In development | Distinguish visually observable actions from inferred outcomes |
 | [ ] PLAN-054 | VIS-009 | In development | Connect action timestamps to corresponding original source frames |
-| [ ] PLAN-055 | VIS-010 | Not started | Show evidence thumbnails and original timestamps for AI conclusions |
+| [ ] PLAN-055 | VIS-010 | Ready for owner review (partial slice) · R132 | Show evidence thumbnails and original timestamps for AI conclusions |
 | [ ] PLAN-056 | VIS-013 | Not started | Use detailed analysis around high-interest event windows |
 | [ ] PLAN-057 | MC-005 | Ready for owner review (partial slice) · R108 | Support user-created synchronization markers |
 | [ ] PLAN-058 | MC-006 | Ready for owner review (partial slice) · R109 | Show and correct sync offset and drift over long recordings |
 | [ ] PLAN-059 | MC-009 | Ready for owner review (partial slice) · R110 | Display which source intervals overlap in original event time |
-| [ ] PLAN-060 | MC-013 | Not started | Flag uncertain or conflicting cross-source event matches |
-| [ ] PLAN-061 | MC-017 | Not started | Switch only when an angle adds relevant story or visual evidence |
-| [ ] PLAN-062 | MC-025 | Not started | Detect unrelated camera shots and reject misleading switches |
+| [ ] PLAN-060 | MC-013 | Ready for owner review (partial slice) · R133 | Flag uncertain or conflicting cross-source event matches |
+| [ ] PLAN-061 | MC-017 | Ready for owner review (partial slice) · R133 | Switch only when an angle adds relevant story or visual evidence |
+| [ ] PLAN-062 | MC-025 | Ready for owner review (partial slice) · R133 | Detect unrelated camera shots and reject misleading switches |
 | [ ] PLAN-063 | CROP-004 | In development | Track moving subjects across the entire selected shot |
 | [ ] PLAN-064 | CROP-006 | Not started | Keep visible faces, captions, gameplay elements, and important text |
-| [ ] PLAN-065 | CROP-009 | In development | Keyframe and ease crop motion between positions |
-| [ ] PLAN-066 | CROP-010 | In development | Preview source-to-output crop side by side |
+| [ ] PLAN-065 | CROP-009 | Ready for owner review (partial slice) · R134 | Keyframe and ease crop motion between positions |
+| [ ] PLAN-066 | CROP-010 | Ready for owner review (partial slice) · R135 | Preview source-to-output crop side by side |
 | [ ] PLAN-067 | CROP-011 | In development | Provide manual focus point and tracking correction controls |
 | [ ] PLAN-068 | CAP-001 | In development | Editable dedicated caption tracks and caption regions |
 | [ ] PLAN-069 | CAP-004 | Ready for owner review (partial slice) · R111 | Manual caption timing, splitting, merging, and retiming |
@@ -200,7 +218,7 @@
 | [ ] PLAN-072 | IDX-010 | In development | Connect visible events with corresponding audio and dialogue |
 | [ ] PLAN-073 | IDX-021 | In development | Use coarse scanning followed by targeted high-detail inspection |
 | [ ] PLAN-074 | TEST-023 | In development | Test different output ratios keep faces, HUD, and text in frame |
-| [ ] PLAN-075 | FX-008 | Not started | Keyframed pan, zoom, and subject-following camera motion |
+| [ ] PLAN-075 | FX-008 | In development | Keyframed pan, zoom, and subject-following camera motion |
 | [ ] PLAN-076 | UX-007 | Ready for owner review (partial slice) · R101 | Global command palette for actions and media search |
 | [ ] PLAN-077 | UX-012 | In development | Small-screen and Chromebook-friendly adaptive layouts |
 | [ ] PLAN-078 | UX-020 | In development | No inert buttons, simulated progress, or deceptive success messages |
@@ -358,8 +376,8 @@ The following are **100 newly brainstormed proposals**, intentionally separate f
 
 #### Humor and dialogue storytelling
 
-- [ ] **IDEA-001** Detect callback jokes referring to earlier conversations — **Not started · brainstorming; definition, implementation and real-media test pending.**
-- [ ] **IDEA-002** Show evidence-linked setup-to-punchline timing — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-001** Detect callback jokes referring to earlier conversations — **Ready for owner review (partial slice) · R130 · actual-source callback pairs with shared topic words, preview and selection; no approval recorded.**
+- [ ] **IDEA-002** Show evidence-linked setup-to-punchline timing — **Ready for owner review (partial slice) · R131 · original timed opening/ending source dialogue receipts; no approval recorded.**
 - [ ] **IDEA-003** Identify interruption and overlapping speech as candidate comic beats — **Not started · brainstorming; definition, implementation and real-media test pending.**
 - [ ] **IDEA-004** Compare retellings of the same joke without cloning cuts — **Not started · brainstorming; definition, implementation and real-media test pending.**
 - [ ] **IDEA-005** Offer an alternate opener drawn from the same authentic exchange — **Not started · brainstorming; definition, implementation and real-media test pending.**
@@ -367,7 +385,7 @@ The following are **100 newly brainstormed proposals**, intentionally separate f
 - [ ] **IDEA-007** Preserve awkward silence as an optional intentional comedic beat — **Not started · brainstorming; definition, implementation and real-media test pending.**
 - [ ] **IDEA-008** Separate spontaneous laughter from AI-inferred humor in all labels — **Not started · brainstorming; definition, implementation and real-media test pending.**
 - [ ] **IDEA-009** Identify a running gag across separate recording sessions — **Not started · brainstorming; definition, implementation and real-media test pending.**
-- [ ] **IDEA-010** Detect a punchline cutoff and offer original-source context — **Not started · brainstorming; definition, implementation and real-media test pending.**
+- [ ] **IDEA-010** Detect a punchline cutoff and offer original-source context — **Ready for owner review (partial slice) · R131 · original SRT cue-level cutoff detection and source extension; no approval recorded.**
 
 #### Visual claims and contextual proof
 
@@ -2867,6 +2885,9 @@ Report any feature as broken using its stable ID. A report goes here **and the i
 | R123–R125 / SRT-caption-source | Owner requests SRT as default subtitle source and no accidental Whisper replacement | 2026-11-10 | v2.0.0 adds SRT-first import, filename-matched sidecars and separate saved tracks; manual review pending | **No** |
 | R126–R127 / CLIP-review-quality | Additional improvements requested for complete funny moments, real conversations and coherent compilations | 2026-11-10 | v2.0.0 adds dialogue evidence ranking, filters, distinct shortlist and full-exchange extension; no guaranteed semantic joke quality | **No** |
 | R128 / ALL-TABS-usability | Multiple tabs too complex with unfamiliar settings and unclear next steps | 2026-11-10 | v2.0.0 adds five-stage navigation, responsive layout and collapsible settings; manual review pending | **No** |
+| R130–R131 / CALLBACK-and-cutoff | Owner wants actual jokes, full setups and meaningful repeated-topic stories | 2026-11-11 | v2.1.0 adds grounded callback pairs, timed first/last SRT excerpts, cue cutoff review and explicit selection; listen to actual clips before approval | **No** |
+| R132–R133 / POV-visual-evidence | Avoid misleading multi-camera changes and invented/unsupported event claims | 2026-11-11 | v2.1.0 adds actual source-frame receipt viewer and per-switch audio/decoded-motion audit; visual action is not classified | **No** |
+| R134–R135 / CROP-comparison-motion | Crop settings need clearer visual proof and smoother camera motion | 2026-11-11 | v2.1.0 adds source-vs-rendered crop panes and shared preview/export easing curves; Chromebook review pending | **No** |
 | R121 / UX-find-clips | Finder/Director controls are too complicated; labels such as heuristic and score lack useful explanation | 2026-11-10 | v1.9.0 adds guided three-goal clip finder, clear provider labels, contextual help and optional advanced controls; Chromebook UI review pending | **No** |
 
 ### Acceptance change record
